@@ -45,8 +45,19 @@ export default function RegisterScreen({ navigation }) {
     setLoading(true);
     try {
       await register(name.trim(), email.trim(), password);
+      // El registro fue exitoso, AuthContext navegará automáticamente
     } catch (e) {
-      setError(e?.response?.data?.error || "Error al registrarse");
+      // Manejo mejorado de errores
+      let errorMessage = "Error al registrarse";
+      if (e?.response?.status === 409) {
+        errorMessage = "Este correo ya está registrado";
+      } else if (e?.response?.data?.error) {
+        errorMessage = e.response.data.error;
+      } else if (e?.message) {
+        errorMessage = e.message;
+      }
+      setError(errorMessage);
+      console.error("Register error:", e);
     } finally {
       setLoading(false);
     }

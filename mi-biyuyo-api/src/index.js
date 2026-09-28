@@ -10,6 +10,11 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+// Root endpoint
+app.get("/", (req, res) =>
+  res.json({ message: "Mi Biyuyo API v1", health: "ok" }),
+);
+
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/categories", require("./routes/categories"));
 app.use("/api/transactions", require("./routes/transactions"));
