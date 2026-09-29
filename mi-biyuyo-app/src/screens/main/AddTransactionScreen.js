@@ -30,10 +30,38 @@ import {
 import { rf, s, spacing, borderRadius } from "../../utils/responsive";
 
 const TYPES = [
-  { key: "income",    label: "Ingreso",      emoji: "📈", desc: "Dinero que recibes",   color: "#22C55E", soft: "#DCFCE7" },
-  { key: "expense",   label: "Gasto",        emoji: "📉", desc: "Dinero que gastas",    color: "#EF4444", soft: "#FEE2E2" },
-  { key: "loan_given",label: "Préstamo dado",emoji: "🤝", desc: "Le prestas a alguien", color: "#6C7FFF", soft: "#EDEDFF" },
-  { key: "debt",      label: "Deuda",        emoji: "💳", desc: "Dinero que debes",     color: "#F59E0B", soft: "#FEF3C7" },
+  {
+    key: "income",
+    label: "Ingreso",
+    emoji: "📈",
+    desc: "Dinero que recibes",
+    color: "#22C55E",
+    soft: "#DCFCE7",
+  },
+  {
+    key: "expense",
+    label: "Gasto",
+    emoji: "📉",
+    desc: "Dinero que gastas",
+    color: "#EF4444",
+    soft: "#FEE2E2",
+  },
+  {
+    key: "loan_given",
+    label: "Préstamo dado",
+    emoji: "🤝",
+    desc: "Le prestas a alguien",
+    color: "#6C7FFF",
+    soft: "#EDEDFF",
+  },
+  {
+    key: "debt",
+    label: "Deuda",
+    emoji: "💳",
+    desc: "Dinero que debes",
+    color: "#F59E0B",
+    soft: "#FEF3C7",
+  },
 ];
 
 export default function AddTransactionScreen({ navigation, route }) {
@@ -106,7 +134,9 @@ export default function AddTransactionScreen({ navigation, route }) {
         keyboardShouldPersistTaps="handled"
       >
         {/* Type selector — grid 2×2 */}
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Tipo de transacción</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>
+          Tipo de transacción
+        </Text>
         <View style={styles.typeGrid}>
           {TYPES.map((t) => {
             const selected = type === t.key;
@@ -115,40 +145,90 @@ export default function AddTransactionScreen({ navigation, route }) {
                 key={t.key}
                 style={[
                   styles.typeCard,
-                  { backgroundColor: colors.surface, borderColor: selected ? t.color : colors.border },
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: selected ? t.color : colors.border,
+                  },
                   selected && { backgroundColor: t.soft },
                 ]}
-                onPress={() => { setType(t.key); setCategoryId(null); setSelectedCategory(null); }}
+                onPress={() => {
+                  setType(t.key);
+                  setCategoryId(null);
+                  setSelectedCategory(null);
+                }}
                 activeOpacity={0.8}
               >
                 <Text style={styles.typeEmoji}>{t.emoji}</Text>
-                <Text style={[styles.typeName, { color: selected ? t.color : colors.text }]}>{t.label}</Text>
-                <Text style={[styles.typeDesc, { color: colors.muted }]}>{t.desc}</Text>
+                <Text
+                  style={[
+                    styles.typeName,
+                    { color: selected ? t.color : colors.text },
+                  ]}
+                >
+                  {t.label}
+                </Text>
+                <Text style={[styles.typeDesc, { color: colors.muted }]}>
+                  {t.desc}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
         {/* Currency selector */}
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Moneda</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>
+          Moneda
+        </Text>
         <View style={styles.currRow}>
           {CURRENCIES.map((c) => (
             <TouchableOpacity
               key={c}
-              style={[styles.currChip, { borderColor: currency === c ? colors.accent : colors.border, backgroundColor: currency === c ? colors.accentSoft : colors.surface }]}
+              style={[
+                styles.currChip,
+                {
+                  borderColor: currency === c ? colors.accent : colors.border,
+                  backgroundColor:
+                    currency === c ? colors.accentSoft : colors.surface,
+                },
+              ]}
               onPress={() => setCurrency(c)}
             >
-              <Text style={[styles.currChipText, { color: currency === c ? colors.accent : colors.muted }]}>{CURRENCY_LABELS[c]}</Text>
+              <Text
+                style={[
+                  styles.currChipText,
+                  { color: currency === c ? colors.accent : colors.muted },
+                ]}
+              >
+                {CURRENCY_LABELS[c]}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Amount */}
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Monto</Text>
-        <View style={[styles.amountWrap, { backgroundColor: colors.surface, borderColor: TYPES.find(t => t.key === type)?.color || colors.border }]}>
-          <Text style={[styles.amountCurrSymbol, { color: colors.muted }]}>💵</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>
+          Monto
+        </Text>
+        <View
+          style={[
+            styles.amountWrap,
+            {
+              backgroundColor: colors.surface,
+              borderColor:
+                TYPES.find((t) => t.key === type)?.color || colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.amountCurrSymbol, { color: colors.muted }]}>
+            💵
+          </Text>
           <TextInput
-            style={[styles.amountInput, { color: TYPES.find(t => t.key === type)?.color || colors.text }]}
+            style={[
+              styles.amountInput,
+              {
+                color: TYPES.find((t) => t.key === type)?.color || colors.text,
+              },
+            ]}
             value={amount}
             onChangeText={setAmount}
             keyboardType="decimal-pad"
@@ -430,43 +510,141 @@ function PreviewItem({ label, value, colors }) {
 
 const styles = StyleSheet.create({
   scroll: { padding: spacing.lg, paddingBottom: s(60) },
-  label: { fontSize: rf(13), fontWeight: "700", marginBottom: s(8), marginTop: spacing.sm, textTransform: "uppercase", letterSpacing: 0.4 },
+  label: {
+    fontSize: rf(13),
+    fontWeight: "700",
+    marginBottom: s(8),
+    marginTop: spacing.sm,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
 
   // type grid 2×2
-  typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: s(8), marginBottom: spacing.md },
-  typeCard: { width: "47.5%", borderRadius: borderRadius.lg, borderWidth: 2, padding: spacing.md },
+  typeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: s(8),
+    marginBottom: spacing.md,
+  },
+  typeCard: {
+    width: "47.5%",
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    padding: spacing.md,
+  },
   typeEmoji: { fontSize: rf(22), marginBottom: s(6) },
   typeName: { fontSize: rf(13), fontWeight: "700", marginBottom: s(2) },
   typeDesc: { fontSize: rf(11) },
 
   // currency chips
   currRow: { flexDirection: "row", gap: s(8), marginBottom: spacing.md },
-  currChip: { flex: 1, borderWidth: 1.5, borderRadius: s(10), paddingVertical: s(8), alignItems: "center" },
+  currChip: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderRadius: s(10),
+    paddingVertical: s(8),
+    alignItems: "center",
+  },
   currChipText: { fontSize: rf(12), fontWeight: "700" },
 
   // amount
-  amountWrap: { flexDirection: "row", alignItems: "center", borderWidth: 2, borderRadius: borderRadius.md, paddingHorizontal: spacing.md, marginBottom: spacing.xs },
+  amountWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 2,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+  },
   amountCurrSymbol: { fontSize: rf(18), marginRight: s(6) },
-  amountInput: { flex: 1, fontSize: rf(24), fontWeight: "800", paddingVertical: s(14) },
+  amountInput: {
+    flex: 1,
+    fontSize: rf(24),
+    fontWeight: "800",
+    paddingVertical: s(14),
+  },
 
-  preview: { flexDirection: "row", justifyContent: "space-around", borderRadius: borderRadius.md, borderWidth: 1, padding: spacing.md, marginBottom: spacing.xs },
+  preview: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    padding: spacing.md,
+    marginBottom: spacing.xs,
+  },
   rateWarning: { fontSize: rf(12), marginBottom: spacing.md },
-  catBtn: { flexDirection: "row", alignItems: "center", gap: s(8), borderWidth: 1.5, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.md },
+  catBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: s(8),
+    borderWidth: 1.5,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
   catBtnText: { fontSize: rf(15) },
   saveBtn: { marginTop: spacing.xl },
   modalOverlay: { flex: 1 },
-  bottomSheet: { borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.xl, maxHeight: "70%" },
+  bottomSheet: {
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    padding: spacing.xl,
+    maxHeight: "70%",
+  },
   sheetTitle: { fontSize: rf(17), fontWeight: "700", marginBottom: spacing.lg },
-  sheetItem: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm, paddingHorizontal: spacing.sm, borderRadius: borderRadius.md },
+  sheetItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.md,
+  },
   sheetItemText: { fontSize: rf(15), flex: 1 },
-  catGroupTitle: { fontSize: rf(12), fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8, marginTop: spacing.md, marginBottom: s(4), paddingHorizontal: spacing.sm },
-  emptyCategories: { padding: spacing.lg, textAlign: "center", fontSize: rf(14) },
+  catGroupTitle: {
+    fontSize: rf(12),
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginTop: spacing.md,
+    marginBottom: s(4),
+    paddingHorizontal: spacing.sm,
+  },
+  emptyCategories: {
+    padding: spacing.lg,
+    textAlign: "center",
+    fontSize: rf(14),
+  },
 
   // legacy (para el modal de currency que quedó)
-  amountRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.xs },
-  currBtn: { flexDirection: "row", alignItems: "center", gap: s(4), paddingHorizontal: spacing.md, borderRadius: borderRadius.md, borderWidth: 1 },
+  amountRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  currBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: s(4),
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+  },
   currText: { fontSize: rf(14), fontWeight: "700" },
-  typeRow: { flexDirection: "row", flexWrap: "wrap", gap: s(8), marginBottom: spacing.md },
-  typeChip: { flexDirection: "row", alignItems: "center", gap: s(5), paddingHorizontal: spacing.md, paddingVertical: s(8), borderRadius: borderRadius.lg, borderWidth: 1.5 },
+  typeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: s(8),
+    marginBottom: spacing.md,
+  },
+  typeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: s(5),
+    paddingHorizontal: spacing.md,
+    paddingVertical: s(8),
+    borderRadius: borderRadius.lg,
+    borderWidth: 1.5,
+  },
   typeChipText: { fontSize: rf(13), fontWeight: "600" },
 });

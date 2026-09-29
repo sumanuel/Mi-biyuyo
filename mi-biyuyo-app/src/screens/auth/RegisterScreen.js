@@ -185,9 +185,9 @@ const styles = StyleSheet.create({
   backBtn: { alignSelf: "flex-start", marginBottom: spacing.lg },
   backText: { fontSize: rf(14), fontWeight: "600" },
   logoCircle: {
-    width: s(60),
-    height: s(60),
-    borderRadius: s(30),
+    width: s(64),
+    height: s(64),
+    borderRadius: s(20),
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.xs,

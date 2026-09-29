@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   logoCircle: {
     width: s(72),
     height: s(72),
-    borderRadius: s(36),
+    borderRadius: s(22),
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.sm,
@@ -162,12 +162,12 @@ const styles = StyleSheet.create({
   appName: { fontSize: rf(28), fontWeight: "800", letterSpacing: -0.5 },
   tagline: { fontSize: rf(14), marginTop: s(4) },
   form: {
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     padding: spacing.xl,
     marginBottom: spacing.lg,
   },
-  formTitle: { fontSize: rf(20), fontWeight: "700", marginBottom: spacing.lg },
+  formTitle: { fontSize: rf(20), fontWeight: "800", marginBottom: spacing.lg },
   errorBox: {
     borderRadius: borderRadius.sm,
     padding: spacing.md,
