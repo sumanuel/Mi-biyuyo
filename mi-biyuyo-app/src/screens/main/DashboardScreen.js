@@ -64,9 +64,6 @@ export default function DashboardScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  // Build chart data from trend
-  const chartData = buildChartData(trend);
-
   const income = parseFloat(summary?.by_type?.income?.total_usd || 0);
   const expense = parseFloat(summary?.by_type?.expense?.total_usd || 0);
   const loanTotal = parseFloat(summary?.by_type?.loan_given?.total_usd || 0);
@@ -77,11 +74,6 @@ export default function DashboardScreen({ navigation }) {
     ? balance * (rates.usd_to_ves / rates.binance_to_ves)
     : 0;
 
-  const greet = getGreeting();
-  const monthName = new Date(year, month - 1).toLocaleString("es", {
-    month: "long",
-    year: "numeric",
-  });
   return (
     <View style={{ flex: 1, backgroundColor: colors.page }}>
       <ScrollView

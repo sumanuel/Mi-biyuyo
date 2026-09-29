@@ -93,20 +93,31 @@ export default function TransactionsScreen({ navigation }) {
     : data;
 
   const grouped = groupByDate(filtered);
-  const totalIncome = data.filter(t => t.category_type === "income").reduce((a, t) => a + parseFloat(t.amount_usd || 0), 0);
-  const totalExpense = data.filter(t => t.category_type === "expense").reduce((a, t) => a + parseFloat(t.amount_usd || 0), 0);
+  const totalIncome = data
+    .filter((t) => t.category_type === "income")
+    .reduce((a, t) => a + parseFloat(t.amount_usd || 0), 0);
+  const totalExpense = data
+    .filter((t) => t.category_type === "expense")
+    .reduce((a, t) => a + parseFloat(t.amount_usd || 0), 0);
   const balance = totalIncome - totalExpense;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.page }}>
       {/* Header */}
       <View style={[styles.topHeader, { backgroundColor: colors.page }]}>
-        <Text style={[styles.topHeaderTitle, { color: colors.text }]}>Historial de movimientos</Text>
+        <Text style={[styles.topHeaderTitle, { color: colors.text }]}>
+          Historial de movimientos
+        </Text>
       </View>
 
       {/* Search */}
       <View style={[styles.searchRow, { backgroundColor: colors.page }]}>
-        <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.searchBox,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
           <Ionicons name="search-outline" size={s(16)} color={colors.muted} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
@@ -130,13 +141,21 @@ export default function TransactionsScreen({ navigation }) {
             key={String(t.key)}
             style={[
               styles.filterChip,
-              { borderColor: typeFilter === t.key ? colors.accent : colors.border },
+              {
+                borderColor:
+                  typeFilter === t.key ? colors.accent : colors.border,
+              },
               typeFilter === t.key && { backgroundColor: colors.accent },
               typeFilter !== t.key && { backgroundColor: colors.surface },
             ]}
             onPress={() => setTypeFilter(t.key)}
           >
-            <Text style={[styles.filterChipText, { color: typeFilter === t.key ? "#fff" : colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.filterChipText,
+                { color: typeFilter === t.key ? "#fff" : colors.textSecondary },
+              ]}
+            >
               {t.label}
             </Text>
           </TouchableOpacity>
@@ -144,23 +163,44 @@ export default function TransactionsScreen({ navigation }) {
       </View>
 
       {/* Balance del historial */}
-      <View style={[styles.balanceSummary, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View
+        style={[
+          styles.balanceSummary,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
         <View>
-          <Text style={[styles.balanceSummaryLabel, { color: colors.muted }]}>Balance del historial</Text>
-          <Text style={[styles.balanceSummaryAmt, { color: colors.text }]}>{formatAmount(balance, "USD")}</Text>
+          <Text style={[styles.balanceSummaryLabel, { color: colors.muted }]}>
+            Balance del historial
+          </Text>
+          <Text style={[styles.balanceSummaryAmt, { color: colors.text }]}>
+            {formatAmount(balance, "USD")}
+          </Text>
         </View>
         <View style={styles.balanceSummaryStats}>
           <View style={styles.balanceStat}>
-            <Text style={[styles.balanceStatLabel, { color: colors.muted }]}>Movimientos</Text>
-            <Text style={[styles.balanceStatVal, { color: colors.text }]}>{data.length}</Text>
+            <Text style={[styles.balanceStatLabel, { color: colors.muted }]}>
+              Movimientos
+            </Text>
+            <Text style={[styles.balanceStatVal, { color: colors.text }]}>
+              {data.length}
+            </Text>
           </View>
           <View style={styles.balanceStat}>
-            <Text style={[styles.balanceStatLabel, { color: colors.muted }]}>Ingresos</Text>
-            <Text style={[styles.balanceStatVal, { color: colors.income }]}>{formatAmount(totalIncome, "USD")}</Text>
+            <Text style={[styles.balanceStatLabel, { color: colors.muted }]}>
+              Ingresos
+            </Text>
+            <Text style={[styles.balanceStatVal, { color: colors.income }]}>
+              {formatAmount(totalIncome, "USD")}
+            </Text>
           </View>
           <View style={styles.balanceStat}>
-            <Text style={[styles.balanceStatLabel, { color: colors.muted }]}>Gastos</Text>
-            <Text style={[styles.balanceStatVal, { color: colors.expense }]}>{formatAmount(totalExpense, "USD")}</Text>
+            <Text style={[styles.balanceStatLabel, { color: colors.muted }]}>
+              Gastos
+            </Text>
+            <Text style={[styles.balanceStatVal, { color: colors.expense }]}>
+              {formatAmount(totalExpense, "USD")}
+            </Text>
           </View>
         </View>
       </View>
@@ -300,30 +340,102 @@ function formatDate(dateStr) {
 }
 
 const styles = StyleSheet.create({
-  topHeader: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.sm },
+  topHeader: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
   topHeaderTitle: { fontSize: rf(20), fontWeight: "800" },
   searchRow: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
-  searchBox: { flexDirection: "row", alignItems: "center", borderRadius: s(10), borderWidth: 1, paddingHorizontal: spacing.sm, gap: s(6), height: s(42) },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: s(10),
+    borderWidth: 1,
+    paddingHorizontal: spacing.sm,
+    gap: s(6),
+    height: s(42),
+  },
   searchInput: { flex: 1, fontSize: rf(14) },
-  filterRow: { flexDirection: "row", paddingHorizontal: spacing.lg, gap: s(8), marginBottom: spacing.sm },
-  filterChip: { paddingHorizontal: spacing.sm, paddingVertical: s(6), borderRadius: s(8), borderWidth: 1 },
+  filterRow: {
+    flexDirection: "row",
+    paddingHorizontal: spacing.lg,
+    gap: s(8),
+    marginBottom: spacing.sm,
+  },
+  filterChip: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: s(6),
+    borderRadius: s(8),
+    borderWidth: 1,
+  },
   filterChipText: { fontSize: rf(12), fontWeight: "600" },
-  balanceSummary: { marginHorizontal: spacing.lg, borderRadius: s(12), borderWidth: 1, padding: spacing.md, marginBottom: spacing.sm },
+  balanceSummary: {
+    marginHorizontal: spacing.lg,
+    borderRadius: s(12),
+    borderWidth: 1,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
   balanceSummaryLabel: { fontSize: rf(11), fontWeight: "500" },
-  balanceSummaryAmt: { fontSize: rf(20), fontWeight: "800", letterSpacing: -0.5, marginTop: s(2) },
-  balanceSummaryStats: { flexDirection: "row", gap: spacing.md, marginTop: spacing.sm },
+  balanceSummaryAmt: {
+    fontSize: rf(20),
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    marginTop: s(2),
+  },
+  balanceSummaryStats: {
+    flexDirection: "row",
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
   balanceStat: {},
   balanceStatLabel: { fontSize: rf(10), fontWeight: "500" },
   balanceStatVal: { fontSize: rf(13), fontWeight: "700" },
   list: { padding: spacing.lg, paddingBottom: s(100) },
-  dateHeader: { fontSize: rf(12), fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8, marginTop: spacing.md, marginBottom: spacing.xs },
-  txCard: { flexDirection: "row", alignItems: "center", borderRadius: s(12), borderWidth: 1, padding: spacing.md, marginBottom: s(6), gap: spacing.sm },
-  txIcon: { width: s(38), height: s(38), borderRadius: s(10), alignItems: "center", justifyContent: "center" },
+  dateHeader: {
+    fontSize: rf(12),
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  txCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: s(12),
+    borderWidth: 1,
+    padding: spacing.md,
+    marginBottom: s(6),
+    gap: spacing.sm,
+  },
+  txIcon: {
+    width: s(38),
+    height: s(38),
+    borderRadius: s(10),
+    alignItems: "center",
+    justifyContent: "center",
+  },
   txMid: { flex: 1 },
   txName: { fontSize: rf(14), fontWeight: "600", marginBottom: s(3) },
   txMeta: { flexDirection: "row", alignItems: "center" },
   txRight: { alignItems: "flex-end" },
   txAmount: { fontSize: rf(14), fontWeight: "700" },
   txSub: { fontSize: rf(11), marginTop: s(2) },
-  fab: { position: "absolute", bottom: s(24), right: spacing.xl, width: s(52), height: s(52), borderRadius: s(16), alignItems: "center", justifyContent: "center", elevation: 6, shadowColor: "#1B4332", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10 },
+  fab: {
+    position: "absolute",
+    bottom: s(24),
+    right: spacing.xl,
+    width: s(52),
+    height: s(52),
+    borderRadius: s(16),
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 6,
+    shadowColor: "#1B4332",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
 });

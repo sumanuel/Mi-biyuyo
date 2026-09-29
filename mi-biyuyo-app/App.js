@@ -35,19 +35,27 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const NAV_TABS = [
-  { name: "Dashboard",     label: "Inicio",       icon: "home"           },
-  { name: "Transactions",  label: "Historial",    icon: "time"           },
-  { name: "AddTransaction",label: "Registrar",    icon: "add",  isFab: true },
-  { name: "Categories",    label: "Categorías",   icon: "grid"           },
-  { name: "Profile",       label: "Ajustes",      icon: "settings"       },
+  { name: "Dashboard", label: "Inicio", icon: "home" },
+  { name: "Transactions", label: "Historial", icon: "time" },
+  { name: "AddTransaction", label: "Registrar", icon: "add", isFab: true },
+  { name: "Categories", label: "Categorías", icon: "grid" },
+  { name: "Profile", label: "Ajustes", icon: "settings" },
 ];
 
 function TabBar({ state, descriptors, navigation }) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.tabBarWrap, { backgroundColor: colors.tabBar, borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.tabBarWrap,
+        { backgroundColor: colors.tabBar, borderColor: colors.border },
+      ]}
+    >
       {state.routes.map((route, index) => {
-        const meta = NAV_TABS.find((t) => t.name === route.name) || { label: route.name, icon: "ellipse" };
+        const meta = NAV_TABS.find((t) => t.name === route.name) || {
+          label: route.name,
+          icon: "ellipse",
+        };
         const focused = state.index === index;
 
         if (meta.isFab) {
@@ -61,7 +69,9 @@ function TabBar({ state, descriptors, navigation }) {
               <View style={[styles.tabFab, { backgroundColor: colors.accent }]}>
                 <Ionicons name="add" size={s(28)} color="#fff" />
               </View>
-              <Text style={[styles.tabLabel, { color: colors.muted }]}>{meta.label}</Text>
+              <Text style={[styles.tabLabel, { color: colors.muted }]}>
+                {meta.label}
+              </Text>
             </TouchableOpacity>
           );
         }
@@ -78,7 +88,15 @@ function TabBar({ state, descriptors, navigation }) {
               size={s(22)}
               color={focused ? colors.accent : colors.muted}
             />
-            <Text style={[styles.tabLabel, { color: focused ? colors.accent : colors.muted, fontWeight: focused ? "700" : "500" }]}>
+            <Text
+              style={[
+                styles.tabLabel,
+                {
+                  color: focused ? colors.accent : colors.muted,
+                  fontWeight: focused ? "700" : "500",
+                },
+              ]}
+            >
               {meta.label}
             </Text>
           </TouchableOpacity>
@@ -94,11 +112,11 @@ function MainTabs() {
       tabBar={(props) => <TabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen name="Dashboard"     component={DashboardScreen}     />
-      <Tab.Screen name="Transactions"  component={TransactionsScreen}  />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} />
+      <Tab.Screen name="Transactions" component={TransactionsScreen} />
       <Tab.Screen name="AddTransaction" component={AddTransactionScreen} />
-      <Tab.Screen name="Categories"    component={CategoriesScreen}    />
-      <Tab.Screen name="Profile"       component={ProfileScreen}       />
+      <Tab.Screen name="Categories" component={CategoriesScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
@@ -139,7 +157,10 @@ function AppNavigator() {
         <ExchangeRateProvider>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="MainTabs" component={MainTabs} />
-            <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} />
+            <Stack.Screen
+              name="TransactionDetail"
+              component={TransactionDetailScreen}
+            />
             <Stack.Screen name="ExchangeRate" component={ExchangeRateScreen} />
           </Stack.Navigator>
         </ExchangeRateProvider>
@@ -177,12 +198,28 @@ const styles = StyleSheet.create({
     paddingTop: s(8),
     paddingHorizontal: spacing.sm,
     ...Platform.select({
-      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+      },
       android: { elevation: 8 },
     }),
   },
   tabItem: { flex: 1, alignItems: "center", gap: s(3), paddingVertical: s(2) },
   tabFabWrap: { flex: 1, alignItems: "center", gap: s(3), marginTop: -s(12) },
-  tabFab: { width: s(52), height: s(52), borderRadius: s(26), alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#1B4332", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8 },
+  tabFab: {
+    width: s(52),
+    height: s(52),
+    borderRadius: s(26),
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#1B4332",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
   tabLabel: { fontSize: rf(10), fontWeight: "500" },
 });
