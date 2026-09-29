@@ -82,453 +82,167 @@ export default function DashboardScreen({ navigation }) {
     month: "long",
     year: "numeric",
   });
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.page }}>
       <ScrollView
         contentContainerStyle={styles.scroll}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.accent}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Greeting */}
-        <View style={styles.greeting}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.greetName, { color: colors.text }]}>
-              {greet}, {user?.name?.split(" ")[0] || "Bienvenido"} 👋
-            </Text>
-            <Text
-              style={[styles.greetSub, { color: colors.muted }]}
-              numberOfLines={1}
-            >
-              {monthName.charAt(0).toUpperCase() + monthName.slice(1)}
-            </Text>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={[styles.headerSub, { color: colors.muted }]}>Panel de control</Text>
+            <Text style={[styles.headerName, { color: colors.text }]}>{user?.name?.split(" ")[0] || "Bienvenido"}</Text>
           </View>
-          <TouchableOpacity
-            style={[
-              styles.avatarCircle,
-              { backgroundColor: user?.avatar_color || colors.accent },
-            ]}
-            onPress={() => navigation.navigate("Profile")}
-          >
-            <Text style={styles.avatarLetter}>
-              {(user?.name || "U")[0].toUpperCase()}
-            </Text>
+          <TouchableOpacity style={[styles.bellBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Ionicons name="notifications-outline" size={s(20)} color={colors.text} />
           </TouchableOpacity>
         </View>
 
-        {/* Rate warning */}
-        {(!rates.usd_to_ves || rates.usd_to_ves === 0) && (
-          <TouchableOpacity
-            style={[
-              styles.warningBanner,
-              {
-                backgroundColor: colors.warningSoft,
-                borderColor: colors.warning,
-              },
-            ]}
-            onPress={() => navigation.navigate("ExchangeRate")}
-          >
-            <Ionicons
-              name="warning-outline"
-              size={s(15)}
-              color={colors.warning}
-            />
-            <Text style={[styles.warningText, { color: colors.warning }]}>
-              Configura las tasas de cambio para conversiones correctas
-            </Text>
-          </TouchableOpacity>
-        )}
-
         {loading ? (
-          <ActivityIndicator
-            color={colors.accent}
-            style={{ marginTop: spacing.xxl }}
-          />
+          <ActivityIndicator color={colors.accent} style={{ marginTop: spacing.xxl }} />
         ) : (
           <>
-            {/* Balance Card — gradient */}
-            <LinearGradient
-              colors={[colors.accent, colors.accentStrong]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.balanceCard}
-            >
-              <Text style={styles.balanceLabel}>BALANCE DEL MES</Text>
-              <Text style={styles.balanceAmount}>
-                {formatAmount(balance, "USD")}
-              </Text>
-              <View style={styles.balanceSubRow}>
-                <View style={styles.balanceSubItem}>
-                  <Text style={styles.balanceSubLabel}>EN BOLÍVARES</Text>
-                  <Text style={styles.balanceSubVal}>
-                    {formatAmount(balanceVes, "VES")}
-                  </Text>
+            {/* Tarjeta de saldo — verde oscuro */}
+            <View style={[styles.balanceCard, { backgroundColor: colors.accent }]}>
+              <Text style={styles.balanceCardLabel}>MI SALDO</Text>
+              <Text style={styles.balanceCardAmount}>{formatAmount(balance, "USD")}</Text>
+              {rates.usd_to_ves > 0 || rates.binance_to_ves > 0 ? (
+                <Text style={styles.balanceCardSub}>Suma de tus movimientos activos</Text>
+              ) : (
+                <Text style={styles.balanceCardSub}>Configura tasas para ver equivalencias</Text>
+              )}
+              {rates.usd_to_ves > 0 && (
+                <View style={styles.balanceRateRow}>
+                  <Text style={styles.balanceRateLabel}>BCV</Text>
+                  <Text style={styles.balanceRateVal}>{formatAmount(balanceVes, "VES")}</Text>
                 </View>
-                <View style={[styles.balanceSubDivider]} />
-                <View style={styles.balanceSubItem}>
-                  <Text style={styles.balanceSubLabel}>EN BINANCE</Text>
-                  <Text style={styles.balanceSubVal}>
-                    {formatAmount(balanceBinance, "BINANCE")}
-                  </Text>
+              )}
+              {rates.binance_to_ves > 0 && (
+                <View style={[styles.balanceRateRow, { marginTop: s(4) }]}>
+                  <Text style={styles.balanceRateLabel}>Binance P2P</Text>
+                  <Text style={styles.balanceRateVal}>{formatAmount(balanceBinance, "BINANCE")}</Text>
                 </View>
-              </View>
-            </LinearGradient>
-
-            {/* Metric 2×2 grid */}
-            <View style={styles.metricGrid}>
-              <MetricCard
-                emoji="📈"
-                label="INGRESOS"
-                value={formatAmount(income, "USD")}
-                sub="Este mes"
-                valueColor={colors.income}
-                bg={colors.surface}
-                border={colors.border}
-              />
-              <MetricCard
-                emoji="📉"
-                label="GASTOS"
-                value={formatAmount(expense, "USD")}
-                sub="Este mes"
-                valueColor={colors.expense}
-                bg={colors.surface}
-                border={colors.border}
-              />
-              <MetricCard
-                emoji="🤝"
-                label="PRÉSTAMOS"
-                value={formatAmount(loanTotal, "USD")}
-                sub={`${pending.filter((t) => t.category_type === "loan_given").length} pendientes`}
-                valueColor={colors.loan}
-                bg={colors.surface}
-                border={colors.border}
-              />
-              <MetricCard
-                emoji="💳"
-                label="DEUDAS"
-                value={formatAmount(debtTotal, "USD")}
-                sub={`${pending.filter((t) => t.category_type === "debt").length} pendientes`}
-                valueColor={colors.debt}
-                bg={colors.surface}
-                border={colors.border}
-              />
+              )}
             </View>
 
-            {/* Trend chart — barras simples */}
-            {trend.length > 0 && (
-              <View
-                style={[
-                  styles.chartCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
+            {/* Alerta tasas */}
+            {(!rates.usd_to_ves || rates.usd_to_ves === 0) && (
+              <TouchableOpacity
+                style={[styles.alertCard, { backgroundColor: colors.warningSoft, borderColor: colors.warning }]}
+                onPress={() => navigation.navigate("ExchangeRate")}
+                activeOpacity={0.8}
               >
-                <View style={styles.chartHeader}>
-                  <Text style={[styles.chartTitle, { color: colors.text }]}>
-                    Tendencia 6 meses
-                  </Text>
-                  <Text style={[styles.chartSub, { color: colors.muted }]}>
-                    Balance mensual
-                  </Text>
+                <Ionicons name="warning-outline" size={s(18)} color={colors.warning} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.alertTitle, { color: colors.warning }]}>Tasas no configuradas</Text>
+                  <Text style={[styles.alertSub, { color: colors.warning }]}>Toca para configurar BCV y Binance P2P</Text>
                 </View>
-                <MiniBarChart
-                  trend={trend}
-                  accent={colors.accent}
-                  accentSoft={colors.accentSoft}
-                  muted={colors.muted}
-                />
-              </View>
+                <Ionicons name="chevron-forward" size={s(16)} color={colors.warning} />
+              </TouchableOpacity>
             )}
+
+            {/* Tasas de cambio */}
+            {rates.usd_to_ves > 0 && (
+              <TouchableOpacity style={[styles.rateRow, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => navigation.navigate("ExchangeRate")} activeOpacity={0.8}>
+                <View style={[styles.vesBadge, { backgroundColor: colors.accent }]}>
+                  <Text style={[styles.vesBadgeText]}>VES</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rateRowLabel, { color: colors.muted }]}>Tasa BCV</Text>
+                  <Text style={[styles.rateRowVal, { color: colors.text }]}>1 USD = VES {Number(rates.usd_to_ves).toLocaleString("es")}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={s(16)} color={colors.muted} />
+              </TouchableOpacity>
+            )}
+            {rates.binance_to_ves > 0 && (
+              <TouchableOpacity style={[styles.rateRow, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => navigation.navigate("ExchangeRate")} activeOpacity={0.8}>
+                <View style={[styles.vesBadge, { backgroundColor: colors.accent }]}>
+                  <Text style={styles.vesBadgeText}>VES</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rateRowLabel, { color: colors.muted }]}>Tasa Binance P2P</Text>
+                  <Text style={[styles.rateRowVal, { color: colors.text }]}>1 USD = VES {Number(rates.binance_to_ves).toLocaleString("es")}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={s(16)} color={colors.muted} />
+              </TouchableOpacity>
+            )}
+
+            {/* Resumen operativo */}
+            <View style={styles.sectionRow}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Resumen operativo</Text>
+              <TouchableOpacity onPress={() => navigation.navigate("Transactions")}>
+                <Text style={[styles.sectionLink, { color: colors.accent }]}>Ver historial</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.sectionSub, { color: colors.muted }]}>Ingresos y gastos de los últimos 30 días</Text>
+            <View style={styles.summaryGrid}>
+              <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[styles.summaryLabel, { color: colors.muted }]}>Ingresos</Text>
+                <Text style={[styles.summaryAmt, { color: colors.income }]}>{formatAmount(income, "USD")}</Text>
+                <View style={[styles.summaryPill, { backgroundColor: colors.incomeSoft }]}>
+                  <Text style={[styles.summaryPillText, { color: colors.income }]}>{summary?.by_type?.income?.count || 0} ingresos</Text>
+                </View>
+              </View>
+              <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[styles.summaryLabel, { color: colors.muted }]}>Gastos</Text>
+                <Text style={[styles.summaryAmt, { color: colors.expense }]}>{formatAmount(expense, "USD")}</Text>
+                <View style={[styles.summaryPill, { backgroundColor: colors.expenseSoft }]}>
+                  <Text style={[styles.summaryPillText, { color: colors.expense }]}>{summary?.by_type?.expense?.count || 0} gastos</Text>
+                </View>
+              </View>
+            </View>
 
             {/* Pendientes */}
             {pending.length > 0 && (
               <>
-                <View style={styles.sectionRow}>
-                  <Text
-                    style={[
-                      styles.sectionTitle,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    ⏳ Pendientes
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() =>
-                      navigation.navigate("Transactions", { filter: "pending" })
-                    }
-                  >
-                    <Text style={[styles.seeAll, { color: colors.accent }]}>
-                      Ver todo
-                    </Text>
+                <View style={[styles.sectionRow, { marginTop: spacing.md }]}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Pendientes</Text>
+                  <TouchableOpacity onPress={() => navigation.navigate("Transactions")}>
+                    <Text style={[styles.sectionLink, { color: colors.accent }]}>Ver todo</Text>
                   </TouchableOpacity>
                 </View>
-                <View
-                  style={[
-                    styles.pendingCard,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  {pending.map((tx, idx) => (
-                    <TouchableOpacity
-                      key={tx.id}
-                      style={[
-                        styles.pendingItem,
-                        idx < pending.length - 1 && {
-                          borderBottomWidth: 1,
-                          borderBottomColor: colors.border,
-                        },
-                      ]}
-                      onPress={() =>
-                        navigation.navigate("TransactionDetail", { id: tx.id })
-                      }
-                      activeOpacity={0.8}
-                    >
-                      <View
-                        style={[
-                          styles.pendingAvatar,
-                          {
-                            backgroundColor:
-                              tx.category_type === "debt"
-                                ? colors.debtSoft
-                                : colors.loanSoft,
-                          },
-                        ]}
-                      >
-                        <Text style={{ fontSize: rf(18) }}>
-                          {tx.category_type === "debt" ? "💳" : "🤝"}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={[styles.pendingName, { color: colors.text }]}
-                          numberOfLines={1}
-                        >
-                          {tx.counterpart_name ||
-                            tx.description ||
-                            tx.category_name}
-                        </Text>
-                        <Text
-                          style={[styles.pendingDate, { color: colors.muted }]}
-                        >
-                          {tx.category_type === "debt" ? "Deuda" : "Préstamo"} ·{" "}
-                          {formatShortDate(tx.date)}
-                        </Text>
-                      </View>
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Text
-                          style={[
-                            styles.pendingAmount,
-                            {
-                              color:
-                                tx.category_type === "debt"
-                                  ? colors.debt
-                                  : colors.loan,
-                            },
-                          ]}
-                        >
-                          {formatAmount(
-                            parseFloat(tx.amount_usd) -
-                              parseFloat(tx.paid_usd || 0),
-                            "USD",
-                          )}
-                        </Text>
-                        <View
-                          style={[
-                            styles.pendingPill,
-                            { backgroundColor: colors.warningSoft },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.pendingPillText,
-                              { color: colors.warning },
-                            ]}
-                          >
-                            Pendiente
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                {pending.map((tx) => (
+                  <TouchableOpacity
+                    key={tx.id}
+                    style={[styles.pendingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    onPress={() => navigation.navigate("TransactionDetail", { id: tx.id })}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.pendingDot, { backgroundColor: tx.category_type === "debt" ? colors.expense : colors.income }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.pendingName, { color: colors.text }]} numberOfLines={1}>
+                        {tx.counterpart_name || tx.description || tx.category_name}
+                      </Text>
+                      <Text style={[styles.pendingType, { color: colors.muted }]}>
+                        {tx.category_type === "debt" ? "Deuda" : "Préstamo"} · {formatShortDate(tx.date)}
+                      </Text>
+                    </View>
+                    <Text style={[styles.pendingAmt, { color: tx.category_type === "debt" ? colors.expense : colors.income }]}>
+                      {formatAmount(parseFloat(tx.amount_usd) - parseFloat(tx.paid_usd || 0), "USD")}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </>
             )}
 
-            {/* Empty */}
-            {!summary?.by_type?.income && !summary?.by_type?.expense && (
-              <EmptyState
-                icon="wallet-outline"
-                title="Sin movimientos este mes"
-                message="Registra tu primer ingreso o gasto para empezar"
-                action={() => navigation.navigate("AddTransaction")}
-                actionLabel="Registrar movimiento"
-              />
+            {!income && !expense && !pending.length && (
+              <View style={styles.emptyWrap}>
+                <Text style={{ fontSize: rf(36), marginBottom: spacing.sm }}>💰</Text>
+                <Text style={[{ fontSize: rf(16), fontWeight: "700", color: colors.text, marginBottom: s(6) }]}>Sin movimientos</Text>
+                <Text style={[{ fontSize: rf(13), color: colors.muted, textAlign: "center" }]}>Toca el botón + para registrar tu primer movimiento</Text>
+              </View>
             )}
           </>
         )}
       </ScrollView>
-
-      {/* FAB */}
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.accent }]}
-        onPress={() => navigation.navigate("AddTransaction")}
-        activeOpacity={0.85}
-      >
-        <Ionicons name="add" size={s(26)} color="#fff" />
-      </TouchableOpacity>
     </View>
   );
-}
-
-// ─── Sub-components ──────────────────────────────────────────────────────────
-function MetricCard({ emoji, label, value, sub, valueColor, bg, border }) {
-  return (
-    <View
-      style={[styles.metricCard, { backgroundColor: bg, borderColor: border }]}
-    >
-      <Text style={styles.metricEmoji}>{emoji}</Text>
-      <Text style={[styles.metricLabel, { color: "#9CA3AF" }]}>{label}</Text>
-      <Text style={[styles.metricValue, { color: valueColor }]}>{value}</Text>
-      <Text style={[styles.metricSub, { color: "#9CA3AF" }]}>{sub}</Text>
-    </View>
-  );
-}
-
-function MiniBarChart({ trend, accent, accentSoft, muted }) {
-  const months = {};
-  for (const r of trend) {
-    const key = `${r.year}-${String(r.month).padStart(2, "0")}`;
-    if (!months[key])
-      months[key] = { income: 0, expense: 0, label: getMonthLabel(r.month) };
-    if (r.type === "income") months[key].income += parseFloat(r.total_usd || 0);
-    if (r.type === "expense")
-      months[key].expense += parseFloat(r.total_usd || 0);
-  }
-  const sorted = Object.entries(months)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .slice(-6);
-  const maxVal = Math.max(
-    ...sorted.map(([, m]) => Math.max(m.income - m.expense, 0)),
-    1,
-  );
-
-  return (
-    <View style={styles.chartBars}>
-      {sorted.map(([key, m], i) => {
-        const val = Math.max(m.income - m.expense, 0);
-        const heightPct = val / maxVal;
-        const isLast = i === sorted.length - 1;
-        return (
-          <View key={key} style={styles.chartCol}>
-            <View style={styles.chartBarWrap}>
-              <View
-                style={[
-                  styles.chartBar,
-                  {
-                    height: Math.max(heightPct * s(56), s(4)),
-                    backgroundColor: isLast ? accent : accentSoft,
-                  },
-                ]}
-              />
-            </View>
-            <Text
-              style={[
-                styles.chartBarLabel,
-                {
-                  color: isLast ? accent : muted,
-                  fontWeight: isLast ? "800" : "600",
-                },
-              ]}
-            >
-              {m.label}
-            </Text>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
-function BalanceStat({ label, amount, color, icon }) {
-  return (
-    <View style={{ flex: 1, alignItems: "center" }}>
-      <Ionicons name={icon} size={s(16)} color={color} />
-      <Text
-        style={{ color, fontSize: rf(16), fontWeight: "700", marginTop: s(2) }}
-      >
-        {formatAmount(amount, "USD")}
-      </Text>
-      <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: rf(11) }}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-function RateChip({ label, value, colors }) {
-  return (
-    <View
-      style={[
-        styles.rateChip,
-        { backgroundColor: colors.surface, borderColor: colors.border },
-      ]}
-    >
-      <Text style={[styles.rateChipLabel, { color: colors.muted }]}>
-        {label}
-      </Text>
-      <Text style={[styles.rateChipValue, { color: colors.text }]}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-function buildChartData(trend) {
-  if (!trend.length) return { labels: [], datasets: [{ data: [] }] };
-  const months = {};
-  for (const r of trend) {
-    const key = `${r.year}-${r.month}`;
-    if (!months[key])
-      months[key] = { income: 0, expense: 0, label: getMonthLabel(r.month) };
-    if (r.type === "income") months[key].income += parseFloat(r.total_usd || 0);
-    if (r.type === "expense")
-      months[key].expense += parseFloat(r.total_usd || 0);
-  }
-  const sorted = Object.values(months).slice(-6);
-  return {
-    labels: sorted.map((m) => m.label),
-    datasets: [{ data: sorted.map((m) => Math.max(m.income - m.expense, 0)) }],
-  };
 }
 
 function getMonthLabel(month) {
-  return (
-    [
-      "Ene",
-      "Feb",
-      "Mar",
-      "Abr",
-      "May",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dic",
-    ][month - 1] || ""
-  );
+  return ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"][month - 1] || "";
 }
 
 function getGreeting() {
@@ -547,197 +261,55 @@ function formatShortDate(dateStr) {
 const styles = StyleSheet.create({
   scroll: { padding: spacing.lg, paddingBottom: s(100) },
 
-  // greeting
-  greeting: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: spacing.lg,
-  },
-  greetName: { fontSize: rf(22), fontWeight: "800", letterSpacing: -0.5 },
-  greetSub: { fontSize: rf(13), marginTop: s(2) },
-  avatarCircle: {
-    width: s(42),
-    height: s(42),
-    borderRadius: s(13),
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarLetter: { color: "#fff", fontSize: rf(18), fontWeight: "700" },
-
-  // warning
-  warningBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: s(6),
-    borderWidth: 1,
-    borderRadius: borderRadius.md,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  warningText: { fontSize: rf(12), flex: 1, fontWeight: "600" },
+  // header
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.lg },
+  headerSub: { fontSize: rf(12), fontWeight: "500" },
+  headerName: { fontSize: rf(24), fontWeight: "800", letterSpacing: -0.5 },
+  bellBtn: { width: s(40), height: s(40), borderRadius: s(12), borderWidth: 1, alignItems: "center", justifyContent: "center" },
 
   // balance card
-  balanceCard: {
-    borderRadius: borderRadius.xl,
-    padding: spacing.xl,
-    marginBottom: spacing.md,
-  },
-  balanceLabel: {
-    color: "rgba(255,255,255,0.75)",
-    fontSize: rf(11),
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    marginBottom: s(6),
-  },
-  balanceAmount: {
-    color: "#fff",
-    fontSize: rf(34),
-    fontWeight: "900",
-    letterSpacing: -1.5,
-  },
-  balanceSubRow: {
-    flexDirection: "row",
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.2)",
-  },
-  balanceSubItem: { flex: 1 },
-  balanceSubLabel: {
-    color: "rgba(255,255,255,0.65)",
-    fontSize: rf(10),
-    fontWeight: "700",
-    letterSpacing: 0.3,
-    marginBottom: s(2),
-  },
-  balanceSubVal: { color: "#fff", fontSize: rf(14), fontWeight: "700" },
-  balanceSubDivider: {
-    width: 1,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    marginHorizontal: spacing.md,
-  },
+  balanceCard: { borderRadius: s(16), padding: spacing.xl, marginBottom: spacing.md },
+  balanceCardLabel: { color: "rgba(255,255,255,0.7)", fontSize: rf(11), fontWeight: "700", letterSpacing: 1, marginBottom: s(6) },
+  balanceCardAmount: { color: "#fff", fontSize: rf(32), fontWeight: "900", letterSpacing: -1 },
+  balanceCardSub: { color: "rgba(255,255,255,0.6)", fontSize: rf(12), marginTop: s(4), marginBottom: s(12) },
+  balanceRateRow: { flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.2)", paddingTop: s(10) },
+  balanceRateLabel: { color: "rgba(255,255,255,0.7)", fontSize: rf(12), fontWeight: "600" },
+  balanceRateVal: { color: "#fff", fontSize: rf(13), fontWeight: "700" },
 
-  // metric grid
-  metricGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  metricCard: {
-    width: "47.5%",
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    padding: spacing.md,
-  },
-  metricEmoji: { fontSize: rf(20), marginBottom: s(8) },
-  metricLabel: {
-    fontSize: rf(11),
-    fontWeight: "600",
-    letterSpacing: 0.3,
-    marginBottom: s(3),
-  },
-  metricValue: { fontSize: rf(17), fontWeight: "800" },
-  metricSub: { fontSize: rf(10), marginTop: s(1) },
+  // alert
+  alertCard: { flexDirection: "row", alignItems: "center", gap: s(10), borderWidth: 1, borderRadius: s(12), padding: spacing.md, marginBottom: spacing.sm },
+  alertTitle: { fontSize: rf(13), fontWeight: "700" },
+  alertSub: { fontSize: rf(11), marginTop: s(1) },
 
-  // chart
-  chartCard: {
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  chartHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.sm,
-  },
-  chartTitle: { fontSize: rf(14), fontWeight: "700" },
-  chartSub: { fontSize: rf(11) },
-  chartBars: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    height: s(72),
-    gap: s(6),
-  },
-  chartCol: { flex: 1, alignItems: "center", gap: s(4) },
-  chartBarWrap: { flex: 1, justifyContent: "flex-end", width: "100%" },
-  chartBar: { width: "100%", borderRadius: s(3) },
-  chartBarLabel: { fontSize: rf(9) },
+  // rate rows
+  rateRow: { flexDirection: "row", alignItems: "center", gap: s(12), borderWidth: 1, borderRadius: s(12), padding: spacing.md, marginBottom: s(8) },
+  vesBadge: { borderRadius: s(6), paddingHorizontal: s(8), paddingVertical: s(3) },
+  vesBadgeText: { color: "#fff", fontSize: rf(11), fontWeight: "800" },
+  rateRowLabel: { fontSize: rf(11), fontWeight: "500" },
+  rateRowVal: { fontSize: rf(14), fontWeight: "700" },
+
+  // section
+  sectionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: s(4), marginTop: spacing.md },
+  sectionTitle: { fontSize: rf(15), fontWeight: "700" },
+  sectionLink: { fontSize: rf(13), fontWeight: "600" },
+  sectionSub: { fontSize: rf(12), marginBottom: spacing.sm },
+
+  // summary grid
+  summaryGrid: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.md },
+  summaryCard: { flex: 1, borderRadius: s(12), borderWidth: 1, padding: spacing.md },
+  summaryLabel: { fontSize: rf(12), fontWeight: "500", marginBottom: s(4) },
+  summaryAmt: { fontSize: rf(18), fontWeight: "800", letterSpacing: -0.5 },
+  summaryPill: { borderRadius: s(6), paddingHorizontal: s(8), paddingVertical: s(3), marginTop: s(8), alignSelf: "flex-start" },
+  summaryPillText: { fontSize: rf(11), fontWeight: "700" },
 
   // pending
-  sectionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  sectionTitle: {
-    fontSize: rf(13),
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  seeAll: { fontSize: rf(13), fontWeight: "600" },
-  pendingCard: {
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  pendingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  pendingAvatar: {
-    width: s(38),
-    height: s(38),
-    borderRadius: s(12),
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
+  pendingItem: { flexDirection: "row", alignItems: "center", gap: s(10), borderWidth: 1, borderRadius: s(12), padding: spacing.md, marginBottom: s(8) },
+  pendingDot: { width: s(8), height: s(8), borderRadius: s(4) },
   pendingName: { fontSize: rf(14), fontWeight: "600" },
-  pendingDate: { fontSize: rf(11), marginTop: s(2) },
-  pendingAmount: { fontSize: rf(14), fontWeight: "700" },
-  pendingPill: {
-    borderRadius: s(10),
-    paddingHorizontal: s(8),
-    paddingVertical: s(2),
-    marginTop: s(3),
-  },
-  pendingPillText: { fontSize: rf(10), fontWeight: "700" },
+  pendingType: { fontSize: rf(11), marginTop: s(2) },
+  pendingAmt: { fontSize: rf(14), fontWeight: "700" },
 
-  // rate chips (legacy, kept for safety)
-  rateRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.md },
-  rateChip: {
-    flex: 1,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    padding: spacing.sm,
-    alignItems: "center",
-  },
-  rateChipLabel: { fontSize: rf(11) },
-  rateChipValue: { fontSize: rf(15), fontWeight: "700", marginTop: s(2) },
-
-  // fab
-  fab: {
-    position: "absolute",
-    bottom: s(24),
-    right: spacing.xl,
-    width: s(52),
-    height: s(52),
-    borderRadius: s(16),
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 6,
-    shadowColor: "#4361EE",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-  },
+  // empty
+  emptyWrap: { alignItems: "center", paddingVertical: spacing.xxl },
 });
+
