@@ -1,9 +1,7 @@
 import axios from "axios";
 
-// Use your machine's LAN IP when testing on a physical device (e.g., 192.168.x.x)
-// For Expo web/Android emulator, use localhost:3001
-// For physical device, replace with your machine's LAN IP (e.g., http://192.168.1.100:3001/api)
-export const API_BASE_URL = "http://localhost:3001/api";
+// localhost funciona en emulador Android; para dispositivo físico usar IP LAN de la PC
+export const API_BASE_URL = "http://192.168.1.2:3001/api";
 
 const client = axios.create({
   baseURL: API_BASE_URL,
