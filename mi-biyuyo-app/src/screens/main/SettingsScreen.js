@@ -218,6 +218,11 @@ export default function SettingsScreen({ navigation }) {
           onPress={soon}
         />
         <Row
+          label="Ver introducción"
+          sub="Repasa cómo funciona Mi Biyuyo"
+          onPress={() => navigation.navigate("Onboarding")}
+        />
+        <Row
           label="Acerca de"
           sub="Información de la aplicación"
           onPress={() => navigation.navigate("About")}

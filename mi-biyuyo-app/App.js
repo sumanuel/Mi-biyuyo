@@ -48,6 +48,11 @@ import ItemDatesScreen from "./src/screens/main/ItemDatesScreen";
 import EntityMovementsScreen from "./src/screens/main/EntityMovementsScreen";
 import TransferScreen from "./src/screens/main/TransferScreen";
 import ExchangeRateScreen from "./src/screens/main/ExchangeRateScreen";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as NativeSplash from "expo-splash-screen";
+import OnboardingScreen, {
+  ONBOARDING_KEY,
+} from "./src/screens/auth/OnboardingScreen";
 import BiometricLockScreen from "./src/screens/auth/BiometricLockScreen";
 import { getBiometricLockEnabled } from "./src/services/biometricAuthService";
 import AboutScreen from "./src/screens/main/AboutScreen";
@@ -138,6 +143,19 @@ function AppNavigator() {
   const { token, loading, restored, logout } = useAuth();
   const [lockChecked, setLockChecked] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [onboardingReady, setOnboardingReady] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Introducción: se muestra solo la primera vez (se puede repetir desde Ajustes)
+  useEffect(() => {
+    (async () => {
+      try {
+        const done = await AsyncStorage.getItem(ONBOARDING_KEY);
+        setShowOnboarding(!done);
+      } catch {}
+      setOnboardingReady(true);
+    })();
+  }, []);
 
   // Bloqueo con huella/Face ID (se activa en Ajustes): se pide al abrir la app con una
   // sesión guardada y cada vez que vuelve de segundo plano. No aplica sin sesión.
@@ -174,7 +192,16 @@ function AppNavigator() {
     return () => sub.remove();
   }, [token]);
 
-  if (loading || !lockChecked) return <SplashScreen />;
+  if (loading || !lockChecked || !onboardingReady) return <SplashScreen />;
+
+  if (showOnboarding) {
+    return (
+      <>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <OnboardingScreen onComplete={() => setShowOnboarding(false)} />
+      </>
+    );
+  }
 
   if (token && isLocked) {
     return (
@@ -247,6 +274,10 @@ function AppNavigator() {
                   <Stack.Screen name="Profile" component={ProfileScreen} />
                   <Stack.Screen name="About" component={AboutScreen} />
                   <Stack.Screen
+                    name="Onboarding"
+                    component={OnboardingReplay}
+                  />
+                  <Stack.Screen
                     name="RateNotifications"
                     component={RateNotificationsScreen}
                   />
@@ -271,6 +302,11 @@ function AppNavigator() {
   );
 }
 
+/** Introducción abierta otra vez desde Ajustes. */
+function OnboardingReplay({ navigation }) {
+  return <OnboardingScreen replay onComplete={() => navigation.goBack()} />;
+}
+
 function ThemedRoot({ children }) {
   const { colors } = useTheme();
   return (
@@ -278,8 +314,13 @@ function ThemedRoot({ children }) {
   );
 }
 
+NativeSplash.preventAutoHideAsync().catch(() => {});
+
 export default function App() {
   const [fontsLoaded] = useFonts(FONT_ASSETS);
+  useEffect(() => {
+    if (fontsLoaded) NativeSplash.hideAsync().catch(() => {});
+  }, [fontsLoaded]);
   if (!fontsLoaded) return null;
   return (
     <SafeAreaProvider>

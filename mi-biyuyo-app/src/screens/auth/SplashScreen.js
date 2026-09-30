@@ -1,18 +1,35 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator } from "react-native";
-import { Icon, UI } from "../../components/icons";
+import { View, Text, ActivityIndicator, Image } from "react-native";
 
 // Pantalla de carga (prototipo "Pantalla de carga"): mensajes que rotan mientras se abre la sesión.
 const PHASES = [
   ["Ingresando", "Estamos verificando tu acceso y preparando tu sesión."],
   ["Preparando tus finanzas", "Se están preparando tus cuentas y movimientos."],
   ["Iniciando Mi Biyuyo", "Estamos organizando todo para comenzar."],
-  ["Preparando datos", "Se están creando y verificando las tablas principales."],
-  ["Actualizando información", "Se están revisando datos anteriores para mantener tu información al día."],
-  ["Cargando configuración", "Se están aplicando los ajustes base de tu cuenta."],
-  ["Revisando tu perfil", "Se están comprobando tus datos, la tasa de cambio y los pasos iniciales."],
-  ["Activando servicios", "Se están preparando tareas automáticas y utilidades de apoyo."],
-  ["Casi listo", "Estamos afinando los últimos detalles para mostrar tus finanzas."],
+  [
+    "Preparando datos",
+    "Se están creando y verificando las tablas principales.",
+  ],
+  [
+    "Actualizando información",
+    "Se están revisando datos anteriores para mantener tu información al día.",
+  ],
+  [
+    "Cargando configuración",
+    "Se están aplicando los ajustes base de tu cuenta.",
+  ],
+  [
+    "Revisando tu perfil",
+    "Se están comprobando tus datos, la tasa de cambio y los pasos iniciales.",
+  ],
+  [
+    "Activando servicios",
+    "Se están preparando tareas automáticas y utilidades de apoyo.",
+  ],
+  [
+    "Casi listo",
+    "Estamos afinando los últimos detalles para mostrar tus finanzas.",
+  ],
 ];
 
 export default function SplashScreen() {
@@ -58,18 +75,12 @@ export default function SplashScreen() {
             marginBottom: 18,
           }}
         >
-          <View
-            style={{
-              width: 84,
-              height: 84,
-              borderRadius: 24,
-              backgroundColor: "#2b8f6a",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Icon name="wallet" size={44} color="#ffffff" />
-          </View>
+          <Image
+            source={require("../../../assets/splash-icon.png")}
+            style={{ width: 96, height: 96 }}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+          />
         </View>
         <Text
           style={{
@@ -113,7 +124,8 @@ export default function SplashScreen() {
                 width: 8,
                 height: 8,
                 borderRadius: 4,
-                backgroundColor: i <= idx ? "#ffffff" : "rgba(255,255,255,0.22)",
+                backgroundColor:
+                  i <= idx ? "#ffffff" : "rgba(255,255,255,0.22)",
                 transform: [{ scale: i === idx ? 1.12 : 1 }],
               }}
             />
