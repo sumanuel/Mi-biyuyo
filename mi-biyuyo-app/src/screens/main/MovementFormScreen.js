@@ -74,6 +74,7 @@ export default function MovementFormScreen({ navigation, route }) {
   const [date, setDate] = useState(todayStr());
   const [entId, setEntId] = useState(null);
   const [dueIdx, setDueIdx] = useState(2);
+  const [cashPagar, setCashPagar] = useState(false);
   const [items, setItems] = useState([]);
   const [itemsOpen, setItemsOpen] = useState(false);
   const [iName, setIName] = useState("");
@@ -93,8 +94,8 @@ export default function MovementFormScreen({ navigation, route }) {
   const amtNum = parseNum(amount);
   const usdVal = fx.toUsd(ccy, amtNum);
   const entSel = entId && model.entById[entId] ? entId : model.ents[0]?.id;
-  // Por pagar no mueve saldo al registrarse (los pagos sí); por cobrar ya entregó el dinero.
-  const cash = type !== "pagar";
+  // Por cobrar: el dinero ya salió. Por pagar: solo suma al saldo si el usuario lo recibió.
+  const cash = type !== "pagar" || cashPagar;
   const needsEnt = !isDebt || cash;
   const noEnts = model.ents.length === 0;
 
@@ -704,6 +705,46 @@ export default function MovementFormScreen({ navigation, route }) {
 
       {!isDebt ? entBlock : null}
 
+      {type === "pagar" ? (
+        <View style={{ gap: 8 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>{meta.cashQ}</Txt>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {[
+              [true, "Sí"],
+              [false, "No"],
+            ].map(([v, l]) => (
+              <TouchableOpacity
+                key={l}
+                onPress={() => setCashPagar(v)}
+                accessibilityState={{ selected: cashPagar === v }}
+                style={{
+                  flex: 1,
+                  minHeight: 48,
+                  borderRadius: 14,
+                  borderWidth: 2,
+                  borderColor: cashPagar === v ? tint.strong : colors.border,
+                  backgroundColor: cashPagar === v ? tint.soft : colors.surface,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Txt style={{ fontSize: 14, fontWeight: "700" }}>{l}</Txt>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Txt
+            style={{
+              fontSize: 12,
+              color: colors.textSecondary,
+              lineHeight: 17,
+            }}
+          >
+            {cashPagar
+              ? "Sí: es un préstamo o crédito y el dinero ya entró; se suma a Mi saldo."
+              : "No: no entró dinero y no afecta Mi saldo. Úsalo para servicios, alquiler, colegio, tarjetas o compras a cuotas."}
+          </Txt>
+        </View>
+      ) : null}
       {isDebt && cash ? entBlock : null}
 
       {isDebt ? (

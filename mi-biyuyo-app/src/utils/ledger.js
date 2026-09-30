@@ -70,7 +70,7 @@ export const META = {
     saveLabel: "Guardar por pagar",
     savedTitle: "Por pagar guardado",
     personLabel: "¿A quién le debes?",
-    cashQ: "¿Esta deuda te dio dinero?",
+    cashQ: "¿Recibiste el dinero?",
     descHint: "Ej: Cuota del crédito",
   },
 };
