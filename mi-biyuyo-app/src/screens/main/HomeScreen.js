@@ -28,7 +28,7 @@ import {
   feed,
   pillOf,
 } from "../../utils/ledger";
-import { grp, maskMoney, nTxt } from "../../utils/money";
+import { addDays, grp, maskMoney, nTxt, todayStr } from "../../utils/money";
 import { useRateNotifications } from "../../contexts/RateNotificationsContext";
 
 const MAX_ENTITIES = 2;
@@ -43,6 +43,14 @@ export default function HomeScreen({ navigation }) {
   const shown = (text) => (hideBalance ? maskMoney(text) : text);
   const { fx } = model;
 
+  // Abre el historial en el tipo tocado y en los mismos 30 días del resumen
+  const last30 = (filter) =>
+    go(navigation, "History", {
+      filter,
+      from: addDays(todayStr(), -29),
+      to: todayStr(),
+      ts: Date.now(),
+    });
   const m30 = model.moves.filter((m) => m.d < 30);
   const incomes = m30.filter((m) => m.type === "ingreso");
   const expenses = m30.filter((m) => m.type === "gasto");
@@ -307,7 +315,7 @@ export default function HomeScreen({ navigation }) {
               fg={colors.ok.fg}
             />,
             null,
-            () => go(navigation, "History"),
+            () => last30("ingreso"),
           )}
           {stat(
             "Gastos",
@@ -318,7 +326,7 @@ export default function HomeScreen({ navigation }) {
               fg={colors.gasto.fg}
             />,
             null,
-            () => go(navigation, "History"),
+            () => last30("gasto"),
           )}
         </View>
         <View style={{ flexDirection: "row", gap: 10 }}>
@@ -473,7 +481,9 @@ export default function HomeScreen({ navigation }) {
         <SectionHead
           title="Últimos movimientos"
           action="Ver todos"
-          onAction={() => go(navigation, "History")}
+          onAction={() =>
+            go(navigation, "History", { filter: "all", ts: Date.now() })
+          }
         />
         <ListCard>
           {recent.length === 0 ? (
