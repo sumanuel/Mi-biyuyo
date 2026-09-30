@@ -6,6 +6,13 @@ const authGuard = require("../middleware/authGuard");
 router.post("/register", ctrl.validateRegister, validate, ctrl.register);
 router.post("/login", ctrl.validateLogin, validate, ctrl.login);
 router.post(
+  "/verify-email",
+  ctrl.validateVerifyEmail,
+  validate,
+  ctrl.verifyEmail,
+);
+router.post("/resend-code", ctrl.validateResendCode, validate, ctrl.resendCode);
+router.post(
   "/forgot-password",
   ctrl.validateForgotPassword,
   validate,

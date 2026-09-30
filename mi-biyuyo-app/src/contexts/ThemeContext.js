@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { Appearance } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const THEME_KEY = "@mb_theme";
@@ -98,6 +99,13 @@ export function ThemeProvider({ children }) {
       if (v) setIsDark(v === "dark");
     });
   }, []);
+
+  // El sistema (barra de navegación de Android, diálogos) sigue el tema elegido en la app
+  useEffect(() => {
+    try {
+      Appearance.setColorScheme(isDark ? "dark" : "light");
+    } catch {}
+  }, [isDark]);
 
   const toggle = async () => {
     const next = !isDark;

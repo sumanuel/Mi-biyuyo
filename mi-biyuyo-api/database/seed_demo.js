@@ -88,7 +88,7 @@ async function run() {
     if (!u.length) {
       const hash = await bcrypt.hash(PASSWORD, 10);
       ({ rows: u } = await client.query(
-        `INSERT INTO users (name, email, password_hash) VALUES ('Jesús', $1, $2) RETURNING id`,
+        `INSERT INTO users (name, email, password_hash, email_verified) VALUES ('Jesús', $1, $2, true) RETURNING id`,
         [EMAIL, hash],
       ));
       console.log(`Usuario creado: ${EMAIL} / ${PASSWORD}`);
