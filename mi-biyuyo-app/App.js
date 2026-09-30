@@ -116,7 +116,12 @@ function MainTabs() {
       <Tab.Screen name="Settings" component={SettingsScreen} />
       {/* Sin botón propio en la barra, pero conservan la barra inferior */}
       <Tab.Screen name="History" component={HistoryScreen} />
-      <Tab.Screen name="Debts" component={DebtsScreen} />
+      <Tab.Screen name="Receivables">
+        {(props) => <DebtsScreen {...props} type="cobrar" />}
+      </Tab.Screen>
+      <Tab.Screen name="Payables">
+        {(props) => <DebtsScreen {...props} type="pagar" />}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
