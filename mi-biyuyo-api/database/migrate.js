@@ -182,6 +182,36 @@ async function migrate() {
       WHERE e.initial_amount IS NULL
     `);
 
+
+    // ── v4: corrige valores USDT guardados con la fórmula anterior (Binance como bolívares) ──
+    // Señal: amount_binance > 5 × amount_usd (con la fórmula correcta ronda 1×). Se reconstruyen
+    // las tasas del día con los propios valores guardados; es idempotente.
+    for (const tbl of ["transactions", "transaction_payments"]) {
+      // Registros en USD o VES: solo estaba mal amount_binance
+      await client.query(`
+        UPDATE ${tbl} SET amount_binance = amount_ves * amount_usd / amount_binance
+        WHERE currency <> 'BINANCE' AND amount_usd > 0 AND amount_ves > 0
+          AND amount_binance > amount_usd * 5
+      `);
+      // Registros en USDT: también estaba mal el valor en USD y en VES
+      await client.query(`
+        UPDATE ${tbl} SET
+          amount_usd     = amount * amount / amount_ves,
+          amount_ves     = amount * amount / amount_usd,
+          amount_binance = amount
+        WHERE currency = 'BINANCE' AND amount_usd > 0 AND amount_ves > 0
+          AND amount_binance > amount_usd * 5
+      `);
+    }
+    await client.query(`
+      UPDATE transaction_payments SET rate = amount_binance / amount_usd
+      WHERE currency = 'BINANCE' AND amount_usd > 0 AND rate > 5
+    `);
+
+
+    // ── v5: entidades que no suman a "Mi saldo" ──
+    await client.query(`ALTER TABLE entities ADD COLUMN IF NOT EXISTS include_in_balance BOOLEAN NOT NULL DEFAULT TRUE`);
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {

@@ -17,7 +17,7 @@ exports.get = async (req, res, next) => {
         `SELECT id, name, kind, currency, initial_usd::float AS initial_usd,
                 initial_amount::float AS initial_amount,
                 payment_type, payment_data, alert_usd::float AS alert_usd,
-                to_char(created_at,'YYYY-MM-DD') AS created
+                include_in_balance, to_char(created_at,'YYYY-MM-DD') AS created
          FROM entities WHERE user_id = $1 ORDER BY id`,
         [uid],
       ),

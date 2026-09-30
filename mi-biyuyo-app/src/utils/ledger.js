@@ -163,6 +163,7 @@ export function buildModel(raw, ratesOverride) {
       pt: e.payment_type || "none",
       pd: e.payment_data || [],
       alert: e.alert_usd,
+      include: e.include_in_balance !== false, // ¿suma a Mi saldo?
       created: e.created || null,
       d: e.created ? daysAgo(e.created) : 0,
     };
@@ -294,7 +295,9 @@ export function buildModel(raw, ratesOverride) {
       : fx.rate > 0
         ? entNative(e) / fx.rate
         : entBalStored(e);
-  const balance = ents.reduce((a, e) => a + entBal(e), 0);
+  // Mi saldo: solo entidades marcadas como "Sumar a Mi saldo"
+  const included = ents.filter((e) => e.include);
+  const balance = included.reduce((a, e) => a + entBal(e), 0);
   const isLow = (e) =>
     e.alert !== null && e.alert !== undefined && entBal(e) < e.alert;
 
@@ -302,6 +305,24 @@ export function buildModel(raw, ratesOverride) {
   const sumIn = (list, t, c) =>
     list.filter((m) => m.type === t).reduce((a, m) => a + m.val[c], 0);
   const sum = (list, t) => sumIn(list, t, "usd");
+  // Balance del historial (valores del día): suma de las entidades incluidas en Mi saldo
+  const histBalance = (c) =>
+    included.reduce((total, e) => {
+      let b = e.created ? e.initVal[c] : 0;
+      moves.forEach((m) => {
+        if (m.ent === e.id && isLive(m))
+          b +=
+            m.type === "ingreso" || m.type === "pagar" ? m.val[c] : -m.val[c];
+        (m.pays || []).forEach((q) => {
+          if (q.ent === e.id) b += m.type === "cobrar" ? q.val[c] : -q.val[c];
+        });
+      });
+      transfers.forEach((t) => {
+        if (t.from === e.id) b -= t.val[c] + t.feeVal[c];
+        if (t.to === e.id) b += t.val[c];
+      });
+      return total + b;
+    }, 0);
   const flows = (c) => ({
     cashIn: moves
       .filter((m) => m.type === "cobrar")
@@ -353,6 +374,8 @@ export function buildModel(raw, ratesOverride) {
     entBal,
     entNative,
     balance,
+    included,
+    histBalance,
     isLow,
     sum,
     sumIn,
@@ -369,6 +392,18 @@ export function dayRateTxt(val, c) {
   if (c === "bin" && val.bin > 0)
     return "Tasa del día " + grp(val.bcv / val.bin, ".", ",");
   return "";
+}
+
+/** Texto bajo Mi saldo: cuántas entidades suman (y cuántas quedan fuera). */
+export function balanceNote(model) {
+  const n = model.included.length;
+  const x = model.ents.length - n;
+  return (
+    "Suma de tus " +
+    n +
+    (n === 1 ? " entidad" : " entidades") +
+    (x > 0 ? " · " + x + " sin sumar" : "")
+  );
 }
 
 /** Estado de una deuda: texto y tono (ok | danger | warn | neutral). */

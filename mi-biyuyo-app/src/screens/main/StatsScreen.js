@@ -122,7 +122,7 @@ export default function StatsScreen({ navigation }) {
   }));
 
   /* ---- distribución y deudas ---- */
-  const dist = model.ents
+  const dist = model.included
     .map((e) => ({ id: e.id, name: e.name, b: model.entBal(e) }))
     .filter((x) => x.b > 0.005)
     .sort((a, b) => b.b - a.b)

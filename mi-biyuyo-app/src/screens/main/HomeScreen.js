@@ -20,7 +20,13 @@ import {
   Divider,
 } from "../../components/ui";
 import { go } from "../../navigation/helpers";
-import { KIND_ICON, alertsOf, feed, pillOf } from "../../utils/ledger";
+import {
+  KIND_ICON,
+  alertsOf,
+  balanceNote,
+  feed,
+  pillOf,
+} from "../../utils/ledger";
 import { grp, nTxt } from "../../utils/money";
 
 const MAX_ENTITIES = 2;
@@ -191,7 +197,7 @@ export default function HomeScreen({ navigation }) {
             marginTop: -8,
           }}
         >
-          Suma de tus {model.ents.length} entidades
+          {balanceNote(model)}
         </Txt>
         <View style={{ gap: 8 }}>
           {[
