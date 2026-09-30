@@ -69,8 +69,9 @@ export default function ExchangeRateScreen({ navigation }) {
 
       <Card style={{ gap: 14 }}>
         <Txt style={{ fontSize: 13, lineHeight: 18, color: colors.textSecondary }}>
-          Todos tus montos se guardan en USD. Estas tasas se usan para convertir
-          entre USD, VES (BCV) y VES (Binance P2P).
+          Todos tus montos se guardan en USD. Con estas tasas se convierte entre
+          USD, VES (BCV) y USDT (Binance). Ej.: si 1 USD = 850 VES y 1 USDT =
+          950 VES, entonces 850 VES = USD 1.00 = USDT 0.89.
         </Txt>
         <Field
           label="Tasa BCV"
@@ -82,7 +83,7 @@ export default function ExchangeRateScreen({ navigation }) {
         />
         <Field
           label="Tasa Binance P2P"
-          hint="(VES por 1 USD)"
+          hint="(VES por 1 USDT)"
           value={bin}
           onChangeText={setBin}
           keyboardType="decimal-pad"

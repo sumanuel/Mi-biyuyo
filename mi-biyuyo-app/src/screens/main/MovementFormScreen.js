@@ -25,6 +25,7 @@ import { META, isDebtType } from "../../utils/ledger";
 import {
   CCY_KEYS,
   CCY_LABEL,
+  CCY_PREFIX,
   CCY_TO_API,
   grp,
   nTxt,
@@ -309,12 +310,7 @@ export default function MovementFormScreen({ navigation, route }) {
           tint={tint}
           options={CCY_KEYS.map((k) => ({
             label: CCY_LABEL[k],
-            sub:
-              k === "usd"
-                ? "Base"
-                : fx.ready(k)
-                  ? grp(fx.FACT[k], ".", ",")
-                  : "Sin tasa",
+            sub: fx.rateShort(k),
             active: k === ccy,
             onPress: () => setCcy(k),
           }))}
@@ -335,7 +331,7 @@ export default function MovementFormScreen({ navigation, route }) {
               color: colors.textSecondary,
             }}
           >
-            {ccy === "usd" ? "USD" : "VES"}
+            {CCY_PREFIX[ccy]}
           </Txt>
           <Input
             value={amount}

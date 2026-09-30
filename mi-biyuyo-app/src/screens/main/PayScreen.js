@@ -20,6 +20,7 @@ import {
 import {
   CCY_KEYS,
   CCY_LABEL,
+  CCY_PREFIX,
   CCY_TO_API,
   fmtIn,
   grp,
@@ -145,12 +146,14 @@ export default function PayScreen({ navigation, route }) {
       </Card>
 
       <View style={{ gap: 8 }}>
-        <Txt style={{ fontSize: 14, fontWeight: "700" }}>Moneda del registro</Txt>
+        <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+          Moneda del registro
+        </Txt>
         <CcyOptions
           tint={tint}
           options={CCY_KEYS.map((k) => ({
             label: CCY_LABEL[k],
-            sub: k === "usd" ? "Base" : fx.ready(k) ? grp(fx.FACT[k], ".", ",") : "Sin tasa",
+            sub: fx.rateShort(k),
             active: k === ccy,
             onPress: () => setCcy(k),
           }))}
@@ -166,7 +169,7 @@ export default function PayScreen({ navigation, route }) {
               color: colors.textSecondary,
             }}
           >
-            {ccy === "usd" ? "USD" : "VES"}
+            {CCY_PREFIX[ccy]}
           </Txt>
           <Input
             value={amount}
@@ -187,8 +190,18 @@ export default function PayScreen({ navigation, route }) {
         </View>
         <View style={{ flexDirection: "row", gap: 8 }}>
           {[
-            ["Saldo total", () => setAmount(fmtIn(fx.fromUsd(ccy, pend)))],
-            ["Mitad", () => setAmount(fmtIn(fx.fromUsd(ccy, pend / 2)))],
+            [
+              "Saldo total",
+              () =>
+                setAmount(fmtIn(fx.fromUsd(ccy, pend), ccy === "bin" ? 3 : 2)),
+            ],
+            [
+              "Mitad",
+              () =>
+                setAmount(
+                  fmtIn(fx.fromUsd(ccy, pend / 2), ccy === "bin" ? 3 : 2),
+                ),
+            ],
           ].map(([label, fn]) => (
             <TouchableOpacity
               key={label}
@@ -260,7 +273,12 @@ export default function PayScreen({ navigation, route }) {
 
       <View style={{ gap: 8 }}>
         <Txt style={{ fontSize: 14, fontWeight: "700" }}>Fecha</Txt>
-        <DateField value={date} onChange={setDate} min={debt.date} tint={tint} />
+        <DateField
+          value={date}
+          onChange={setDate}
+          min={debt.date}
+          tint={tint}
+        />
       </View>
 
       <View style={{ gap: 8 }}>
