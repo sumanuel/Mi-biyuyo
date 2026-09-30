@@ -18,6 +18,10 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Variables de entorno locales
+.env
+.env.local
+
 # Metro
 .metro-health-check*
 
