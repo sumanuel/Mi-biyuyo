@@ -25,12 +25,19 @@
       "expo-font",
       "expo-background-task",
       [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Mi Biyuyo usa Face ID para desbloquear la app."
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
           "color": "#1f7a59"
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }

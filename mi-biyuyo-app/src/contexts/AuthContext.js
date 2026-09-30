@@ -17,6 +17,8 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // true solo si la sesión venía guardada (no tras iniciar sesión con contraseña)
+  const [restored, setRestored] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -28,6 +30,7 @@ export function AuthProvider({ children }) {
         if (t && u) {
           setToken(t);
           setUser(JSON.parse(u));
+          setRestored(true);
           // Refresh user from API silently
           try {
             const fresh = await authService.getMe(t);
@@ -70,6 +73,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(async () => {
     setToken(null);
     setUser(null);
+    setRestored(false);
     await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
   }, []);
 
@@ -88,6 +92,7 @@ export function AuthProvider({ children }) {
         token,
         user,
         loading,
+        restored,
         login,
         register,
         verifyEmail,
