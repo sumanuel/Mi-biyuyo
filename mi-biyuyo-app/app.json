@@ -16,7 +16,11 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.mibiyuyo.app"
+      "package": "com.mibiyuyo.app",
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -47,6 +51,11 @@
           "backgroundColor": "#1f7a59"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2a776e20-ffa1-4661-a3d1-fb558f2fc44e"
+      }
+    }
   }
 }
