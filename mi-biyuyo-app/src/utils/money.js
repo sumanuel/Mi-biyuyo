@@ -73,3 +73,16 @@ export const dlabel = (str) => {
   return `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}`;
 };
 export const dayMonth = (dt) => `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}`;
+
+/* ---------- utilidades para el selector de fecha ---------- */
+export const parseDate = parse;
+export const addDays = (str, n) => {
+  const d = parse(str);
+  d.setDate(d.getDate() + n);
+  return toDateStr(d);
+};
+/** 30/09/2026 */
+export const fullDate = (str) => {
+  const dt = parse(str);
+  return `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}/${dt.getFullYear()}`;
+};

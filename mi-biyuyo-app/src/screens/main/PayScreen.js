@@ -24,10 +24,9 @@ import {
   fmtIn,
   grp,
   parseNum,
-  dateNDaysAgo,
+  todayStr,
 } from "../../utils/money";
-
-const DATE_OPTS = ["Hoy", "Ayer", "Hace 2 días"];
+import DateField from "../../components/DateField";
 
 /** Registrar un cobro (por cobrar) o un pago (por pagar) parcial. */
 export default function PayScreen({ navigation, route }) {
@@ -38,7 +37,7 @@ export default function PayScreen({ navigation, route }) {
 
   const [ccy, setCcy] = useState("usd");
   const [amount, setAmount] = useState("");
-  const [dateIdx, setDateIdx] = useState(0);
+  const [date, setDate] = useState(todayStr());
   const [entId, setEntId] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -59,9 +58,6 @@ export default function PayScreen({ navigation, route }) {
   const over = usd > pend + 0.005;
   const after = Math.max(0, pend - usd);
   const rateMissing = !fx.ready(ccy);
-  const maxBack = Math.min(2, debt.d); // no se puede abonar antes de registrar la deuda
-  const dates = DATE_OPTS.map((l, i) => ({ l, i })).filter((o) => o.i <= maxBack);
-  const date = Math.min(dateIdx, maxBack);
   const entSel =
     entId && model.entById[entId]
       ? entId
@@ -78,7 +74,7 @@ export default function PayScreen({ navigation, route }) {
       await actions.addPayment(debt.id, {
         amount: num,
         currency: CCY_TO_API[ccy],
-        date: dateNDaysAgo(date),
+        date,
         entity_id: entSel,
         notes: model.entName(entSel),
       });
@@ -264,17 +260,7 @@ export default function PayScreen({ navigation, route }) {
 
       <View style={{ gap: 8 }}>
         <Txt style={{ fontSize: 14, fontWeight: "700" }}>Fecha</Txt>
-        <ChipRow>
-          {dates.map((o) => (
-            <Chip
-              key={o.l}
-              label={o.l}
-              active={o.i === date}
-              color={tint.strong}
-              onPress={() => setDateIdx(o.i)}
-            />
-          ))}
-        </ChipRow>
+        <DateField value={date} onChange={setDate} min={debt.date} tint={tint} />
       </View>
 
       <View style={{ gap: 8 }}>

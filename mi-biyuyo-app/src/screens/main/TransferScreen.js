@@ -17,6 +17,7 @@ import {
   Field,
   Empty,
 } from "../../components/ui";
+import DateField from "../../components/DateField";
 import { CCY_KEYS, CCY_LABEL, CCY_TO_API, grp, parseNum, todayStr } from "../../utils/money";
 
 /** Transferencia entre entidades propias (no es ingreso ni gasto). */
@@ -31,6 +32,7 @@ export default function TransferScreen({ navigation, route }) {
   const [ccy, setCcy] = useState("usd");
   const [amount, setAmount] = useState("");
   const [fee, setFee] = useState("");
+  const [date, setDate] = useState(todayStr());
   const [busy, setBusy] = useState(false);
 
   if (model.ents.length < 2) {
@@ -66,7 +68,7 @@ export default function TransferScreen({ navigation, route }) {
         amount: num,
         fee: feeNum || 0,
         currency: CCY_TO_API[ccy],
-        date: todayStr(),
+        date,
       });
       showToast(
         `Transferencia registrada: ${fx.money(ccy, num)} de ${from.name} a ${to.name}`,
@@ -201,6 +203,11 @@ export default function TransferScreen({ navigation, route }) {
         <View style={{ height: 1, backgroundColor: colors.divider }} />
         <ConvRows title="EQUIVALENCIAS" rows={rows} tint={tint} />
       </Card>
+
+      <View style={{ gap: 8 }}>
+        <Txt style={{ fontSize: 14, fontWeight: "700" }}>Fecha</Txt>
+        <DateField value={date} onChange={setDate} tint={tint} />
+      </View>
 
       <Field
         label="Comisión"

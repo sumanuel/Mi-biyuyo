@@ -38,6 +38,7 @@ export const IC = {
 
 // Iconos de interfaz (mismos trazos que el prototipo)
 export const UI = {
+  calendar: "M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4",
   cloudCheck: "M7 19a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 17.9 8.6 4.7 4.7 0 0 1 17.5 19z M9.5 13.5l2 2 3.5-4",
   shieldCheck: "M12 3 4.5 6v5.5c0 4.6 3.1 8 7.5 9.5 4.4-1.5 7.5-4.9 7.5-9.5V6z M9 12l2.3 2.3L15.5 10",
   eye: "M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
