@@ -139,6 +139,8 @@ export function buildModel(raw, ratesOverride) {
     pt: e.payment_type || "none",
     pd: e.payment_data || [],
     alert: e.alert_usd,
+    created: e.created || null,
+    d: e.created ? daysAgo(e.created) : 0,
   }));
   const entById = {};
   ents.forEach((e) => (entById[e.id] = e));
@@ -219,8 +221,11 @@ export function buildModel(raw, ratesOverride) {
     });
     return b;
   };
+  const feesTotal = transfers.reduce((a, t) => a + t.fee, 0);
+  const initTotal = ents.reduce((a, e) => a + (e.created ? e.init : 0), 0);
   const balance = ents.reduce((a, e) => a + entBal(e), 0);
-  const isLow = (e) => e.alert !== null && e.alert !== undefined && entBal(e) < e.alert;
+  const isLow = (e) =>
+    e.alert !== null && e.alert !== undefined && entBal(e) < e.alert;
 
   const sum = (list, t) =>
     list.filter((m) => m.type === t).reduce((a, m) => a + m.usd, 0);
@@ -261,6 +266,8 @@ export function buildModel(raw, ratesOverride) {
     isLive,
     entBal,
     balance,
+    initTotal,
+    feesTotal,
     isLow,
     sum,
     cashIn,
@@ -305,7 +312,11 @@ export function rowOf(model, m, dv) {
     icon: m.cat.icon,
     tone: m.type,
     sub:
-      (m.person ? m.person : m.cat.name) + entPart + " · " + dlabel(m.date) + itemsPart,
+      (m.person ? m.person : m.cat.name) +
+      entPart +
+      " · " +
+      dlabel(m.date) +
+      itemsPart,
     amount: sign + dv(m.usd),
     line2: debt
       ? pend > 0.005
@@ -336,6 +347,24 @@ export function abonoRow(model, m, p, dv) {
   };
 }
 
+/** Saldo inicial de una entidad, mostrado como movimiento (no cuenta como ingreso en estadísticas). */
+export function initialRow(model, e, dv) {
+  return {
+    key: "i" + e.id,
+    title: "Saldo inicial",
+    icon: KIND_ICON[e.kind] || "card",
+    tone: "ingreso",
+    sub: e.name + " · " + dlabel(e.created),
+    amount: "+" + dv(e.init),
+    line2: "Saldo inicial de la entidad",
+    nav: { name: "EntityDetail", params: { id: e.id } },
+  };
+}
+
+/** Entidades con saldo inicial > 0 y fecha conocida. */
+export const withInitial = (model) =>
+  model.ents.filter((e) => e.init > 0.005 && e.created);
+
 export function transferRow(model, t, dv, ref) {
   const sign = ref ? (t.to === ref ? "+" : "-") : "";
   const amt = ref ? (t.to === ref ? t.usd : t.usd + t.fee) : t.usd;
@@ -345,7 +374,11 @@ export function transferRow(model, t, dv, ref) {
     icon: "swap",
     tone: "neutral",
     sub:
-      model.entName(t.from) + " → " + model.entName(t.to) + " · " + dlabel(t.date),
+      model.entName(t.from) +
+      " → " +
+      model.entName(t.to) +
+      " · " +
+      dlabel(t.date),
     amount: sign + dv(amt),
     line2: t.fee > 0 ? "Comisión " + dv(t.fee) : "Sin comisión",
     nav: { name: "Entities" },
@@ -364,6 +397,10 @@ export function feed(model, list, withTransfers, dv) {
     model.transfers.forEach((t) =>
       out.push({ d: t.d, k: t.id, r: transferRow(model, t, dv) }),
     );
+  if (withTransfers)
+    withInitial(model).forEach((e) =>
+      out.push({ d: e.d, k: "i" + e.id, r: initialRow(model, e, dv) }),
+    );
   return out.sort((a, b) => a.d - b.d).map((o) => o.r);
 }
 
@@ -381,6 +418,9 @@ export function ledgerOf(model, entId, dv) {
     if (t.from === entId || t.to === entId)
       out.push({ d: t.d, r: transferRow(model, t, dv, entId) });
   });
+  withInitial(model)
+    .filter((e) => e.id === entId)
+    .forEach((e) => out.push({ d: e.d, r: initialRow(model, e, dv) }));
   return out.sort((a, b) => a.d - b.d).map((o) => o.r);
 }
 
@@ -389,8 +429,7 @@ export function alertsOf(model, dv, threshold) {
   const list = model.ents.filter(model.isLow).map((e) => ({
     key: "e" + e.id,
     title: e.name + " tiene saldo bajo",
-    sub:
-      "Saldo " + dv(model.entBal(e)) + " · alerta en " + dv(e.alert),
+    sub: "Saldo " + dv(model.entBal(e)) + " · alerta en " + dv(e.alert),
     nav: { name: "EntityDetail", params: { id: e.id } },
   }));
   if (model.ready && model.balance < threshold)
@@ -398,7 +437,10 @@ export function alertsOf(model, dv, threshold) {
       key: "total",
       title: "Tu saldo total está bajo",
       sub:
-        "Saldo " + dv(model.balance) + " · umbral " + model.fx.money("usd", threshold),
+        "Saldo " +
+        dv(model.balance) +
+        " · umbral " +
+        model.fx.money("usd", threshold),
       nav: { name: "Entities" },
     });
   return list;

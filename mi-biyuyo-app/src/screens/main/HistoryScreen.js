@@ -51,13 +51,24 @@ export default function HistoryScreen({ navigation, route }) {
       .toLowerCase()
       .includes(qn);
   const sorted = model.moves.slice().sort((a, b) => a.d - b.d);
-  const fl = (filter === "all" ? sorted : sorted.filter((m) => m.type === filter)).filter(matchQ);
+  const fl = (
+    filter === "all" ? sorted : sorted.filter((m) => m.type === filter)
+  ).filter(matchQ);
   const flInc = model.sum(fl, "ingreso");
   const flExp = model.sum(fl, "gasto");
-  const label = filter === "all" ? "Balance del historial" : "Total " + META[filter].plural.toLowerCase();
+  const label =
+    filter === "all"
+      ? "Balance del historial"
+      : "Total " + META[filter].plural.toLowerCase();
   const histUsd =
     filter === "all"
-      ? flInc - flExp + model.cashIn - model.cashOut - model.lent + model.borrowed
+      ? flInc -
+        flExp +
+        model.cashIn -
+        model.cashOut -
+        model.lent +
+        model.borrowed +
+        (qn ? 0 : model.initTotal - model.feesTotal)
       : fl.reduce((a, m) => a + m.usd, 0);
   const all = feed(model, fl, filter === "all" && !qn, dv);
   const rows = all.slice(0, limit);
@@ -98,7 +109,13 @@ export default function HistoryScreen({ navigation, route }) {
 
       <Card style={{ gap: 12 }}>
         <View style={{ gap: 2 }}>
-          <Txt style={{ fontSize: 12, color: colors.textSecondary, fontWeight: "600" }}>
+          <Txt
+            style={{
+              fontSize: 12,
+              color: colors.textSecondary,
+              fontWeight: "600",
+            }}
+          >
             {label}
           </Txt>
           <Txt style={{ fontSize: 26, fontWeight: "800" }}>
@@ -107,18 +124,38 @@ export default function HistoryScreen({ navigation, route }) {
         </View>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <View style={{ flex: 1, gap: 2 }}>
-            <Txt style={{ fontSize: 12, color: colors.textSecondary }}>Movimientos</Txt>
-            <Txt style={{ fontSize: 15, fontWeight: "700" }}>{String(all.length)}</Txt>
+            <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+              Movimientos
+            </Txt>
+            <Txt style={{ fontSize: 15, fontWeight: "700" }}>
+              {String(all.length)}
+            </Txt>
           </View>
           <View style={{ flex: 1.4, gap: 2 }}>
-            <Txt style={{ fontSize: 12, color: colors.textSecondary }}>Ingresos</Txt>
-            <Txt style={{ fontSize: 14, fontWeight: "700", color: colors.ingreso.fg }}>
+            <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+              Ingresos
+            </Txt>
+            <Txt
+              style={{
+                fontSize: 14,
+                fontWeight: "700",
+                color: colors.ingreso.fg,
+              }}
+            >
               {dv(flInc)}
             </Txt>
           </View>
           <View style={{ flex: 1.4, gap: 2 }}>
-            <Txt style={{ fontSize: 12, color: colors.textSecondary }}>Gastos</Txt>
-            <Txt style={{ fontSize: 14, fontWeight: "700", color: colors.gasto.fg }}>
+            <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+              Gastos
+            </Txt>
+            <Txt
+              style={{
+                fontSize: 14,
+                fontWeight: "700",
+                color: colors.gasto.fg,
+              }}
+            >
               {dv(flExp)}
             </Txt>
           </View>
@@ -126,7 +163,9 @@ export default function HistoryScreen({ navigation, route }) {
       </Card>
 
       <View style={{ gap: 8 }}>
-        {rows.length === 0 ? <Empty text="No hay movimientos para mostrar." /> : null}
+        {rows.length === 0 ? (
+          <Empty text="No hay movimientos para mostrar." />
+        ) : null}
         {rows.map((r) => (
           <MovRow
             key={r.key}

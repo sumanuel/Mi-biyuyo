@@ -15,7 +15,8 @@ exports.get = async (req, res, next) => {
       ),
       pool.query(
         `SELECT id, name, kind, currency, initial_usd::float AS initial_usd,
-                payment_type, payment_data, alert_usd::float AS alert_usd
+                payment_type, payment_data, alert_usd::float AS alert_usd,
+                to_char(created_at,'YYYY-MM-DD') AS created
          FROM entities WHERE user_id = $1 ORDER BY id`,
         [uid],
       ),
