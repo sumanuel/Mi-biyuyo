@@ -522,22 +522,33 @@ export function transferRow(model, t, dv, ref) {
   };
 }
 
-/** Mezcla movimientos, abonos y (opcional) transferencias, del más reciente al más antiguo. */
-export function feed(model, list, withTransfers, dv) {
-  const out = list.map((m) => ({ d: m.d, k: m.id, r: rowOf(model, m, dv) }));
+/**
+ * Mezcla movimientos, abonos y (opcional) transferencias, del más reciente al más antiguo.
+ * `range` = { from, to } (YYYY-MM-DD, ambos incluidos) filtra también abonos, transferencias y saldos iniciales.
+ */
+export function feed(model, list, withTransfers, dv, range) {
+  const inRange = (date) =>
+    !range ||
+    ((!range.from || date >= range.from) && (!range.to || date <= range.to));
+  const out = list
+    .filter((m) => inRange(m.date))
+    .map((m) => ({ d: m.d, k: m.id, r: rowOf(model, m, dv) }));
   list.forEach((m) =>
-    (m.pays || []).forEach((p) =>
-      out.push({ d: p.d, k: p.id, r: abonoRow(model, m, p, dv) }),
-    ),
+    (m.pays || []).forEach((p) => {
+      if (inRange(p.date))
+        out.push({ d: p.d, k: p.id, r: abonoRow(model, m, p, dv) });
+    }),
   );
-  if (withTransfers)
-    model.transfers.forEach((t) =>
-      out.push({ d: t.d, k: t.id, r: transferRow(model, t, dv) }),
-    );
-  if (withTransfers)
-    withInitial(model).forEach((e) =>
-      out.push({ d: e.d, k: "i" + e.id, r: initialRow(model, e, dv) }),
-    );
+  if (withTransfers) {
+    model.transfers.forEach((t) => {
+      if (inRange(t.date))
+        out.push({ d: t.d, k: t.id, r: transferRow(model, t, dv) });
+    });
+    withInitial(model).forEach((e) => {
+      if (inRange(e.created))
+        out.push({ d: e.d, k: "i" + e.id, r: initialRow(model, e, dv) });
+    });
+  }
   return out.sort((a, b) => a.d - b.d).map((o) => o.r);
 }
 

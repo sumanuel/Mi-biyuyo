@@ -15,7 +15,9 @@ import {
   Empty,
   Button,
 } from "../../components/ui";
+import DateRangeFilter from "../../components/DateRangeFilter";
 import { META, feed } from "../../utils/ledger";
+import { endOfMonth, fullDate, startOfMonth } from "../../utils/money";
 import { go } from "../../navigation/helpers";
 
 const FILTERS = [
@@ -33,12 +35,27 @@ export default function HistoryScreen({ navigation, route }) {
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const [limit, setLimit] = useState(PAGE);
+  const [from, setFrom] = useState(startOfMonth());
+  const [to, setTo] = useState(endOfMonth());
+
+  const setRange = (f, t) => {
+    setFrom(f);
+    setTo(t);
+    setLimit(PAGE);
+  };
 
   useEffect(() => {
     if (route.params?.q !== undefined) {
       setQ(route.params.q);
       setFilter("all");
       setLimit(PAGE);
+      // Una búsqueda desde el inicio abarca todo el historial
+      const first = model.moves.reduce(
+        (a, m) => (m.date < a ? m.date : a),
+        startOfMonth(),
+      );
+      setFrom(first);
+      setTo(endOfMonth());
     }
   }, [route.params?.q, route.params?.ts]);
 
@@ -53,23 +70,20 @@ export default function HistoryScreen({ navigation, route }) {
   const sorted = model.moves.slice().sort((a, b) => a.d - b.d);
   const fl = (
     filter === "all" ? sorted : sorted.filter((m) => m.type === filter)
-  ).filter(matchQ);
+  )
+    .filter((m) => m.date >= from && m.date <= to)
+    .filter(matchQ);
   // Historial: valores del día de cada movimiento, en la moneda elegida
   const flInc = model.sumIn(fl, "ingreso", disp);
   const flExp = model.sumIn(fl, "gasto", disp);
   const label =
     filter === "all"
-      ? "Balance del historial"
+      ? "Balance del período"
       : "Total " + META[filter].plural.toLowerCase();
-  const fl3 = model.flows(disp);
   const histVal =
-    filter === "all"
-      ? qn
-        ? flInc - flExp + fl3.cashIn - fl3.cashOut - fl3.lent + fl3.borrowed
-        : model.histBalance(disp) // = Mi saldo con los valores del día
-      : fl.reduce((a, m) => a + m.val[disp], 0);
+    filter === "all" ? flInc - flExp : fl.reduce((a, m) => a + m.val[disp], 0);
   const money = (n) => model.fx.money(disp, n);
-  const all = feed(model, fl, filter === "all" && !qn, dv);
+  const all = feed(model, fl, filter === "all" && !qn, dv, { from, to });
   const rows = all.slice(0, limit);
 
   return (
@@ -90,6 +104,7 @@ export default function HistoryScreen({ navigation, route }) {
           fontSize: 15,
         }}
       />
+      <DateRangeFilter from={from} to={to} onChange={setRange} />
       <DispTabs height={40} />
       <ChipRow scroll>
         {FILTERS.map(([k, l]) => (
@@ -163,7 +178,9 @@ export default function HistoryScreen({ navigation, route }) {
 
       <View style={{ gap: 8 }}>
         {rows.length === 0 ? (
-          <Empty text="No hay movimientos para mostrar." />
+          <Empty
+            text={`No hay movimientos del ${fullDate(from)} al ${fullDate(to)}.`}
+          />
         ) : null}
         {rows.map((r) => (
           <MovRow
