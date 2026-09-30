@@ -21,7 +21,7 @@ import {
   Icon,
   Empty,
 } from "../../components/ui";
-import { META, isDebtType } from "../../utils/ledger";
+import { META, dayRateTxt, isDebtType } from "../../utils/ledger";
 import {
   CCY_KEYS,
   CCY_LABEL,
@@ -32,6 +32,7 @@ import {
   parseNum,
   todayStr,
   addDays,
+  fullDate,
 } from "../../utils/money";
 import { takePhoto, pickFile } from "../../utils/receipt";
 import DateField from "../../components/DateField";
@@ -61,26 +62,68 @@ export default function MovementFormScreen({ navigation, route }) {
   const { model, actions, showToast } = useData();
   const { fx } = model;
 
-  const cat = model.catById[route.params?.catId];
+  // Edición: parte de un movimiento existente y conserva las tasas del día en que se registró
+  const editing = model.moveById[route.params?.editId] || null;
+  const [catId, setCatId] = useState(
+    editing ? editing.cat.id : route.params?.catId,
+  );
+  const [catOpen, setCatOpen] = useState(false);
+  const cat = model.catById[catId] || (editing ? editing.cat : null);
   const type = cat ? cat.type : "gasto";
   const meta = META[type];
   const tint = colors[type];
   const isDebt = isDebtType(type);
   const showItems = type === "gasto" || type === "pagar";
 
-  const [ccy, setCcy] = useState("usd");
-  const [amount, setAmount] = useState("");
-  const [desc, setDesc] = useState("");
-  const [person, setPerson] = useState("");
-  const [date, setDate] = useState(todayStr());
-  const [entId, setEntId] = useState(null);
-  const [dueIdx, setDueIdx] = useState(2);
-  const [cashPagar, setCashPagar] = useState(false);
-  const [items, setItems] = useState([]);
-  const [itemsOpen, setItemsOpen] = useState(false);
+  // Factores originales (unidades de cada moneda por 1 USD) del movimiento editado
+  const origOk = !!editing && editing.usd > 0;
+  const origF = (k) =>
+    origOk && editing.val[k] > 0 ? editing.val[k] / editing.usd : 0;
+  const useOrig = (k) => !editing || origF(k) > 0;
+  const toUsdE = (k, n) =>
+    useOrig(k) ? (editing ? n / origF(k) : fx.toUsd(k, n)) : fx.toUsd(k, n);
+  const fromUsdE = (k, usd) =>
+    useOrig(k)
+      ? editing
+        ? usd * origF(k)
+        : fx.fromUsd(k, usd)
+      : fx.fromUsd(k, usd);
+  const readyF = (k) => (editing ? origF(k) > 0 || fx.ready(k) : fx.ready(k));
+  // Sin perder decimales (USDT guarda hasta 4): guardar sin cambios no altera el monto
+  const nat = (n) =>
+    n > 0 ? String(Math.round(n * 10000) / 10000).replace(".", ",") : "";
+  const lockCcy =
+    !!editing && isDebtType(editing.type) && editing.pays.length > 0;
+  const paidNat = lockCcy ? model.paidNative(editing) : 0;
+
+  const initItems = editing
+    ? editing.items.map((it, i) => ({
+        id: "e" + i,
+        name: it.name,
+        amt:
+          it.usd > 0 && origOk
+            ? nat(it.usd * (editing.amount / editing.usd))
+            : "",
+      }))
+    : [];
+  const [ccy, setCcy] = useState(editing ? editing.ccy : "usd");
+  const [amount, setAmount] = useState(editing ? nat(editing.amount) : "");
+  const [desc, setDesc] = useState(editing?.hasDesc ? editing.title : "");
+  const [person, setPerson] = useState(editing?.person || "");
+  const [date, setDate] = useState(editing ? editing.date : todayStr());
+  const [entId, setEntId] = useState(editing ? editing.ent : null);
+  // -1 = conservar el vencimiento actual (solo al editar)
+  const [dueIdx, setDueIdx] = useState(
+    editing ? (editing.dueDate ? -1 : 3) : 2,
+  );
+  const [cashPagar, setCashPagar] = useState(editing ? editing.cash : false);
+  const [items, setItems] = useState(initItems);
+  const [itemsOpen, setItemsOpen] = useState(initItems.length > 0);
   const [iName, setIName] = useState("");
-  const [itemsAmt, setItemsAmt] = useState(false);
-  const [receipt, setReceipt] = useState(null);
+  const [itemsAmt, setItemsAmt] = useState(initItems.some((i) => i.amt));
+  const [receipt, setReceipt] = useState(
+    editing?.receipt ? { name: editing.receipt, existing: true } : null,
+  );
   const [busy, setBusy] = useState(false);
 
   if (!cat) {
@@ -93,7 +136,7 @@ export default function MovementFormScreen({ navigation, route }) {
   }
 
   const amtNum = parseNum(amount);
-  const usdVal = fx.toUsd(ccy, amtNum);
+  const usdVal = toUsdE(ccy, amtNum);
   const entSel = entId && model.entById[entId] ? entId : model.ents[0]?.id;
   // Por cobrar: el dinero ya salió. Por pagar: solo suma al saldo si el usuario lo recibió.
   const cash = type !== "pagar" || cashPagar;
@@ -101,7 +144,7 @@ export default function MovementFormScreen({ navigation, route }) {
   const noEnts = model.ents.length === 0;
 
   const itemsSumUsd = itemsAmt
-    ? items.reduce((a, it) => a + fx.toUsd(ccy, parseNum(it.amt)), 0)
+    ? items.reduce((a, it) => a + toUsdE(ccy, parseNum(it.amt)), 0)
     : 0;
   const missing = itemsAmt
     ? items.filter((it) => parseNum(it.amt) <= 0).length
@@ -109,23 +152,24 @@ export default function MovementFormScreen({ navigation, route }) {
   const overItems = itemsAmt && itemsSumUsd > usdVal + 0.005;
   const itemsInvalid =
     showItems && itemsAmt && items.length > 0 && (missing > 0 || overItems);
-  const rateMissing = !fx.ready(ccy);
+  const rateMissing = !readyF(ccy);
+  const belowPaid = lockCcy && amtNum > 0 && amtNum < paidNat - 0.01;
 
   let itemsMsg = "";
   let itemsMsgDanger = false;
   if (items.length && !itemsAmt)
     itemsMsg = `${nTxt(items.length, "ítem")} sin monto. El total sigue siendo ${fx.money(ccy, amtNum)}.`;
   if (items.length && itemsAmt) {
-    const rest = fx.fromUsd(ccy, Math.max(0, usdVal - itemsSumUsd));
+    const rest = fromUsdE(ccy, Math.max(0, usdVal - itemsSumUsd));
     if (overItems) {
-      itemsMsg = `La suma de los ítems supera el total en ${fx.money(ccy, fx.fromUsd(ccy, itemsSumUsd - usdVal))}.`;
+      itemsMsg = `La suma de los ítems supera el total en ${fx.money(ccy, fromUsdE(ccy, itemsSumUsd - usdVal))}.`;
       itemsMsgDanger = true;
     } else if (missing > 0) {
       itemsMsg = `Falta el monto de ${nTxt(missing, "ítem")}.`;
       itemsMsgDanger = true;
     } else {
       itemsMsg =
-        `Detallado ${fx.money(ccy, fx.fromUsd(ccy, itemsSumUsd))} de ${fx.money(ccy, amtNum)}` +
+        `Detallado ${fx.money(ccy, fromUsdE(ccy, itemsSumUsd))} de ${fx.money(ccy, amtNum)}` +
         (rest > 0.005
           ? `. Sin detallar ${fx.money(ccy, rest)}.`
           : ". Todo detallado.");
@@ -136,6 +180,7 @@ export default function MovementFormScreen({ navigation, route }) {
     amtNum > 0 &&
     !itemsInvalid &&
     !rateMissing &&
+    !belowPaid &&
     !(needsEnt && noEnts) &&
     !busy;
 
@@ -167,8 +212,8 @@ export default function MovementFormScreen({ navigation, route }) {
     if (!canSave) return;
     setBusy(true);
     try {
-      const due = DUE_OPTS[dueIdx].v;
-      const created = await actions.createMovement({
+      const v = dueIdx >= 0 ? DUE_OPTS[dueIdx].v : null;
+      const body = {
         category_id: cat.id,
         amount: amtNum,
         currency: CCY_TO_API[ccy],
@@ -177,7 +222,13 @@ export default function MovementFormScreen({ navigation, route }) {
         counterpart_name: isDebt ? person.trim() || null : null,
         entity_id: needsEnt ? entSel : null,
         cash: isDebt ? cash : true,
-        due_date: isDebt && due !== null ? addDays(date, due) : null,
+        due_date: !isDebt
+          ? null
+          : dueIdx === -1
+            ? editing.dueDate
+            : v !== null
+              ? addDays(date, v)
+              : null,
         items: showItems
           ? items.map((it) => ({
               name: it.name,
@@ -185,10 +236,20 @@ export default function MovementFormScreen({ navigation, route }) {
                 itemsAmt && parseNum(it.amt) > 0 ? parseNum(it.amt) : null,
             }))
           : [],
-        receipt_name: receipt ? receipt.name : null,
-        receipt_data: receipt ? receipt.data : null,
-      });
-      navigation.replace("MovementSaved", { id: created.id });
+      };
+      // Recibo: sin cambios si ya existía y no se tocó
+      if (!receipt?.existing) {
+        body.receipt_name = receipt ? receipt.name : null;
+        body.receipt_data = receipt ? receipt.data : null;
+      }
+      if (editing) {
+        await actions.updateMovement(editing.id, body);
+        showToast("Movimiento actualizado");
+        navigation.goBack();
+      } else {
+        const created = await actions.createMovement(body);
+        navigation.replace("MovementSaved", { id: created.id });
+      }
     } catch (err) {
       showToast(errorMessage(err));
       setBusy(false);
@@ -235,8 +296,13 @@ export default function MovementFormScreen({ navigation, route }) {
 
   const convRows = CCY_KEYS.map((k) => ({
     label: CCY_LABEL[k],
-    sub: k === ccy ? "Moneda del registro" : fx.rateTxt(k),
-    value: fx.ready(k) ? fx.money(k, fx.fromUsd(k, usdVal)) : "Sin tasa",
+    sub:
+      k === ccy
+        ? "Moneda del registro"
+        : editing
+          ? dayRateTxt(editing.val, k) || fx.rateTxt(k)
+          : fx.rateTxt(k),
+    value: readyF(k) ? fx.money(k, fromUsdE(k, usdVal)) : "Sin tasa",
     active: k === ccy,
   }));
 
@@ -246,7 +312,7 @@ export default function MovementFormScreen({ navigation, route }) {
       footer={
         <Footer>
           <Button
-            label={meta.saveLabel}
+            label={editing ? "Guardar cambios" : meta.saveLabel}
             onPress={save}
             disabled={!canSave}
             bg={tint.strong}
@@ -256,7 +322,10 @@ export default function MovementFormScreen({ navigation, route }) {
         </Footer>
       }
     >
-      <Header title={meta.formTitle} onBack={() => navigation.goBack()} />
+      <Header
+        title={editing ? "Editar movimiento" : meta.formTitle}
+        onBack={() => navigation.goBack()}
+      />
 
       <Card
         pad={0}
@@ -289,7 +358,9 @@ export default function MovementFormScreen({ navigation, route }) {
           <Txt style={{ fontSize: 16, fontWeight: "700" }}>{cat.name}</Txt>
         </View>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() =>
+            editing ? setCatOpen((v) => !v) : navigation.goBack()
+          }
           style={{
             minHeight: 44,
             justifyContent: "center",
@@ -301,6 +372,24 @@ export default function MovementFormScreen({ navigation, route }) {
           </Txt>
         </TouchableOpacity>
       </Card>
+      {editing && catOpen ? (
+        <ChipRow>
+          {model.cats
+            .filter((c) => c.type === type && c.active)
+            .map((c) => (
+              <Chip
+                key={c.id}
+                label={c.name}
+                active={c.id === cat.id}
+                color={tint.strong}
+                onPress={() => {
+                  setCatId(c.id);
+                  setCatOpen(false);
+                }}
+              />
+            ))}
+        </ChipRow>
+      ) : null}
 
       <View style={{ gap: 8 }}>
         <Txt style={{ fontSize: 14, fontWeight: "700" }}>
@@ -310,11 +399,33 @@ export default function MovementFormScreen({ navigation, route }) {
           tint={tint}
           options={CCY_KEYS.map((k) => ({
             label: CCY_LABEL[k],
-            sub: fx.rateShort(k),
+            sub:
+              editing && origF(k) > 0
+                ? dayRateTxt(editing.val, k) || fx.rateShort(k)
+                : fx.rateShort(k),
             active: k === ccy,
-            onPress: () => setCcy(k),
+            onPress: () => {
+              if (!lockCcy) setCcy(k);
+            },
           }))}
         />
+        {lockCcy ? (
+          <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+            Esta deuda ya tiene abonos: no se puede cambiar su moneda.
+          </Txt>
+        ) : null}
+        {belowPaid ? (
+          <Txt style={{ fontSize: 12, color: colors.danger.fg }}>
+            El monto no puede ser menor a lo ya abonado (
+            {fx.money(ccy, paidNat)}).
+          </Txt>
+        ) : null}
+        {editing ? (
+          <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+            Se conservan las tasas del {fullDate(editing.date)}, día en que se
+            registró.
+          </Txt>
+        ) : null}
         {rateMissing ? (
           <Txt style={{ fontSize: 12, color: colors.danger.fg }}>
             Configura la tasa de esta moneda en Ajustes para poder registrar.
@@ -747,6 +858,14 @@ export default function MovementFormScreen({ navigation, route }) {
         <View style={{ gap: 8 }}>
           <Txt style={{ fontSize: 14, fontWeight: "700" }}>Vencimiento</Txt>
           <ChipRow>
+            {editing?.dueDate ? (
+              <Chip
+                label={fullDate(editing.dueDate)}
+                active={dueIdx === -1}
+                color={tint.strong}
+                onPress={() => setDueIdx(-1)}
+              />
+            ) : null}
             {DUE_OPTS.map((o, i) => (
               <Chip
                 key={o.l}

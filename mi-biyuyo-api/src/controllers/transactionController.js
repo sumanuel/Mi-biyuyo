@@ -112,9 +112,10 @@ async function assertEntity(userId, entityId) {
 }
 
 async function replaceItems(client, transactionId, items, currency, rates) {
-  await client.query(`DELETE FROM transaction_items WHERE transaction_id = $1`, [
-    transactionId,
-  ]);
+  await client.query(
+    `DELETE FROM transaction_items WHERE transaction_id = $1`,
+    [transactionId],
+  );
   for (const it of items || []) {
     const name = String(it.name || "").trim();
     if (!name) continue;
@@ -190,65 +191,145 @@ exports.create = async (req, res, next) => {
   }
 };
 
+/**
+ * Tasas con las que se registró el movimiento, deducidas de sus valores guardados.
+ * Si alguna no existía en ese momento, se usa la tasa actual de esa moneda.
+ */
+function originalRates(row, current) {
+  const usd = parseFloat(row.amount_usd) || 0;
+  const ves = parseFloat(row.amount_ves) || 0;
+  const bin = parseFloat(row.amount_binance) || 0;
+  const usdToVes = usd > 0 && ves > 0 ? ves / usd : current.usd_to_ves;
+  const binFactor = usd > 0 && bin > 0 ? bin / usd : 0; // USDT por 1 USD
+  const binToVes =
+    binFactor > 0 && parseFloat(usdToVes) > 0
+      ? parseFloat(usdToVes) / binFactor
+      : current.binance_to_ves;
+  return { usd_to_ves: usdToVes, binance_to_ves: binToVes };
+}
+
+/** Edita un movimiento conservando las tasas del día en que se registró. */
 exports.update = async (req, res, next) => {
+  const client = await pool.connect();
   try {
     const { id } = req.params;
-    const { rows: existing } = await pool.query(
-      `SELECT id FROM transactions WHERE id = $1 AND user_id = $2`,
+    const { rows: existing } = await client.query(
+      `SELECT t.*, c.type AS category_type,
+              COALESCE((SELECT SUM(CASE t.currency
+                          WHEN 'USD' THEN p.amount_usd
+                          WHEN 'VES' THEN p.amount_ves
+                          ELSE p.amount_binance END)
+                        FROM transaction_payments p WHERE p.transaction_id = t.id), 0) AS paid,
+              (SELECT COUNT(*) FROM transaction_payments p WHERE p.transaction_id = t.id) AS pay_count
+       FROM transactions t LEFT JOIN categories c ON c.id = t.category_id
+       WHERE t.id = $1 AND t.user_id = $2`,
       [id, req.user.id],
     );
     if (!existing.length)
       return res.status(404).json({ error: "Transacción no encontrada" });
+    const cur = existing[0];
+    const has = (k) => Object.prototype.hasOwnProperty.call(req.body, k);
+    const b = req.body;
 
-    const {
-      category_id,
-      amount,
-      currency,
-      description,
-      date,
-      counterpart_name,
-      status,
-      notes,
-    } = req.body;
-    let converted = {};
-    if (amount && currency) {
-      const rates = await getUserRates(req.user.id);
-      converted = convertToAll(amount, currency, rates);
+    // Categoría: debe ser del mismo tipo (ingreso, gasto, por cobrar o por pagar)
+    let categoryId = cur.category_id;
+    if (has("category_id") && b.category_id && b.category_id !== categoryId) {
+      const { rows: cat } = await client.query(
+        `SELECT id, type FROM categories WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)`,
+        [b.category_id, req.user.id],
+      );
+      if (!cat.length)
+        return res.status(404).json({ error: "Categoría no encontrada" });
+      if (cur.category_type && cat[0].type !== cur.category_type)
+        return res
+          .status(422)
+          .json({ error: "La categoría debe ser del mismo tipo" });
+      categoryId = cat[0].id;
     }
 
-    const { rows } = await pool.query(
+    const isDebt =
+      cur.category_type === "cobrar" || cur.category_type === "pagar";
+    const amount = has("amount")
+      ? parseFloat(b.amount)
+      : parseFloat(cur.amount);
+    const currency = has("currency") ? b.currency : cur.currency;
+    if (!(amount > 0))
+      return res.status(422).json({ error: "El monto debe ser mayor a 0" });
+
+    const hasPays = parseInt(cur.pay_count) > 0;
+    if (isDebt && hasPays && currency !== cur.currency)
+      return res.status(422).json({
+        error: "No se puede cambiar la moneda de una deuda que ya tiene abonos",
+      });
+    const tol = currency === "BINANCE" ? 0.005 : 0.01;
+    const paid = parseFloat(cur.paid);
+    if (isDebt && amount < paid - tol)
+      return res
+        .status(422)
+        .json({ error: "El monto no puede ser menor a lo ya abonado" });
+
+    // Conversión con las tasas originales del movimiento
+    const current = await getUserRates(req.user.id);
+    const rates = originalRates(cur, current);
+    // Monto sin cambios (la columna guarda 2 decimales): se conservan los valores exactos ya guardados
+    const same =
+      currency === cur.currency &&
+      Math.abs(amount - parseFloat(cur.amount)) < 0.005;
+    const converted = same
+      ? {
+          amount_usd: cur.amount_usd,
+          amount_ves: cur.amount_ves,
+          amount_binance: cur.amount_binance,
+        }
+      : convertToAll(amount, currency, rates);
+
+    const entityId = has("entity_id")
+      ? await assertEntity(req.user.id, b.entity_id)
+      : cur.entity_id;
+    const value = (k, fallback) => (has(k) ? b[k] || null : fallback);
+    const status = isDebt
+      ? parseFloat(amount) - paid <= tol
+        ? "paid"
+        : "active"
+      : cur.status;
+
+    await client.query("BEGIN");
+    const { rows } = await client.query(
       `UPDATE transactions SET
-         category_id      = COALESCE($1, category_id),
-         amount           = COALESCE($2, amount),
-         currency         = COALESCE($3, currency),
-         amount_usd       = COALESCE($4, amount_usd),
-         amount_ves       = COALESCE($5, amount_ves),
-         amount_binance   = COALESCE($6, amount_binance),
-         description      = COALESCE($7, description),
-         date             = COALESCE($8, date),
-         counterpart_name = COALESCE($9, counterpart_name),
-         status           = COALESCE($10, status),
-         notes            = COALESCE($11, notes),
-         updated_at       = NOW()
-       WHERE id = $12 RETURNING *`,
+         category_id = $1, amount = $2, currency = $3,
+         amount_usd = $4, amount_ves = $5, amount_binance = $6,
+         description = $7, date = $8, counterpart_name = $9, notes = $10,
+         entity_id = $11, cash = $12, due_date = $13, status = $14,
+         receipt_name = $15, receipt_data = $16, updated_at = NOW()
+       WHERE id = $17 RETURNING *`,
       [
-        category_id ?? null,
-        amount ?? null,
-        currency ?? null,
-        converted.amount_usd ?? null,
-        converted.amount_ves ?? null,
-        converted.amount_binance ?? null,
-        description ?? null,
-        date ?? null,
-        counterpart_name ?? null,
-        status ?? null,
-        notes ?? null,
+        categoryId,
+        amount,
+        currency,
+        converted.amount_usd,
+        converted.amount_ves,
+        converted.amount_binance,
+        value("description", cur.description),
+        value("date", cur.date),
+        value("counterpart_name", cur.counterpart_name),
+        value("notes", cur.notes),
+        entityId,
+        has("cash") ? b.cash !== false : cur.cash,
+        value("due_date", cur.due_date),
+        status,
+        has("receipt_name") ? b.receipt_name || null : cur.receipt_name,
+        has("receipt_data") ? b.receipt_data || null : cur.receipt_data,
         id,
       ],
     );
+    if (has("items")) await replaceItems(client, id, b.items, currency, rates);
+    await client.query("COMMIT");
     res.json(rows[0]);
   } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
     next(err);
+  } finally {
+    client.release();
   }
 };
 

@@ -278,6 +278,14 @@ export default function MovementDetailScreen({ navigation, route }) {
         />
       ) : null}
 
+      <Button
+        label="Editar movimiento"
+        outline
+        height={50}
+        style={{ borderRadius: 14 }}
+        onPress={() => navigation.navigate("MovementForm", { editId: m.id })}
+      />
+
       <TouchableOpacity
         onPress={remove}
         style={{
