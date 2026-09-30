@@ -14,6 +14,13 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import * as authService from "../../services/api/authService";
 import { Icon, IC } from "../../components/icons";
+import {
+  authenticateWithBiometrics,
+  getBiometricCredentials,
+  getBiometricLockEnabled,
+  isBiometricHardwareAvailable,
+  saveBiometricCredentials,
+} from "../../services/biometricAuthService";
 
 // Acceso (prototipo "Acceso Mi Biyuyo"): una sola pantalla con cuatro modos.
 // Los colores siguen el tema de la app (claro u oscuro).
@@ -131,6 +138,47 @@ export default function AuthScreen({ initialMode = "login" }) {
     return () => clearTimeout(t);
   }, [cooldown]);
 
+  // «Entrar con huella»: disponible si se activó en Ajustes y hay credenciales guardadas
+  const [bioReady, setBioReady] = useState(false);
+  useEffect(() => {
+    (async () => {
+      const [hw, on, creds] = await Promise.all([
+        isBiometricHardwareAvailable(),
+        getBiometricLockEnabled(),
+        getBiometricCredentials(),
+      ]);
+      setBioReady(hw && on && !!creds);
+    })();
+  }, []);
+
+  const bioLogin = async () => {
+    setError("");
+    setInfo("");
+    const ok = await authenticateWithBiometrics(
+      "Entra a Mi Biyuyo con tu huella",
+    );
+    if (!ok) return setError("No se pudo verificar tu identidad.");
+    const creds = await getBiometricCredentials();
+    if (!creds) {
+      setBioReady(false);
+      return setError(
+        "Inicia sesión con tu contraseña para volver a activarlo.",
+      );
+    }
+    setBusy(true);
+    try {
+      await login(creds.email, creds.password);
+    } catch (e) {
+      setBusy(false);
+      const status = e?.response?.status;
+      if (status === 401 || status === 403)
+        setError(
+          "La contraseña guardada ya no es válida. Inicia sesión con tu contraseña.",
+        );
+      else setError(e?.response?.data?.error || "No se pudo iniciar sesión.");
+    }
+  };
+
   const isVerify = mode === "verify";
   const startVerify = (mail, dev) => {
     setPendingEmail(mail);
@@ -217,6 +265,10 @@ export default function AuthScreen({ initialMode = "login" }) {
         startVerify(r.email || email.trim(), r.dev_code);
       } else {
         await login(email.trim(), password);
+        // Si cambió la contraseña, se actualiza la guardada para la huella
+        const saved = await getBiometricCredentials();
+        if (saved && saved.email.toLowerCase() === email.trim().toLowerCase())
+          await saveBiometricCredentials(saved.email, password);
       }
     } catch (e) {
       const d = e?.response?.data;
@@ -607,6 +659,29 @@ export default function AuthScreen({ initialMode = "login" }) {
                   </T>
                 </TouchableOpacity>
               </>
+            ) : null}
+            {isLogin && bioReady ? (
+              <TouchableOpacity
+                onPress={bioLogin}
+                disabled={busy}
+                activeOpacity={0.85}
+                accessibilityLabel="Entrar con huella"
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 10,
+                  minHeight: 48,
+                  borderRadius: 12,
+                  borderWidth: 1.5,
+                  borderColor: C.brand,
+                }}
+              >
+                <Icon name="fingerprint" size={22} color={C.brand} stroke={2} />
+                <T style={{ color: C.brand, fontSize: 15, fontWeight: "800" }}>
+                  Entrar con huella
+                </T>
+              </TouchableOpacity>
             ) : null}
             {isLogin ? (
               <TouchableOpacity

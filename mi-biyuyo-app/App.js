@@ -1,5 +1,5 @@
-import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, TouchableOpacity, StyleSheet, AppState } from "react-native";
 import {
   NavigationContainer,
   DefaultTheme,
@@ -48,6 +48,8 @@ import ItemDatesScreen from "./src/screens/main/ItemDatesScreen";
 import EntityMovementsScreen from "./src/screens/main/EntityMovementsScreen";
 import TransferScreen from "./src/screens/main/TransferScreen";
 import ExchangeRateScreen from "./src/screens/main/ExchangeRateScreen";
+import BiometricLockScreen from "./src/screens/auth/BiometricLockScreen";
+import { getBiometricLockEnabled } from "./src/services/biometricAuthService";
 import AboutScreen from "./src/screens/main/AboutScreen";
 import ProfileScreen from "./src/screens/main/ProfileScreen";
 import RateNotificationsScreen from "./src/screens/main/RateNotificationsScreen";
@@ -133,9 +135,58 @@ function MainTabs() {
 
 function AppNavigator() {
   const { isDark, colors } = useTheme();
-  const { token, loading } = useAuth();
+  const { token, loading, restored, logout } = useAuth();
+  const [lockChecked, setLockChecked] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
 
-  if (loading) return <SplashScreen />;
+  // Bloqueo con huella/Face ID (se activa en Ajustes): se pide al abrir la app con una
+  // sesión guardada y cada vez que vuelve de segundo plano. No aplica sin sesión.
+  useEffect(() => {
+    let cancelled = false;
+    if (loading) return undefined;
+    if (!token) {
+      setIsLocked(false);
+      setLockChecked(true);
+      return undefined;
+    }
+    (async () => {
+      const enabled = await getBiometricLockEnabled();
+      if (cancelled) return;
+      setIsLocked(enabled && restored);
+      setLockChecked(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, token, restored]);
+
+  useEffect(() => {
+    if (!token) return undefined;
+    let previous = AppState.currentState;
+    const sub = AppState.addEventListener("change", async (next) => {
+      if (/background/.test(previous) && next === "active") {
+        if (await getBiometricLockEnabled()) {
+          setIsLocked(true);
+        }
+      }
+      previous = next;
+    });
+    return () => sub.remove();
+  }, [token]);
+
+  if (loading || !lockChecked) return <SplashScreen />;
+
+  if (token && isLocked) {
+    return (
+      <>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <BiometricLockScreen
+          onUnlock={() => setIsLocked(false)}
+          onSignOut={logout}
+        />
+      </>
+    );
+  }
 
   // El fondo de la ventana sigue el tema (evita franjas blancas bajo la barra de navegación)
   const navTheme = {
