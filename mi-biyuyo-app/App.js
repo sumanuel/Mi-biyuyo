@@ -39,6 +39,8 @@ import DebtDetailScreen from "./src/screens/main/DebtDetailScreen";
 import PayScreen from "./src/screens/main/PayScreen";
 import EntityDetailScreen from "./src/screens/main/EntityDetailScreen";
 import EntityFormScreen from "./src/screens/main/EntityFormScreen";
+import ItemsScreen from "./src/screens/main/ItemsScreen";
+import ItemDatesScreen from "./src/screens/main/ItemDatesScreen";
 import EntityMovementsScreen from "./src/screens/main/EntityMovementsScreen";
 import TransferScreen from "./src/screens/main/TransferScreen";
 import ExchangeRateScreen from "./src/screens/main/ExchangeRateScreen";
@@ -164,6 +166,8 @@ function AppNavigator() {
                     name="EntityMovements"
                     component={EntityMovementsScreen}
                   />
+                  <Stack.Screen name="Items" component={ItemsScreen} />
+                  <Stack.Screen name="ItemDates" component={ItemDatesScreen} />
                   <Stack.Screen name="Transfer" component={TransferScreen} />
                   <Stack.Screen
                     name="ExchangeRate"
