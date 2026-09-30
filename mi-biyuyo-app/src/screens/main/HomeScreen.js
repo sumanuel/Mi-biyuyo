@@ -327,14 +327,14 @@ export default function HomeScreen({ navigation }) {
             fx.money("usd", cobrTot),
             <TonePill label={pc.t} toneName={pc.tone} />,
             null,
-            () => go(navigation, "Debts", { tab: "cobrar" }),
+            () => go(navigation, "Receivables"),
           )}
           {stat(
             "Por pagar",
             fx.money("usd", pagTot),
             <TonePill label={pp.t} toneName={pp.tone} />,
             null,
-            () => go(navigation, "Debts", { tab: "pagar" }),
+            () => go(navigation, "Payables"),
           )}
         </View>
       </View>

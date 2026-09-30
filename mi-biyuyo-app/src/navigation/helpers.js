@@ -6,7 +6,8 @@ const TAB_SCREENS = new Set([
   "Stats",
   "Settings",
   "History",
-  "Debts",
+  "Receivables",
+  "Payables",
 ]);
 
 /** Navega a cualquier pantalla, entrando por MainTabs cuando es una pestaña. */
