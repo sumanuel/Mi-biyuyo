@@ -1,5 +1,5 @@
 const pool = require("../config/database");
-const { convertToAll } = require("../utils/currencyConverter");
+const { convertToAll, factorOf } = require("../utils/currencyConverter");
 
 async function getUserRates(userId) {
   const { rows } = await pool.query(
@@ -33,26 +33,44 @@ exports.list = async (req, res, next) => {
 exports.create = async (req, res, next) => {
   try {
     const { id: transactionId } = req.params;
-    const { amount, currency, date, notes } = req.body;
+    const { amount, currency, date, notes, entity_id } = req.body;
     if (!amount || !currency)
       return res
         .status(422)
         .json({ error: "amount y currency son requeridos" });
 
-    // Ownership check
+    // Ownership check + saldo pendiente
     const { rows: txRows } = await pool.query(
-      `SELECT id, amount_usd FROM transactions WHERE id = $1 AND user_id = $2`,
+      `SELECT t.id, t.amount_usd,
+              COALESCE((SELECT SUM(amount_usd) FROM transaction_payments WHERE transaction_id = t.id), 0) AS paid_usd
+       FROM transactions t WHERE t.id = $1 AND t.user_id = $2`,
       [transactionId, req.user.id],
     );
     if (!txRows.length)
       return res.status(404).json({ error: "Transacción no encontrada" });
 
+    if (entity_id) {
+      const { rows: en } = await pool.query(
+        `SELECT id FROM entities WHERE id = $1 AND user_id = $2`,
+        [entity_id, req.user.id],
+      );
+      if (!en.length)
+        return res.status(404).json({ error: "Entidad no encontrada" });
+    }
+
     const rates = await getUserRates(req.user.id);
     const converted = convertToAll(amount, currency, rates);
+    const pending =
+      parseFloat(txRows[0].amount_usd) - parseFloat(txRows[0].paid_usd);
+    if (converted.amount_usd > pending + 0.005)
+      return res
+        .status(422)
+        .json({ error: "El monto supera el saldo pendiente" });
 
     const { rows } = await pool.query(
-      `INSERT INTO transaction_payments (transaction_id, amount, currency, amount_usd, amount_ves, amount_binance, date, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      `INSERT INTO transaction_payments
+         (transaction_id, amount, currency, amount_usd, amount_ves, amount_binance, date, notes, entity_id, rate)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
       [
         transactionId,
         amount,
@@ -62,22 +80,12 @@ exports.create = async (req, res, next) => {
         converted.amount_binance,
         date || new Date().toISOString().slice(0, 10),
         notes || null,
+        entity_id || null,
+        factorOf(currency, rates),
       ],
     );
 
-    // Auto-mark as paid if remaining_usd <= 0
-    const { rows: sumRows } = await pool.query(
-      `SELECT t.amount_usd,
-              COALESCE(SUM(tp.amount_usd),0) AS total_paid_usd
-       FROM transactions t
-       LEFT JOIN transaction_payments tp ON tp.transaction_id = t.id
-       WHERE t.id = $1 GROUP BY t.amount_usd`,
-      [transactionId],
-    );
-    if (
-      sumRows.length &&
-      parseFloat(sumRows[0].total_paid_usd) >= parseFloat(sumRows[0].amount_usd)
-    ) {
+    if (pending - converted.amount_usd <= 0.005) {
       await pool.query(
         `UPDATE transactions SET status = 'paid', updated_at = NOW() WHERE id = $1`,
         [transactionId],

@@ -1,7 +1,11 @@
 import axios from "axios";
+import { Platform } from "react-native";
 
 // localhost funciona en emulador Android; para dispositivo físico usar IP LAN de la PC
-export const API_BASE_URL = "http://192.168.1.2:3001/api";
+export const API_BASE_URL =
+  Platform.OS === "web"
+    ? "http://localhost:3001/api"
+    : "http://192.168.1.2:3001/api";
 
 const client = axios.create({
   baseURL: API_BASE_URL,

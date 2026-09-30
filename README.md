@@ -1,5 +1,7 @@
 # Mi Biyuyo 💰
 
+> Diseño y pantallas: ver [`docs/DESIGN.md`](docs/DESIGN.md) (tokens, componentes y capturas del prototipo).
+
 **Personal Finance Manager** — Full-stack mobile app para gestionar ingresos, gastos, préstamos y deudas con soporte multi-moneda (USD, Bs., Binance).
 
 ## 📦 Estructura del Proyecto
@@ -38,6 +40,7 @@ npm install
 # Crear y migrar BD PostgreSQL
 node database/migrate.js
 node database/seed.js
+node database/seed_demo.js   # opcional: usuario demo con los datos del prototipo
 
 # Arranca el API
 npm run dev
@@ -51,6 +54,9 @@ npm run dev
 - `/api/transactions/:id/payments` — Abonos/pagos parciales
 - `/api/exchange-rates` — Fetch externo (BCV/Binance) + manual
 - `/api/stats` — Summary, by-category, trend 6 meses
+- `/api/entities` — Entidades (efectivo, bancos, billeteras) con saldo y alerta
+- `/api/transfers` — Transferencias entre entidades
+- `/api/ledger` — Estado completo del usuario (categorías, entidades, movimientos, abonos, transferencias, tasas)
 
 ### Frontend (Expo)
 

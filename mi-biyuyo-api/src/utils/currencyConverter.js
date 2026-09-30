@@ -1,44 +1,42 @@
 /**
- * Convierte un monto desde una moneda origen a los 3 tipos soportados.
- * @param {number} amount  Monto original
- * @param {'USD'|'VES'|'BINANCE'} currency  Moneda de origen
- * @param {{ usd_to_ves: number, binance_to_ves: number }} rates  Tasas del usuario
- * @returns {{ amount_usd, amount_ves, amount_binance }}
+ * Monedas soportadas: USD (base), VES (tasa BCV) y BINANCE (VES a tasa Binance P2P).
+ * Los montos VES y BINANCE se expresan en bolívares; ambos tienen su propia tasa.
  */
-function convertToAll(amount, currency, rates) {
-  const { usd_to_ves, binance_to_ves } = rates;
-  const amt = parseFloat(amount);
+function factorOf(currency, rates) {
+  if (currency === "USD") return 1;
+  if (currency === "VES") return parseFloat(rates.usd_to_ves) || 0;
+  if (currency === "BINANCE") return parseFloat(rates.binance_to_ves) || 0;
+  return 0;
+}
 
-  if (currency === "USD") {
-    return {
-      amount_usd: amt,
-      amount_ves:
-        usd_to_ves > 0 ? parseFloat((amt * usd_to_ves).toFixed(4)) : 0,
-      amount_binance:
-        binance_to_ves > 0
-          ? parseFloat((amt * (usd_to_ves / binance_to_ves)).toFixed(4))
-          : amt,
-    };
+function round4(n) {
+  return parseFloat(n.toFixed(4));
+}
+
+function toUsd(amount, currency, rates) {
+  const f = factorOf(currency, rates);
+  if (f <= 0) {
+    const err = new Error(
+      currency === "BINANCE"
+        ? "Configura la tasa Binance antes de registrar en esa moneda"
+        : "Configura la tasa BCV antes de registrar en bolívares",
+    );
+    err.status = 422;
+    throw err;
   }
-  if (currency === "VES") {
-    return {
-      amount_usd:
-        usd_to_ves > 0 ? parseFloat((amt / usd_to_ves).toFixed(4)) : 0,
-      amount_ves: amt,
-      amount_binance:
-        binance_to_ves > 0 ? parseFloat((amt / binance_to_ves).toFixed(4)) : 0,
-    };
-  }
-  // BINANCE (USDT P2P)
+  return round4(parseFloat(amount) / f);
+}
+
+/** Convierte un monto a los 3 tipos: amount_usd / amount_ves (BCV) / amount_binance. */
+function convertToAll(amount, currency, rates) {
+  const usd = toUsd(amount, currency, rates);
+  const ves = parseFloat(rates.usd_to_ves) || 0;
+  const bin = parseFloat(rates.binance_to_ves) || 0;
   return {
-    amount_usd:
-      usd_to_ves > 0 && binance_to_ves > 0
-        ? parseFloat((amt * (binance_to_ves / usd_to_ves)).toFixed(4))
-        : amt,
-    amount_ves:
-      binance_to_ves > 0 ? parseFloat((amt * binance_to_ves).toFixed(4)) : 0,
-    amount_binance: amt,
+    amount_usd: usd,
+    amount_ves: ves > 0 ? round4(usd * ves) : 0,
+    amount_binance: bin > 0 ? round4(usd * bin) : 0,
   };
 }
 
-module.exports = { convertToAll };
+module.exports = { convertToAll, toUsd, factorOf };

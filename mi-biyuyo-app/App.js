@@ -1,104 +1,93 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { useFonts } from "expo-font";
 
 import { ThemeProvider, useTheme } from "./src/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { ExchangeRateProvider } from "./src/contexts/ExchangeRateContext";
+import { DataProvider } from "./src/contexts/DataContext";
+import { FONT_ASSETS } from "./src/theme/font";
+import { Icon, Txt, Toast } from "./src/components/ui";
 
+import SplashScreen from "./src/screens/auth/SplashScreen";
 import LoginScreen from "./src/screens/auth/LoginScreen";
 import RegisterScreen from "./src/screens/auth/RegisterScreen";
 import ForgotPasswordScreen from "./src/screens/auth/ForgotPasswordScreen";
 
-import DashboardScreen from "./src/screens/main/DashboardScreen";
-import TransactionsScreen from "./src/screens/main/TransactionsScreen";
-import AddTransactionScreen from "./src/screens/main/AddTransactionScreen";
-import TransactionDetailScreen from "./src/screens/main/TransactionDetailScreen";
-import CategoriesScreen from "./src/screens/main/CategoriesScreen";
+import HomeScreen from "./src/screens/main/HomeScreen";
+import EntitiesScreen from "./src/screens/main/EntitiesScreen";
+import PickScreen from "./src/screens/main/PickScreen";
+import StatsScreen from "./src/screens/main/StatsScreen";
+import SettingsScreen from "./src/screens/main/SettingsScreen";
+import HistoryScreen from "./src/screens/main/HistoryScreen";
+import DebtsScreen from "./src/screens/main/DebtsScreen";
+import MovementFormScreen from "./src/screens/main/MovementFormScreen";
+import MovementSavedScreen from "./src/screens/main/MovementSavedScreen";
+import MovementDetailScreen from "./src/screens/main/MovementDetailScreen";
+import DebtDetailScreen from "./src/screens/main/DebtDetailScreen";
+import PayScreen from "./src/screens/main/PayScreen";
+import EntityDetailScreen from "./src/screens/main/EntityDetailScreen";
+import EntityFormScreen from "./src/screens/main/EntityFormScreen";
+import TransferScreen from "./src/screens/main/TransferScreen";
 import ExchangeRateScreen from "./src/screens/main/ExchangeRateScreen";
 import ProfileScreen from "./src/screens/main/ProfileScreen";
-
-import { rf, s, spacing } from "./src/utils/responsive";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const NAV_TABS = [
-  { name: "Dashboard", label: "Inicio", icon: "home" },
-  { name: "Transactions", label: "Historial", icon: "time" },
-  { name: "AddTransaction", label: "Registrar", icon: "add", isFab: true },
-  { name: "Categories", label: "Categorías", icon: "grid" },
-  { name: "Profile", label: "Ajustes", icon: "settings" },
+  { name: "Home", label: "Inicio", icon: "home" },
+  { name: "Entities", label: "Entidades", icon: "bank" },
+  { name: "Pick", label: "Registrar", fab: true },
+  { name: "Stats", label: "Estadísticas", icon: "stats" },
+  { name: "Settings", label: "Ajustes", icon: "settings" },
 ];
 
-function TabBar({ state, descriptors, navigation }) {
+function TabBar({ state, navigation }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const activeName = state.routes[state.index]?.name;
   return (
     <View
       style={[
-        styles.tabBarWrap,
-        { backgroundColor: colors.tabBar, borderColor: colors.border },
+        styles.tabBar,
+        {
+          backgroundColor: colors.tabBar,
+          borderTopColor: colors.border,
+          height: 72 + insets.bottom,
+          paddingBottom: insets.bottom,
+        },
       ]}
     >
-      {state.routes.map((route, index) => {
-        const meta = NAV_TABS.find((t) => t.name === route.name) || {
-          label: route.name,
-          icon: "ellipse",
-        };
-        const focused = state.index === index;
-
-        if (meta.isFab) {
-          return (
-            <TouchableOpacity
-              key={route.key}
-              style={styles.tabFabWrap}
-              onPress={() => navigation.navigate("AddTransaction")}
-              activeOpacity={0.85}
-            >
-              <View style={[styles.tabFab, { backgroundColor: colors.accent }]}>
-                <Ionicons name="add" size={s(28)} color="#fff" />
-              </View>
-              <Text style={[styles.tabLabel, { color: colors.muted }]}>
-                {meta.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        }
-
+      {NAV_TABS.map((t) => {
+        const focused = activeName === t.name;
+        const color = focused ? colors.accent : colors.textSecondary;
         return (
           <TouchableOpacity
-            key={route.key}
+            key={t.name}
             style={styles.tabItem}
-            onPress={() => navigation.navigate(route.name)}
             activeOpacity={0.7}
+            onPress={() => navigation.navigate(t.name)}
+            accessibilityLabel={t.label}
           >
-            <Ionicons
-              name={focused ? meta.icon : `${meta.icon}-outline`}
-              size={s(22)}
-              color={focused ? colors.accent : colors.muted}
-            />
-            <Text
-              style={[
-                styles.tabLabel,
-                {
-                  color: focused ? colors.accent : colors.muted,
-                  fontWeight: focused ? "700" : "500",
-                },
-              ]}
-            >
-              {meta.label}
-            </Text>
+            {t.fab ? (
+              <View style={[styles.fab, { backgroundColor: colors.accent }]}>
+                <Icon name="plus" size={20} color="#ffffff" stroke={2.4} />
+              </View>
+            ) : (
+              <Icon name={t.icon} size={22} color={color} stroke={2} />
+            )}
+            <Txt style={{ fontSize: 11, fontWeight: "700", color }}>
+              {t.label}
+            </Txt>
           </TouchableOpacity>
         );
       })}
@@ -111,58 +100,64 @@ function MainTabs() {
     <Tab.Navigator
       tabBar={(props) => <TabBar {...props} />}
       screenOptions={{ headerShown: false }}
+      backBehavior="history"
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Transactions" component={TransactionsScreen} />
-      <Tab.Screen name="AddTransaction" component={AddTransactionScreen} />
-      <Tab.Screen name="Categories" component={CategoriesScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Entities" component={EntitiesScreen} />
+      <Tab.Screen name="Pick" component={PickScreen} />
+      <Tab.Screen name="Stats" component={StatsScreen} />
+      <Tab.Screen name="Settings" component={SettingsScreen} />
+      {/* Sin botón propio en la barra, pero conservan la barra inferior */}
+      <Tab.Screen name="History" component={HistoryScreen} />
+      <Tab.Screen name="Debts" component={DebtsScreen} />
     </Tab.Navigator>
   );
 }
 
 function AppNavigator() {
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
   const { token, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.page,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Text style={{ fontSize: s(36) }}>💰</Text>
-        <Text
-          style={{
-            color: colors.accent,
-            fontSize: rf(20),
-            fontWeight: "800",
-            marginTop: spacing.sm,
-          }}
-        >
-          Mi Biyuyo
-        </Text>
-      </View>
-    );
-  }
+  if (loading) return <SplashScreen />;
 
   return (
     <NavigationContainer>
       <StatusBar style={isDark ? "light" : "dark"} />
       {token ? (
         <ExchangeRateProvider>
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="MainTabs" component={MainTabs} />
-            <Stack.Screen
-              name="TransactionDetail"
-              component={TransactionDetailScreen}
-            />
-            <Stack.Screen name="ExchangeRate" component={ExchangeRateScreen} />
-          </Stack.Navigator>
+          <DataProvider>
+            <View style={{ flex: 1 }}>
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="MainTabs" component={MainTabs} />
+                <Stack.Screen
+                  name="MovementForm"
+                  component={MovementFormScreen}
+                />
+                <Stack.Screen
+                  name="MovementSaved"
+                  component={MovementSavedScreen}
+                />
+                <Stack.Screen
+                  name="MovementDetail"
+                  component={MovementDetailScreen}
+                />
+                <Stack.Screen name="DebtDetail" component={DebtDetailScreen} />
+                <Stack.Screen name="Pay" component={PayScreen} />
+                <Stack.Screen
+                  name="EntityDetail"
+                  component={EntityDetailScreen}
+                />
+                <Stack.Screen name="EntityForm" component={EntityFormScreen} />
+                <Stack.Screen name="Transfer" component={TransferScreen} />
+                <Stack.Screen
+                  name="ExchangeRate"
+                  component={ExchangeRateScreen}
+                />
+                <Stack.Screen name="Profile" component={ProfileScreen} />
+              </Stack.Navigator>
+              <Toast />
+            </View>
+          </DataProvider>
         </ExchangeRateProvider>
       ) : (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -179,6 +174,8 @@ function AppNavigator() {
 }
 
 export default function App() {
+  const [fontsLoaded] = useFonts(FONT_ASSETS);
+  if (!fontsLoaded) return null;
   return (
     <SafeAreaProvider>
       <ThemeProvider>
@@ -191,35 +188,22 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  tabBarWrap: {
+  tabBar: {
     flexDirection: "row",
     borderTopWidth: 1,
-    paddingBottom: Platform.OS === "ios" ? s(20) : s(6),
-    paddingTop: s(8),
-    paddingHorizontal: spacing.sm,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-      },
-      android: { elevation: 8 },
-    }),
+    paddingHorizontal: 4,
   },
-  tabItem: { flex: 1, alignItems: "center", gap: s(3), paddingVertical: s(2) },
-  tabFabWrap: { flex: 1, alignItems: "center", gap: s(3), marginTop: -s(12) },
-  tabFab: {
-    width: s(52),
-    height: s(52),
-    borderRadius: s(26),
+  tabItem: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 4,
-    shadowColor: "#1B4332",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    gap: 4,
   },
-  tabLabel: { fontSize: rf(10), fontWeight: "500" },
+  fab: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

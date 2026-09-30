@@ -20,6 +20,9 @@ app.use("/api/categories", require("./routes/categories"));
 app.use("/api/transactions", require("./routes/transactions"));
 app.use("/api/exchange-rates", require("./routes/exchangeRates"));
 app.use("/api/stats", require("./routes/stats"));
+app.use("/api/entities", require("./routes/entities"));
+app.use("/api/transfers", require("./routes/transfers"));
+app.use("/api/ledger", require("./routes/ledger"));
 
 app.get("/health", (req, res) =>
   res.json({ status: "ok", app: "mi-biyuyo-api" }),

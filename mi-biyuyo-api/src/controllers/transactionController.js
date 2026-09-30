@@ -1,5 +1,5 @@
 const pool = require("../config/database");
-const { convertToAll } = require("../utils/currencyConverter");
+const { convertToAll, toUsd } = require("../utils/currencyConverter");
 
 async function getUserRates(userId) {
   const { rows } = await pool.query(
@@ -97,7 +97,37 @@ exports.get = async (req, res, next) => {
   }
 };
 
+async function assertEntity(userId, entityId) {
+  if (!entityId) return null;
+  const { rows } = await pool.query(
+    `SELECT id FROM entities WHERE id = $1 AND user_id = $2`,
+    [entityId, userId],
+  );
+  if (!rows.length) {
+    const err = new Error("Entidad no encontrada");
+    err.status = 404;
+    throw err;
+  }
+  return entityId;
+}
+
+async function replaceItems(client, transactionId, items, currency, rates) {
+  await client.query(`DELETE FROM transaction_items WHERE transaction_id = $1`, [
+    transactionId,
+  ]);
+  for (const it of items || []) {
+    const name = String(it.name || "").trim();
+    if (!name) continue;
+    const amt = parseFloat(it.amount);
+    await client.query(
+      `INSERT INTO transaction_items (transaction_id, name, amount_usd) VALUES ($1,$2,$3)`,
+      [transactionId, name, amt > 0 ? toUsd(amt, currency, rates) : null],
+    );
+  }
+}
+
 exports.create = async (req, res, next) => {
+  const client = await pool.connect();
   try {
     const {
       category_id,
@@ -107,6 +137,12 @@ exports.create = async (req, res, next) => {
       date,
       counterpart_name,
       notes,
+      entity_id,
+      cash,
+      due_date,
+      items,
+      receipt_name,
+      receipt_data,
     } = req.body;
     if (!amount || !currency)
       return res
@@ -115,12 +151,15 @@ exports.create = async (req, res, next) => {
 
     const rates = await getUserRates(req.user.id);
     const converted = convertToAll(amount, currency, rates);
+    await assertEntity(req.user.id, entity_id);
 
-    const { rows } = await pool.query(
+    await client.query("BEGIN");
+    const { rows } = await client.query(
       `INSERT INTO transactions
          (user_id, category_id, amount, currency, amount_usd, amount_ves, amount_binance,
-          description, date, counterpart_name, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+          description, date, counterpart_name, notes, entity_id, cash, due_date,
+          receipt_name, receipt_data)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
       [
         req.user.id,
         category_id || null,
@@ -133,11 +172,21 @@ exports.create = async (req, res, next) => {
         date || new Date().toISOString().slice(0, 10),
         counterpart_name || null,
         notes || null,
+        entity_id || null,
+        cash === false ? false : true,
+        due_date || null,
+        receipt_name || null,
+        receipt_data || null,
       ],
     );
+    await replaceItems(client, rows[0].id, items, currency, rates);
+    await client.query("COMMIT");
     res.status(201).json(rows[0]);
   } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
     next(err);
+  } finally {
+    client.release();
   }
 };
 

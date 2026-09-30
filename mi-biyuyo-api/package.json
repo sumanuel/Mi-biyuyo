@@ -8,6 +8,7 @@
     "dev": "nodemon src/index.js",
     "migrate": "node database/migrate.js",
     "seed": "node database/seed.js",
+    "seed:demo": "node database/seed_demo.js",
     "setup": "node database/migrate.js && node database/seed.js"
   },
   "dependencies": {

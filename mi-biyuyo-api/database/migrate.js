@@ -109,6 +109,55 @@ async function migrate() {
       `CREATE INDEX IF NOT EXISTS idx_payments_transaction      ON transaction_payments(transaction_id)`,
     );
 
+
+    // ── v2: entidades, transferencias, ítems y campos nuevos (idempotente) ──
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS entities (
+        id           SERIAL PRIMARY KEY,
+        user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name         VARCHAR(100) NOT NULL,
+        kind         VARCHAR(20)  NOT NULL DEFAULT 'banco',
+        currency     VARCHAR(3)   NOT NULL DEFAULT 'usd',
+        initial_usd  DECIMAL(15,4) NOT NULL DEFAULT 0,
+        payment_type VARCHAR(10)  NOT NULL DEFAULT 'none',
+        payment_data JSONB        NOT NULL DEFAULT '[]',
+        alert_usd    DECIMAL(15,4),
+        created_at   TIMESTAMPTZ  DEFAULT NOW()
+      )
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS transfers (
+        id             SERIAL PRIMARY KEY,
+        user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        from_entity_id INTEGER NOT NULL REFERENCES entities(id) ON DELETE RESTRICT,
+        to_entity_id   INTEGER NOT NULL REFERENCES entities(id) ON DELETE RESTRICT,
+        amount_usd     DECIMAL(15,4) NOT NULL,
+        fee_usd        DECIMAL(15,4) NOT NULL DEFAULT 0,
+        currency       VARCHAR(10)   NOT NULL DEFAULT 'USD',
+        date           DATE NOT NULL DEFAULT CURRENT_DATE,
+        created_at     TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS transaction_items (
+        id             SERIAL PRIMARY KEY,
+        transaction_id INTEGER NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+        name           VARCHAR(100) NOT NULL,
+        amount_usd     DECIMAL(15,4)
+      )
+    `);
+    await client.query(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS code VARCHAR(30)`);
+    await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS entity_id INTEGER REFERENCES entities(id) ON DELETE SET NULL`);
+    await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS cash BOOLEAN NOT NULL DEFAULT TRUE`);
+    await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS due_date DATE`);
+    await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS receipt_name VARCHAR(120)`);
+    await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS receipt_data TEXT`);
+    await client.query(`ALTER TABLE transaction_payments ADD COLUMN IF NOT EXISTS entity_id INTEGER REFERENCES entities(id) ON DELETE SET NULL`);
+    await client.query(`ALTER TABLE transaction_payments ADD COLUMN IF NOT EXISTS rate DECIMAL(15,4)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_entities_user ON entities(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_transfers_user ON transfers(user_id, date DESC)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_items_transaction ON transaction_items(transaction_id)`);
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {
