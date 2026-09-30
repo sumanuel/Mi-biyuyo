@@ -28,6 +28,9 @@ import {
 } from "../../utils/ledger";
 import { grp, nTxt } from "../../utils/money";
 
+const MAX_ENTITIES = 2;
+const MAX_MOVEMENTS = 20;
+
 export default function HomeScreen({ navigation }) {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -51,7 +54,7 @@ export default function HomeScreen({ navigation }) {
   const pp = pillOf(pag.length, overdue(pag));
   const alerts = alertsOf(model, dv, threshold);
   const sorted = model.moves.slice().sort((a, b) => a.d - b.d);
-  const recent = feed(model, sorted, true, dv).slice(0, 3);
+  const recent = feed(model, sorted, true, dv).slice(0, MAX_MOVEMENTS);
   const open = (nav) => go(navigation, nav.name, nav.params);
 
   const rateCard = (label, value) => (
@@ -305,7 +308,7 @@ export default function HomeScreen({ navigation }) {
               Aún no tienes entidades. Crea una para empezar a llevar tu saldo.
             </Txt>
           ) : (
-            model.ents.map((e, i) => {
+            model.ents.slice(0, MAX_ENTITIES).map((e, i) => {
               const k = colors.kind[e.kind] || colors.kind.otro;
               return (
                 <View key={e.id}>
