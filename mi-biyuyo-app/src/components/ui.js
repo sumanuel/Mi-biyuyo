@@ -745,6 +745,18 @@ export function MovRow({ row, onPress, bordered = false, style }) {
         >
           {row.amount}
         </Txt>
+        {row.date ? (
+          <Txt
+            style={{
+              fontSize: 11,
+              fontWeight: "600",
+              color: colors.textSecondary,
+              textAlign: "right",
+            }}
+          >
+            {row.date}
+          </Txt>
+        ) : null}
         {bordered && row.line2 ? (
           <Txt
             style={{

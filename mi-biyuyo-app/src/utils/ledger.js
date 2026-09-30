@@ -442,12 +442,8 @@ export function rowOf(model, m, dv) {
     title: m.title,
     icon: m.cat.icon,
     tone: m.type,
-    sub:
-      (m.person ? m.person : m.cat.name) +
-      entPart +
-      " · " +
-      dlabel(m.date) +
-      itemsPart,
+    sub: (m.person ? m.person : m.cat.name) + entPart + itemsPart,
+    date: dlabel(m.date),
     amount: sign + dv(m.val),
     line2: debt
       ? pend > 0.005
@@ -466,12 +462,8 @@ export function abonoRow(model, m, p, dv) {
     title: (cobro ? "Cobro" : "Pago") + " · " + (m.person || m.cat.name),
     icon: m.cat.icon,
     tone: m.type,
-    sub:
-      "Abono a: " +
-      m.title +
-      (p.ent ? " · " + model.entName(p.ent) : "") +
-      " · " +
-      dlabel(p.date),
+    sub: "Abono a: " + m.title + (p.ent ? " · " + model.entName(p.ent) : ""),
+    date: dlabel(p.date),
     amount: (cobro ? "+" : "-") + dv(p.val),
     line2: "Registrado en " + CCY_LABEL[p.ccy],
     nav: { name: "DebtDetail", params: { id: m.id } },
@@ -485,7 +477,8 @@ export function initialRow(model, e, dv) {
     title: "Saldo inicial",
     icon: KIND_ICON[e.kind] || "card",
     tone: "ingreso",
-    sub: e.name + " · " + dlabel(e.created),
+    sub: e.name,
+    date: dlabel(e.created),
     amount: "+" + dv(e.initVal),
     line2: "Saldo inicial de la entidad",
     nav: { name: "EntityDetail", params: { id: e.id } },
@@ -510,12 +503,8 @@ export function transferRow(model, t, dv, ref) {
     title: "Transferencia",
     icon: "swap",
     tone: "neutral",
-    sub:
-      model.entName(t.from) +
-      " → " +
-      model.entName(t.to) +
-      " · " +
-      dlabel(t.date),
+    sub: model.entName(t.from) + " → " + model.entName(t.to),
+    date: dlabel(t.date),
     amount: sign + dv(amt),
     line2: t.fee > 0 ? "Comisión " + dv(t.feeVal) : "Sin comisión",
     nav: { name: "Entities" },
