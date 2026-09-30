@@ -1,9 +1,10 @@
 const pool = require("../config/database");
+const { toUsd } = require("../utils/currencyConverter");
 
 const KINDS = ["efectivo", "banco", "digital", "otro"];
 const PTYPES = ["none", "pm", "acct", "email", "id"];
 
-const cols = `id, name, kind, currency, initial_usd::float AS initial_usd,
+const cols = `id, name, kind, currency, initial_usd::float AS initial_usd, initial_amount::float AS initial_amount,
               payment_type, payment_data, alert_usd::float AS alert_usd, created_at`;
 
 function clean(body) {
@@ -29,7 +30,11 @@ function clean(body) {
     paymentType,
     paymentData,
     alertUsd: alert > 0 ? alert : null,
-    initialUsd: Math.max(0, parseFloat(body.initial_usd) || 0),
+    // Saldo inicial en la moneda de la entidad (USD o VES)
+    initialAmount: Math.max(
+      0,
+      parseFloat(body.initial_amount ?? body.initial_usd) || 0,
+    ),
   };
 }
 
@@ -48,15 +53,24 @@ exports.list = async (req, res, next) => {
 exports.create = async (req, res, next) => {
   try {
     const d = clean(req.body);
+    let initialUsd = d.initialAmount;
+    if (d.currency === "ves" && d.initialAmount > 0) {
+      const { rows: r } = await pool.query(
+        `SELECT usd_to_ves, binance_to_ves FROM exchange_rates WHERE user_id = $1`,
+        [req.user.id],
+      );
+      initialUsd = toUsd(d.initialAmount, "VES", r[0] || {});
+    }
     const { rows } = await pool.query(
-      `INSERT INTO entities (user_id, name, kind, currency, initial_usd, payment_type, payment_data, alert_usd)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING ${cols}`,
+      `INSERT INTO entities (user_id, name, kind, currency, initial_usd, initial_amount, payment_type, payment_data, alert_usd)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING ${cols}`,
       [
         req.user.id,
         d.name,
         d.kind,
         d.currency,
-        d.initialUsd,
+        initialUsd,
+        d.initialAmount,
         d.paymentType,
         JSON.stringify(d.paymentData),
         d.alertUsd,

@@ -11,7 +11,7 @@ import {
   ConvRows,
   Icon,
 } from "../../components/ui";
-import { META, isDebtType } from "../../utils/ledger";
+import { META, dayRateTxt, isDebtType } from "../../utils/ledger";
 import { CCY_KEYS, CCY_LABEL, dlabel } from "../../utils/money";
 import { go } from "../../navigation/helpers";
 
@@ -55,8 +55,8 @@ export default function MovementSavedScreen({ navigation, route }) {
 
   const rows = CCY_KEYS.map((k) => ({
     label: CCY_LABEL[k],
-    sub: k === last.ccy ? "Moneda del registro" : fx.rateTxt(k),
-    value: fx.ready(k) ? fx.money(k, fx.fromUsd(k, last.usd)) : "Sin tasa",
+    sub: k === last.ccy ? "Moneda del registro" : dayRateTxt(last.val, k),
+    value: fx.money(k, last.val[k]),
     active: k === last.ccy,
   }));
 

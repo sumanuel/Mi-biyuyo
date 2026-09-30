@@ -20,12 +20,7 @@ import {
   Divider,
 } from "../../components/ui";
 import { go } from "../../navigation/helpers";
-import {
-  KIND_ICON,
-  alertsOf,
-  feed,
-  pillOf,
-} from "../../utils/ledger";
+import { KIND_ICON, alertsOf, feed, pillOf } from "../../utils/ledger";
 import { grp, nTxt } from "../../utils/money";
 
 const MAX_ENTITIES = 2;
@@ -78,7 +73,9 @@ export default function HomeScreen({ navigation }) {
           }}
         >
           <Tile soft={colors.info.bg}>
-            <Txt style={{ fontSize: 12, fontWeight: "800", color: colors.link }}>
+            <Txt
+              style={{ fontSize: 12, fontWeight: "800", color: colors.link }}
+            >
               VES
             </Txt>
           </Tile>
@@ -96,7 +93,12 @@ export default function HomeScreen({ navigation }) {
               1 {unit} = {value}
             </Txt>
           </View>
-          <Icon name="chevronRight" size={18} color={colors.textSecondary} stroke={2} />
+          <Icon
+            name="chevronRight"
+            size={18}
+            color={colors.textSecondary}
+            stroke={2}
+          />
         </View>
       </Card>
     </TouchableOpacity>
@@ -211,7 +213,9 @@ export default function HomeScreen({ navigation }) {
               <Txt style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>
                 {label}
               </Txt>
-              <Txt style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}>
+              <Txt
+                style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}
+              >
                 {fx.ready(label === "BCV" ? "bcv" : "bin") ? value : "Sin tasa"}
               </Txt>
             </View>
@@ -327,7 +331,11 @@ export default function HomeScreen({ navigation }) {
                       paddingHorizontal: 14,
                     }}
                   >
-                    <Tile icon={KIND_ICON[e.kind] || "card"} soft={k.soft} fg={k.fg} />
+                    <Tile
+                      icon={KIND_ICON[e.kind] || "card"}
+                      soft={k.soft}
+                      fg={k.fg}
+                    />
                     <Txt
                       numberOfLines={1}
                       style={{ flex: 1, fontSize: 14, fontWeight: "700" }}
@@ -349,7 +357,9 @@ export default function HomeScreen({ navigation }) {
         <H2>Accesos clave</H2>
         <TouchableOpacity
           activeOpacity={0.9}
-          onPress={() => go(navigation, "Pick", { type: "gasto", ts: Date.now() })}
+          onPress={() =>
+            go(navigation, "Pick", { type: "gasto", ts: Date.now() })
+          }
           style={{
             flexDirection: "row",
             alignItems: "center",
@@ -403,7 +413,9 @@ export default function HomeScreen({ navigation }) {
                 }}
               >
                 <Icon name={icon} size={22} color={color} stroke={2} />
-                <Txt style={{ fontSize: 13, fontWeight: "600", lineHeight: 16 }}>
+                <Txt
+                  style={{ fontSize: 13, fontWeight: "600", lineHeight: 16 }}
+                >
                   {label}
                 </Txt>
               </View>

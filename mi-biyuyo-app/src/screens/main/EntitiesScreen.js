@@ -24,7 +24,9 @@ export default function EntitiesScreen({ navigation }) {
   const { colors } = useTheme();
   const { model, dv } = useData();
   const shareOf = (b) =>
-    model.balance > 0 && b > 0 ? Math.round((b / model.balance) * 100) + "%" : "0%";
+    model.balance > 0 && b > 0
+      ? Math.round((b / model.balance) * 100) + "%"
+      : "0%";
 
   return (
     <Screen pull>
@@ -99,7 +101,10 @@ export default function EntitiesScreen({ navigation }) {
                 iconSize={22}
               />
               <View style={{ flex: 1, gap: 3 }}>
-                <Txt numberOfLines={1} style={{ fontSize: 15, fontWeight: "700" }}>
+                <Txt
+                  numberOfLines={1}
+                  style={{ fontSize: 15, fontWeight: "700" }}
+                >
                   {e.name}
                 </Txt>
                 <Txt

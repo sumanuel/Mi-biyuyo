@@ -40,7 +40,9 @@ export default function EntityFormScreen({ navigation, route }) {
     editing?.pd?.length ? editing.pd.slice() : ["", "", ""],
   );
   const [init, setInit] = useState("");
-  const [alertOn, setAlertOn] = useState(editing ? editing.alert != null : false);
+  const [alertOn, setAlertOn] = useState(
+    editing ? editing.alert != null : false,
+  );
   const [alertStr, setAlertStr] = useState(
     editing && editing.alert != null
       ? round2(ccy === "usd" ? editing.alert : editing.alert * fx.rate)
@@ -51,7 +53,8 @@ export default function EntityFormScreen({ navigation, route }) {
   const num = parseNum(init);
   const toUsd = (n) => (ccy === "usd" ? n : fx.rate > 0 ? n / fx.rate : 0);
   const initUsd = toUsd(num);
-  const alertUsd = alertOn && parseNum(alertStr) > 0 ? toUsd(parseNum(alertStr)) : null;
+  const alertUsd =
+    alertOn && parseNum(alertStr) > 0 ? toUsd(parseNum(alertStr)) : null;
   const vesNeedsRate = ccy === "ves" && fx.rate <= 0 && (num > 0 || alertOn);
   const canSave = name.trim().length > 0 && !vesNeedsRate && !busy;
 
@@ -65,7 +68,7 @@ export default function EntityFormScreen({ navigation, route }) {
       payment_type: pt,
       payment_data: vals.slice(0, PT[pt].f.length),
       alert_usd: alertUsd,
-      initial_usd: initUsd,
+      initial_amount: num,
     };
     try {
       if (editing) {
@@ -135,14 +138,24 @@ export default function EntityFormScreen({ navigation, route }) {
       </View>
 
       <View style={{ gap: 8 }}>
-        <Txt style={{ fontSize: 14, fontWeight: "700" }}>Moneda de la entidad</Txt>
+        <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+          Moneda de la entidad
+        </Txt>
         <CcyOptions
           tint={colors.ingreso}
           options={[
-            { label: "USD", sub: "Moneda base", active: ccy === "usd", onPress: () => setCcy("usd") },
+            {
+              label: "USD",
+              sub: "Moneda base",
+              active: ccy === "usd",
+              onPress: () => setCcy("usd"),
+            },
             {
               label: "VES",
-              sub: fx.rate > 0 ? "A tasa BCV " + grp(fx.rate, ".", ",") : "Sin tasa BCV",
+              sub:
+                fx.rate > 0
+                  ? "A tasa BCV " + grp(fx.rate, ".", ",")
+                  : "Sin tasa BCV",
               active: ccy === "ves",
               onPress: () => setCcy("ves"),
             },
@@ -193,7 +206,8 @@ export default function EntityFormScreen({ navigation, route }) {
           <ConvRows rows={rows} />
           {vesNeedsRate ? (
             <Txt style={{ fontSize: 12, color: colors.danger.fg }}>
-              Configura la tasa BCV en Ajustes para usar una entidad en bolívares.
+              Configura la tasa BCV en Ajustes para usar una entidad en
+              bolívares.
             </Txt>
           ) : null}
         </Card>
@@ -206,7 +220,13 @@ export default function EntityFormScreen({ navigation, route }) {
             backgroundColor: colors.chip,
           }}
         >
-          <Txt style={{ fontSize: 13, lineHeight: 18, color: colors.textSecondary }}>
+          <Txt
+            style={{
+              fontSize: 13,
+              lineHeight: 18,
+              color: colors.textSecondary,
+            }}
+          >
             El saldo se ajusta con los movimientos y las transferencias. No se
             edita a mano.
           </Txt>
@@ -214,8 +234,12 @@ export default function EntityFormScreen({ navigation, route }) {
       )}
 
       <Card style={{ gap: 12 }}>
-        <Txt style={{ fontSize: 14, fontWeight: "700" }}>Alerta de saldo bajo</Txt>
-        <Txt style={{ fontSize: 13, lineHeight: 18, color: colors.textSecondary }}>
+        <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+          Alerta de saldo bajo
+        </Txt>
+        <Txt
+          style={{ fontSize: 13, lineHeight: 18, color: colors.textSecondary }}
+        >
           Te avisamos en el inicio y en la lista cuando el saldo de esta entidad
           baje del monto que definas.
         </Txt>
@@ -224,7 +248,12 @@ export default function EntityFormScreen({ navigation, route }) {
             [true, "Activada"],
             [false, "Desactivada"],
           ].map(([v, l]) => (
-            <Chip key={l} label={l} active={alertOn === v} onPress={() => setAlertOn(v)} />
+            <Chip
+              key={l}
+              label={l}
+              active={alertOn === v}
+              onPress={() => setAlertOn(v)}
+            />
           ))}
         </ChipRow>
         {alertOn ? (

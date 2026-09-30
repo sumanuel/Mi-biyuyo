@@ -39,10 +39,15 @@ exports.create = async (req, res, next) => {
         .status(422)
         .json({ error: "amount y currency son requeridos" });
 
-    // Ownership check + saldo pendiente
+    // Ownership check + saldo pendiente EN LA MONEDA DE LA DEUDA:
+    // cada abono descuenta su valor del día (guardado al registrarse) convertido a esa moneda.
     const { rows: txRows } = await pool.query(
-      `SELECT t.id, t.amount_usd,
-              COALESCE((SELECT SUM(amount_usd) FROM transaction_payments WHERE transaction_id = t.id), 0) AS paid_usd
+      `SELECT t.id, t.amount, t.currency,
+              COALESCE((SELECT SUM(CASE t.currency
+                          WHEN 'USD' THEN p.amount_usd
+                          WHEN 'VES' THEN p.amount_ves
+                          ELSE p.amount_binance END)
+                        FROM transaction_payments p WHERE p.transaction_id = t.id), 0) AS paid
        FROM transactions t WHERE t.id = $1 AND t.user_id = $2`,
       [transactionId, req.user.id],
     );
@@ -60,9 +65,13 @@ exports.create = async (req, res, next) => {
 
     const rates = await getUserRates(req.user.id);
     const converted = convertToAll(amount, currency, rates);
-    const pending =
-      parseFloat(txRows[0].amount_usd) - parseFloat(txRows[0].paid_usd);
-    if (converted.amount_usd > pending + 0.005)
+    const col = { USD: "amount_usd", VES: "amount_ves", BINANCE: "amount_binance" }[
+      txRows[0].currency
+    ];
+    const pending = parseFloat(txRows[0].amount) - parseFloat(txRows[0].paid);
+    const payNative = converted[col];
+    const tol = txRows[0].currency === "BINANCE" ? 0.005 : 0.01;
+    if (payNative > pending + tol)
       return res
         .status(422)
         .json({ error: "El monto supera el saldo pendiente" });
@@ -85,7 +94,7 @@ exports.create = async (req, res, next) => {
       ],
     );
 
-    if (pending - converted.amount_usd <= 0.005) {
+    if (pending - payNative <= tol) {
       await pool.query(
         `UPDATE transactions SET status = 'paid', updated_at = NOW() WHERE id = $1`,
         [transactionId],

@@ -158,6 +158,30 @@ async function migrate() {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_transfers_user ON transfers(user_id, date DESC)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_items_transaction ON transaction_items(transaction_id)`);
 
+
+    // ── v3: valores históricos (tasa del día) y saldo inicial en la moneda de la entidad ──
+    await client.query(`ALTER TABLE transfers ADD COLUMN IF NOT EXISTS amount_ves DECIMAL(15,4)`);
+    await client.query(`ALTER TABLE transfers ADD COLUMN IF NOT EXISTS amount_binance DECIMAL(15,4)`);
+    await client.query(`ALTER TABLE transfers ADD COLUMN IF NOT EXISTS fee_ves DECIMAL(15,4)`);
+    await client.query(`ALTER TABLE transfers ADD COLUMN IF NOT EXISTS fee_binance DECIMAL(15,4)`);
+    await client.query(`ALTER TABLE entities ADD COLUMN IF NOT EXISTS initial_amount DECIMAL(15,4)`);
+    // Relleno de datos anteriores con la tasa vigente del usuario (aproximación única)
+    await client.query(`
+      UPDATE transfers t SET
+        amount_ves     = COALESCE(t.amount_ves,     t.amount_usd * r.usd_to_ves),
+        fee_ves        = COALESCE(t.fee_ves,        t.fee_usd    * r.usd_to_ves),
+        amount_binance = COALESCE(t.amount_binance, CASE WHEN r.binance_to_ves > 0 THEN t.amount_usd * r.usd_to_ves / r.binance_to_ves END),
+        fee_binance    = COALESCE(t.fee_binance,    CASE WHEN r.binance_to_ves > 0 THEN t.fee_usd    * r.usd_to_ves / r.binance_to_ves END)
+      FROM exchange_rates r
+      WHERE r.user_id = t.user_id AND (t.amount_ves IS NULL OR t.fee_ves IS NULL)
+    `);
+    await client.query(`
+      UPDATE entities e SET initial_amount = CASE WHEN e.currency = 'usd' THEN e.initial_usd
+                                                   ELSE e.initial_usd * COALESCE(
+                                                     (SELECT usd_to_ves FROM exchange_rates r WHERE r.user_id = e.user_id), 0) END
+      WHERE e.initial_amount IS NULL
+    `);
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {

@@ -268,9 +268,15 @@ export default function EntityDetailScreen({ navigation, route }) {
 
       <TouchableOpacity
         onPress={remove}
-        style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}
+        style={{
+          minHeight: 44,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <Txt style={{ color: colors.danger.fg, fontSize: 13, fontWeight: "700" }}>
+        <Txt
+          style={{ color: colors.danger.fg, fontSize: 13, fontWeight: "700" }}
+        >
           Eliminar entidad
         </Txt>
       </TouchableOpacity>

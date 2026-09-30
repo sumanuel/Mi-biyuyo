@@ -145,7 +145,9 @@ export default function TransferScreen({ navigation, route }) {
       </View>
 
       <View style={{ gap: 8 }}>
-        <Txt style={{ fontSize: 14, fontWeight: "700" }}>Moneda del registro</Txt>
+        <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+          Moneda del registro
+        </Txt>
         <CcyOptions
           tint={tint}
           options={CCY_KEYS.map((k) => ({
@@ -242,13 +244,21 @@ export default function TransferScreen({ navigation, route }) {
         ].map(([label, value]) => (
           <View
             key={label}
-            style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              gap: 8,
+            }}
           >
-            <Txt style={{ fontSize: 13, color: colors.textSecondary }}>{label}</Txt>
+            <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
+              {label}
+            </Txt>
             <Txt style={{ fontSize: 14, fontWeight: "800" }}>{value}</Txt>
           </View>
         ))}
-        <Txt style={{ fontSize: 12, lineHeight: 17, color: colors.textSecondary }}>
+        <Txt
+          style={{ fontSize: 12, lineHeight: 17, color: colors.textSecondary }}
+        >
           Una transferencia no cuenta como ingreso ni gasto. La comisión sí sale
           de la entidad de origen.
         </Txt>

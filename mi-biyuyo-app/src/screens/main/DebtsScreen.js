@@ -29,7 +29,7 @@ export default function DebtsScreen({ navigation, route }) {
 
   const tint = colors[tab];
   const all = model.moves.filter((m) => m.type === tab);
-  const total = all.reduce((a, m) => a + m.usd, 0);
+  const total = all.reduce((a, m) => a + model.totalOf(m), 0);
   const paid = all.reduce((a, m) => a + model.paidOf(m), 0);
   const rows = all.slice().sort((a, b) => {
     const ao = model.pendOf(a) <= 0.005 ? 1 : 0;
@@ -105,10 +105,15 @@ export default function DebtsScreen({ navigation, route }) {
                 gap: 10,
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+              >
                 <Tile icon={m.cat.icon} soft={tint.soft} fg={tint.fg} />
                 <View style={{ flex: 1, gap: 3 }}>
-                  <Txt numberOfLines={1} style={{ fontSize: 14, fontWeight: "700" }}>
+                  <Txt
+                    numberOfLines={1}
+                    style={{ fontSize: 14, fontWeight: "700" }}
+                  >
                     {m.person || m.title}
                   </Txt>
                   <Txt
@@ -123,15 +128,25 @@ export default function DebtsScreen({ navigation, route }) {
                     {dv(model.pendOf(m))}
                   </Txt>
                   <Txt style={{ fontSize: 11, color: colors.textSecondary }}>
-                    de {dv(m.usd)}
+                    de {dv(model.totalOf(m))}
                   </Txt>
                 </View>
               </View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+              >
                 <View style={{ flex: 1 }}>
                   <ProgressBar
                     height={6}
-                    pct={m.usd > 0 ? Math.round((model.paidOf(m) / m.usd) * 100) : 0}
+                    pct={
+                      model.totalNative(m) > 0
+                        ? Math.round(
+                            ((model.totalNative(m) - model.pendNative(m)) /
+                              model.totalNative(m)) *
+                              100,
+                          )
+                        : 0
+                    }
                     color={tint.strong}
                   />
                 </View>
