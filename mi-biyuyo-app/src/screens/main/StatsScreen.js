@@ -11,6 +11,7 @@ import {
   DispTabs,
   ProgressBar,
   Icon,
+  Button,
 } from "../../components/ui";
 import {
   addDays,
@@ -25,6 +26,7 @@ import {
   startOfMonth,
 } from "../../utils/money";
 import DateRangeFilter from "../../components/DateRangeFilter";
+import { itemAgg } from "../../utils/ledger";
 import { go } from "../../navigation/helpers";
 
 const WD = ["D", "L", "M", "M", "J", "V", "S"];
@@ -112,24 +114,14 @@ export default function StatsScreen({ navigation }) {
     : "Aún no hay gastos en este período.";
 
   /* ---- ítems más comprados ---- */
-  const agg = {};
-  list
-    .filter((m) => m.type === "gasto")
-    .forEach((m) =>
-      m.items.forEach((it) => {
-        const k = it.name.trim().toLowerCase();
-        if (!agg[k]) agg[k] = { name: it.name.trim(), n: 0, usd: 0 };
-        agg[k].n += 1;
-        agg[k].usd += m.usd > 0 ? ((it.usd || 0) / m.usd) * m.val[disp] : 0;
-      }),
-    );
-  const aggArr = Object.values(agg).sort((a, b) => b.usd - a.usd || b.n - a.n);
-  const aggMax = aggArr.length && aggArr[0].usd > 0 ? aggArr[0].usd : 1;
-  const itemsTop = aggArr.slice(0, 5).map((x) => ({
+  const aggArr = itemAgg(list, disp);
+  const aggMax = aggArr.length && aggArr[0].amt > 0 ? aggArr[0].amt : 1;
+  const itemsMore = aggArr.length > 3;
+  const itemsTop = aggArr.slice(0, 3).map((x) => ({
     name: x.name,
     meta: nTxt(x.n, "compra"),
-    val: x.usd > 0 ? dd(x.usd) : "Sin monto",
-    w: x.usd > 0 ? Math.max(4, Math.round((x.usd / aggMax) * 100)) : 0,
+    val: x.amt > 0 ? dd(x.amt) : "Sin monto",
+    w: x.amt > 0 ? Math.max(4, Math.round((x.amt / aggMax) * 100)) : 0,
   }));
 
   /* ---- distribución y deudas ---- */
@@ -491,15 +483,15 @@ export default function StatsScreen({ navigation }) {
             marginTop: -6,
           }}
         >
-          Suma solo los ítems con monto asignado. Toca uno para ver sus
-          movimientos.
+          Suma solo los ítems con monto asignado. Toca uno para ver las fechas
+          en que lo compraste.
         </Txt>
         {itemsTop.map((r) => (
           <TouchableOpacity
             key={r.name}
             activeOpacity={0.8}
             onPress={() =>
-              go(navigation, "History", { q: r.name, ts: Date.now() })
+              go(navigation, "ItemDates", { name: r.name, from, to })
             }
             accessibilityLabel={`Ver movimientos de ${r.name}`}
             style={{ minHeight: 44, paddingVertical: 4, gap: 6 }}
@@ -523,6 +515,15 @@ export default function StatsScreen({ navigation }) {
             <ProgressBar height={6} pct={r.w} color={colors.chartExpense} />
           </TouchableOpacity>
         ))}
+        {itemsMore ? (
+          <Button
+            label="Ver todos"
+            outline
+            height={44}
+            style={{ borderRadius: 14 }}
+            onPress={() => go(navigation, "Items", { from, to })}
+          />
+        ) : null}
         {itemsTop.length === 0 ? (
           <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
             Aún no hay ítems detallados en este período.

@@ -612,3 +612,25 @@ export function pillOf(n, over) {
     };
   return { t: nTxt(n, "pendiente"), tone: "warn" };
 }
+
+/**
+ * Ítems comprados (gastos) agrupados por nombre, del que más suma al que menos.
+ * Cada ítem lleva sus compras (`buys`) con fecha y monto en la moneda `disp`.
+ */
+export function itemAgg(list, disp) {
+  const agg = {};
+  list
+    .filter((m) => m.type === "gasto")
+    .forEach((m) =>
+      m.items.forEach((it) => {
+        const k = it.name.trim().toLowerCase();
+        if (!agg[k])
+          agg[k] = { key: k, name: it.name.trim(), n: 0, amt: 0, buys: [] };
+        const amt = m.usd > 0 ? ((it.usd || 0) / m.usd) * m.val[disp] : 0;
+        agg[k].n += 1;
+        agg[k].amt += amt;
+        agg[k].buys.push({ m, amt });
+      }),
+    );
+  return Object.values(agg).sort((a, b) => b.amt - a.amt || b.n - a.n);
+}
