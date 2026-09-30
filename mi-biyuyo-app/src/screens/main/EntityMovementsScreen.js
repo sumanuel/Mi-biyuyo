@@ -7,20 +7,13 @@ import {
   Header,
   Txt,
   Card,
-  Chip,
-  ChipRow,
   MovRow,
   Button,
   Empty,
 } from "../../components/ui";
-import DateField from "../../components/DateField";
+import DateRangeFilter from "../../components/DateRangeFilter";
 import { ledgerOf } from "../../utils/ledger";
-import {
-  endOfMonth,
-  fullDate,
-  monthsBackStart,
-  startOfMonth,
-} from "../../utils/money";
+import { endOfMonth, fullDate, startOfMonth } from "../../utils/money";
 import { go } from "../../navigation/helpers";
 
 const PAGE = 50;
@@ -49,11 +42,6 @@ export default function EntityMovementsScreen({ navigation, route }) {
   const rows = ledgerOf(model, e.id, dv, { from, to });
   const shown = rows.slice(0, limit);
 
-  const presets = [
-    ["Este mes", monthStart, monthEnd],
-    ["Mes anterior", monthsBackStart(1), endOfMonth(monthsBackStart(1))],
-    ["Últimos 3 meses", monthsBackStart(2), monthEnd],
-  ];
   const setRange = (f, t) => {
     setFrom(f);
     setTo(t);
@@ -67,41 +55,7 @@ export default function EntityMovementsScreen({ navigation, route }) {
         onBack={() => navigation.goBack()}
       />
 
-      <Card style={{ gap: 12 }}>
-        <ChipRow>
-          {presets.map(([label, f, t]) => (
-            <Chip
-              key={label}
-              label={label}
-              active={from === f && to === t}
-              onPress={() => setRange(f, t)}
-            />
-          ))}
-        </ChipRow>
-        <View style={{ gap: 6 }}>
-          <Txt style={{ fontSize: 14, fontWeight: "700" }}>Desde</Txt>
-          <DateField
-            value={from}
-            max={to}
-            onChange={(v) => {
-              setFrom(v);
-              setLimit(PAGE);
-            }}
-          />
-        </View>
-        <View style={{ gap: 6 }}>
-          <Txt style={{ fontSize: 14, fontWeight: "700" }}>Hasta</Txt>
-          <DateField
-            value={to}
-            min={from}
-            max={monthEnd}
-            onChange={(v) => {
-              setTo(v);
-              setLimit(PAGE);
-            }}
-          />
-        </View>
-      </Card>
+      <DateRangeFilter from={from} to={to} onChange={setRange} />
 
       <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
         {rows.length === 1 ? "1 movimiento" : `${rows.length} movimientos`} del{" "}

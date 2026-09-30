@@ -14,7 +14,7 @@ import {
   EyeButton,
 } from "../../components/ui";
 import { KIND_ICON, PT, balanceNote } from "../../utils/ledger";
-import { maskMoney } from "../../utils/money";
+import { ENT_CCY_LABEL, maskMoney } from "../../utils/money";
 
 export function ptSummary(e) {
   const v = (e.pd || []).filter(Boolean);
@@ -124,7 +124,7 @@ export default function EntitiesScreen({ navigation }) {
                   numberOfLines={1}
                   style={{ fontSize: 12, color: colors.textSecondary }}
                 >
-                  {(e.ccy === "usd" ? "USD" : "VES") + " · " + ptSummary(e)}
+                  {ENT_CCY_LABEL[e.ccy] + " · " + ptSummary(e)}
                 </Txt>
               </View>
               <View style={{ alignItems: "flex-end", gap: 3, maxWidth: "40%" }}>

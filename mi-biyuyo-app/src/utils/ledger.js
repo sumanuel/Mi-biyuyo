@@ -147,7 +147,9 @@ export function buildModel(raw, ratesOverride) {
         ? e.initial_amount
         : e.currency === "usd"
           ? init
-          : init * fx.rate;
+          : e.currency === "usdt"
+            ? init * fx.FACT.bin
+            : init * fx.rate;
     return {
       id: e.id,
       name: e.name,
@@ -157,8 +159,8 @@ export function buildModel(raw, ratesOverride) {
       initNative,
       initVal: {
         usd: init,
-        bcv: e.currency === "usd" ? init * fx.FACT.bcv : initNative,
-        bin: init * fx.FACT.bin,
+        bcv: e.currency === "ves" ? initNative : init * fx.FACT.bcv,
+        bin: e.currency === "usdt" ? initNative : init * fx.FACT.bin,
       },
       pt: e.payment_type || "none",
       pd: e.payment_data || [],
@@ -252,7 +254,9 @@ export function buildModel(raw, ratesOverride) {
 
   /* ---------- saldos por entidad ---------- */
   // Saldo en la moneda de la entidad: cada movimiento entra con su valor del día.
-  const nat = (v, e) => (e.ccy === "usd" ? v.usd : v.bcv);
+  // Valor de un monto en la moneda de la entidad (USD, VES o USDT)
+  const nat = (v, e) =>
+    e.ccy === "usd" ? v.usd : e.ccy === "usdt" ? v.bin : v.bcv;
   const entNative = (e) => {
     let b = e.initNative;
     moves.forEach((m) => {
@@ -288,13 +292,12 @@ export function buildModel(raw, ratesOverride) {
     });
     return b;
   };
-  // Saldo en USD con la tasa de hoy: una entidad en VES vale distinto si cambia la tasa
-  const entBal = (e) =>
-    e.ccy === "usd"
-      ? entNative(e)
-      : fx.rate > 0
-        ? entNative(e) / fx.rate
-        : entBalStored(e);
+  // Saldo en USD con la tasa de hoy: una entidad en VES o USDT vale distinto si cambia la tasa
+  const entBal = (e) => {
+    if (e.ccy === "usd") return entNative(e);
+    const c = e.ccy === "usdt" ? "bin" : "bcv"; // una entidad en USDT también cambia con las tasas
+    return fx.ready(c) ? fx.toUsd(c, entNative(e)) : entBalStored(e);
+  };
   // Mi saldo: solo entidades marcadas como "Sumar a Mi saldo"
   const included = ents.filter((e) => e.include);
   const balance = included.reduce((a, e) => a + entBal(e), 0);

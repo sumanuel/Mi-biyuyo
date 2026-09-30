@@ -19,7 +19,14 @@ import {
   Icon,
 } from "../../components/ui";
 import { KIND_LABEL, KIND_PT, PT } from "../../utils/ledger";
-import { CCY_KEYS, CCY_LABEL, grp, parseNum } from "../../utils/money";
+import {
+  CCY_KEYS,
+  CCY_LABEL,
+  ENT_CCY,
+  ENT_CCY_LABEL,
+  grp,
+  parseNum,
+} from "../../utils/money";
 
 const KINDS = ["efectivo", "banco", "digital", "otro"];
 const PTS = ["pm", "acct", "email", "id", "none"];
@@ -46,18 +53,18 @@ export default function EntityFormScreen({ navigation, route }) {
   );
   const [alertStr, setAlertStr] = useState(
     editing && editing.alert != null
-      ? round2(ccy === "usd" ? editing.alert : editing.alert * fx.rate)
+      ? round2(fx.fromUsd(ENT_CCY[ccy], editing.alert))
       : "",
   );
   const [include, setInclude] = useState(editing ? editing.include : true);
   const [busy, setBusy] = useState(false);
 
   const num = parseNum(init);
-  const toUsd = (n) => (ccy === "usd" ? n : fx.rate > 0 ? n / fx.rate : 0);
+  const toUsd = (n) => fx.toUsd(ENT_CCY[ccy], n); // 0 si falta la tasa necesaria
   const initUsd = toUsd(num);
   const alertUsd =
     alertOn && parseNum(alertStr) > 0 ? toUsd(parseNum(alertStr)) : null;
-  const vesNeedsRate = ccy === "ves" && fx.rate <= 0 && (num > 0 || alertOn);
+  const vesNeedsRate = !fx.ready(ENT_CCY[ccy]) && (num > 0 || alertOn);
   const canSave = name.trim().length > 0 && !vesNeedsRate && !busy;
 
   const save = async () => {
@@ -94,7 +101,7 @@ export default function EntityFormScreen({ navigation, route }) {
     sub: k === "usd" ? "Moneda base" : fx.rateTxt(k),
     value: fx.ready(k) ? fx.money(k, fx.fromUsd(k, initUsd)) : "Sin tasa",
   }));
-  const prefix = ccy === "usd" ? "USD" : "VES";
+  const prefix = ENT_CCY_LABEL[ccy];
 
   return (
     <Screen
@@ -162,6 +169,15 @@ export default function EntityFormScreen({ navigation, route }) {
               active: ccy === "ves",
               onPress: () => setCcy("ves"),
             },
+            {
+              label: "USDT",
+              sub:
+                fx.rateB > 0
+                  ? "Binance " + grp(fx.rateB, ".", ",")
+                  : "Sin tasa Binance",
+              active: ccy === "usdt",
+              onPress: () => setCcy("usdt"),
+            },
           ]}
         />
       </View>
@@ -209,8 +225,9 @@ export default function EntityFormScreen({ navigation, route }) {
           <ConvRows rows={rows} />
           {vesNeedsRate ? (
             <Txt style={{ fontSize: 12, color: colors.danger.fg }}>
-              Configura la tasa BCV en Ajustes para usar una entidad en
-              bolívares.
+              {ccy === "usdt"
+                ? "Configura las tasas BCV y Binance en Ajustes para usar una entidad en USDT."
+                : "Configura la tasa BCV en Ajustes para usar una entidad en bolívares."}
             </Txt>
           ) : null}
         </Card>

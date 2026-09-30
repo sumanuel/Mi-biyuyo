@@ -212,6 +212,10 @@ async function migrate() {
     // ── v5: entidades que no suman a "Mi saldo" ──
     await client.query(`ALTER TABLE entities ADD COLUMN IF NOT EXISTS include_in_balance BOOLEAN NOT NULL DEFAULT TRUE`);
 
+
+    // ── v6: entidades en USDT (la columna currency admitía solo 3 caracteres) ──
+    await client.query(`ALTER TABLE entities ALTER COLUMN currency TYPE VARCHAR(10)`);
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {
