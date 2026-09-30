@@ -120,3 +120,39 @@ export const fullDate = (str) => {
   const dt = parse(str);
   return `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}/${dt.getFullYear()}`;
 };
+
+/** Oculta el número de un monto conservando la moneda: "USD 1,387.80" → "USD ••••••". */
+export const maskMoney = (text) => String(text).split(" ")[0] + " ••••••";
+
+/* ---------- rangos por mes ---------- */
+export const startOfMonth = (str) => {
+  const d = str ? parse(str) : new Date();
+  return toDateStr(new Date(d.getFullYear(), d.getMonth(), 1));
+};
+export const endOfMonth = (str) => {
+  const d = str ? parse(str) : new Date();
+  return toDateStr(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+};
+/** Primer día del mes, n meses antes (n = 0 → mes actual). */
+export const monthsBackStart = (n) => {
+  const d = new Date();
+  return toDateStr(new Date(d.getFullYear(), d.getMonth() - n, 1));
+};
+export const MONTH_NAMES = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
+];
+export const monthLabel = (str) => {
+  const d = str ? parse(str) : new Date();
+  return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+};

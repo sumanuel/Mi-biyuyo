@@ -814,6 +814,34 @@ export function AlertRow({ title, sub, onPress }) {
   );
 }
 
+/** Ojito para mostrar/ocultar montos (sobre fondos oscuros). */
+export function EyeButton({
+  hidden,
+  onPress,
+  color = "rgba(255,255,255,0.9)",
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      accessibilityLabel={hidden ? "Mostrar saldo" : "Ocultar saldo"}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      style={{
+        width: 36,
+        height: 36,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Icon
+        name={hidden ? "eyeOff" : "eye"}
+        size={20}
+        color={color}
+        stroke={1.8}
+      />
+    </TouchableOpacity>
+  );
+}
+
 /** Toast global; se dibuja una sola vez en el navegador raíz. */
 export function Toast({ bottom = 100 }) {
   const insets = useSafeAreaInsets();

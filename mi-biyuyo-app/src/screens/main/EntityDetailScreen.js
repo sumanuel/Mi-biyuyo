@@ -18,7 +18,13 @@ import {
   Empty,
 } from "../../components/ui";
 import { KIND_ICON, KIND_LABEL, PT, ledgerOf } from "../../utils/ledger";
-import { CCY_KEYS, CCY_LABEL } from "../../utils/money";
+import {
+  CCY_KEYS,
+  CCY_LABEL,
+  endOfMonth,
+  monthLabel,
+  startOfMonth,
+} from "../../utils/money";
 import { go } from "../../navigation/helpers";
 import { confirm } from "../../utils/confirm";
 
@@ -43,7 +49,11 @@ export default function EntityDetailScreen({ navigation, route }) {
   const data = (e.pd || [])
     .map((v, i) => ({ label: pt.f[i] || "", value: v }))
     .filter((f) => f.value && f.label);
-  const ledger = ledgerOf(model, e.id, dv).slice(0, 20);
+  // Solo el mes en curso; el resto se ve en «Ver más movimientos» (con rango de fechas)
+  const ledger = ledgerOf(model, e.id, dv, {
+    from: startOfMonth(),
+    to: endOfMonth(),
+  });
   const low = model.isLow(e);
 
   const copy = async () => {
@@ -271,7 +281,7 @@ export default function EntityDetailScreen({ navigation, route }) {
 
       <View style={{ gap: 10 }}>
         <Txt style={{ fontSize: 15, fontWeight: "700" }}>
-          Movimientos de esta entidad
+          Movimientos de {monthLabel()}
         </Txt>
         {ledger.map((r) => (
           <MovRow
@@ -283,9 +293,16 @@ export default function EntityDetailScreen({ navigation, route }) {
         ))}
         {!ledger.length ? (
           <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
-            Sin movimientos todavía.
+            Sin movimientos este mes.
           </Txt>
         ) : null}
+        <Button
+          label="Ver más movimientos"
+          outline
+          height={46}
+          style={{ borderRadius: 14 }}
+          onPress={() => navigation.navigate("EntityMovements", { id: e.id })}
+        />
       </View>
 
       <TouchableOpacity

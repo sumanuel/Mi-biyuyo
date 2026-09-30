@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Switch } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useExchangeRate } from "../../contexts/ExchangeRateContext";
 import { useData, errorMessage } from "../../contexts/DataContext";
@@ -13,6 +13,7 @@ import {
   Button,
 } from "../../components/ui";
 import { grp, parseNum } from "../../utils/money";
+import * as watcher from "../../services/rateWatcher";
 
 const asInput = (v) =>
   Number(v) > 0 ? String(Number(v)).replace(".", ",") : "";
@@ -25,6 +26,16 @@ export default function ExchangeRateScreen({ navigation }) {
   const [bcv, setBcv] = useState(asInput(rates.usd_to_ves));
   const [bin, setBin] = useState(asInput(rates.binance_to_ves));
   const [saving, setSaving] = useState(false);
+  const [daily, setDaily] = useState(true);
+  useEffect(() => {
+    watcher.getSettings().then((st) => setDaily(st.enabled));
+  }, []);
+  const toggleDaily = async (v) => {
+    setDaily(v);
+    await watcher.saveSettings({ enabled: v });
+    if (v) watcher.registerBackgroundTask();
+    else watcher.unregisterBackgroundTask();
+  };
 
   const gap =
     parseNum(bcv) > 0 && parseNum(bin) > 0
@@ -116,6 +127,33 @@ export default function ExchangeRateScreen({ navigation }) {
             </Txt>
           </View>
         ) : null}
+      </Card>
+
+      <Card
+        pad={14}
+        style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+      >
+        <View style={{ flex: 1, gap: 2 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            Consulta diaria de tasas (BCV y Binance)
+          </Txt>
+          <Txt
+            style={{
+              fontSize: 12,
+              lineHeight: 17,
+              color: colors.textSecondary,
+            }}
+          >
+            Cada día a las 7:00 a. m. te avisamos (campanita y notificación) si
+            hay una tasa nueva, para que la actualices o no.
+          </Txt>
+        </View>
+        <Switch
+          value={daily}
+          onValueChange={toggleDaily}
+          trackColor={{ false: colors.disabled, true: colors.accent }}
+          thumbColor="#ffffff"
+        />
       </Card>
 
       <Button

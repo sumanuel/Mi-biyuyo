@@ -80,6 +80,13 @@ Iconos: `src/components/icons.js` (trazos SVG de 1 path, `viewBox 24`, `strokeWi
 - Un gasto puede detallarse por **ítems**; si se asigna monto por ítem, la suma no puede superar el total.
 - Formatos: `USD 1,387.80` (coma miles, punto decimal) y `VES 208.170,00` (punto miles, coma decimal).
 
+### Tasa BCV automática y campanita
+- Cada día a las **7:00 a. m.** la app consulta la tasa oficial BCV (`ve.dolarapi.com`, mismo servicio que `tienda-app`) **y** la de USDT en Binance P2P (`criptoya.com`, respaldo: dólar paralelo de dolarapi). Corre en segundo plano (`expo-background-task`, cada ~15 min a partir de esa hora) y también con la app abierta.
+- Si alguna de las dos tasas es distinta a la del usuario: aviso en la campanita (punto rojo con contador), notificación del sistema y, al abrir la app, un cuadro «¿Actualizar tasas?». El usuario decide (Actualizar / Ahora no). Se puede desactivar en Tasas de cambio.
+- Ojito en «Mi saldo» (Inicio y Entidades): oculta o muestra los montos y recuerda la elección.
+
+- **Movimientos de una entidad:** el detalle muestra solo el **mes en curso**; «Ver más movimientos» abre una pantalla con calendarios **Desde / Hasta** (por defecto, primer y último día del mes) y atajos «Este mes», «Mes anterior» y «Últimos 3 meses».
+
 ## 4. Pantallas
 
 | # | Captura | Pantalla en la app | Archivo |

@@ -11,8 +11,10 @@ import {
   Pill,
   Empty,
   Button,
+  EyeButton,
 } from "../../components/ui";
 import { KIND_ICON, PT, balanceNote } from "../../utils/ledger";
+import { maskMoney } from "../../utils/money";
 
 export function ptSummary(e) {
   const v = (e.pd || []).filter(Boolean);
@@ -22,7 +24,7 @@ export function ptSummary(e) {
 
 export default function EntitiesScreen({ navigation }) {
   const { colors } = useTheme();
-  const { model, dv } = useData();
+  const { model, dv, hideBalance, toggleHideBalance } = useData();
   const shareOf = (b) =>
     model.balance > 0 && b > 0
       ? Math.round((b / model.balance) * 100) + "%"
@@ -42,16 +44,27 @@ export default function EntitiesScreen({ navigation }) {
           gap: 4,
         }}
       >
-        <Txt
+        <View
           style={{
-            fontSize: 12,
-            fontWeight: "700",
-            letterSpacing: 0.96,
-            color: "rgba(255,255,255,0.85)",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginTop: -6,
+            marginBottom: -4,
           }}
         >
-          SALDO TOTAL
-        </Txt>
+          <Txt
+            style={{
+              fontSize: 12,
+              fontWeight: "700",
+              letterSpacing: 0.96,
+              color: "rgba(255,255,255,0.85)",
+            }}
+          >
+            SALDO TOTAL
+          </Txt>
+          <EyeButton hidden={hideBalance} onPress={toggleHideBalance} />
+        </View>
         <Txt
           style={{
             fontSize: 30,
@@ -60,7 +73,7 @@ export default function EntitiesScreen({ navigation }) {
             color: "#ffffff",
           }}
         >
-          {dv(model.balance)}
+          {hideBalance ? maskMoney(dv(model.balance)) : dv(model.balance)}
         </Txt>
         <Txt style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>
           {balanceNote(model)}
