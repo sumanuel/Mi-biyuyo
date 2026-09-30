@@ -12,7 +12,11 @@ import {
   RefreshControl,
   useWindowDimensions,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import { BottomTabBarHeightContext } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../contexts/ThemeContext";
 import { useData } from "../contexts/DataContext";
 import { fontFor } from "../theme/font";
@@ -74,6 +78,10 @@ export function Screen({
   const { colors } = useTheme();
   const { model, loading, error, refresh } = useData();
   const { height: winH } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const tabHeight = React.useContext(BottomTabBarHeightContext);
+  // Pantalla de pila sin pie: separar el contenido de la barra del sistema
+  const bottomGap = !footer && tabHeight === undefined ? insets.bottom : 0;
   const [refreshing, setRefreshing] = React.useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
@@ -87,7 +95,13 @@ export function Screen({
     usesScroll = false;
     body = (
       <View
-        style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 }}
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 12,
+          padding: 24,
+        }}
       >
         {loading ? (
           <ActivityIndicator color={colors.accent} />
@@ -96,7 +110,11 @@ export function Screen({
             <Txt style={{ color: colors.textSecondary, textAlign: "center" }}>
               {error || "No se pudieron cargar tus datos"}
             </Txt>
-            <Button label="Reintentar" onPress={refresh} style={{ paddingHorizontal: 24 }} />
+            <Button
+              label="Reintentar"
+              onPress={refresh}
+              style={{ paddingHorizontal: 24 }}
+            />
           </>
         )}
       </View>
@@ -105,13 +123,13 @@ export function Screen({
 
   return (
     <SafeAreaView
-        edges={["top"]}
-        // En web el contenedor de la pila no acota la altura: se limita a la ventana
-        // para que el pie (footer) quede siempre a la vista.
-        style={[
-          { flex: 1, backgroundColor: colors.page },
-          Platform.OS === "web" ? { maxHeight: winH, overflow: "hidden" } : null,
-        ]}
+      edges={["top"]}
+      // En web el contenedor de la pila no acota la altura: se limita a la ventana
+      // para que el pie (footer) quede siempre a la vista.
+      style={[
+        { flex: 1, backgroundColor: colors.page },
+        Platform.OS === "web" ? { maxHeight: winH, overflow: "hidden" } : null,
+      ]}
     >
       {usesScroll ? (
         <ScrollView
@@ -133,6 +151,7 @@ export function Screen({
           }
         >
           {body}
+          {bottomGap ? <View style={{ height: bottomGap }} /> : null}
         </ScrollView>
       ) : (
         <View style={[{ flex: 1 }, data && !model.ready ? null : contentStyle]}>
@@ -152,7 +171,8 @@ export function Footer({ children }) {
     <View
       style={{
         padding: 16,
-        paddingBottom: 16 + (insets.bottom > 0 ? 0 : 0),
+        // Deja libre la barra de navegación del sistema (botones de Android)
+        paddingBottom: 16 + insets.bottom,
         backgroundColor: colors.page,
         borderTopWidth: 1,
         borderTopColor: colors.border,
@@ -166,10 +186,7 @@ export function Footer({ children }) {
 export function H1({ children, style }) {
   return (
     <Txt
-      style={[
-        { fontSize: 22, fontWeight: "800", letterSpacing: -0.44 },
-        style,
-      ]}
+      style={[{ fontSize: 22, fontWeight: "800", letterSpacing: -0.44 }, style]}
     >
       {children}
     </Txt>
@@ -233,7 +250,14 @@ export function SectionHead({ title, action, onAction }) {
     >
       <H2>{title}</H2>
       {action ? (
-        <TouchableOpacity onPress={onAction} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 4 }}>
+        <TouchableOpacity
+          onPress={onAction}
+          style={{
+            minHeight: 44,
+            justifyContent: "center",
+            paddingHorizontal: 4,
+          }}
+        >
           <Txt style={{ color: colors.link, fontSize: 13, fontWeight: "700" }}>
             {action}
           </Txt>
@@ -792,6 +816,7 @@ export function AlertRow({ title, sub, onPress }) {
 
 /** Toast global; se dibuja una sola vez en el navegador raíz. */
 export function Toast({ bottom = 100 }) {
+  const insets = useSafeAreaInsets();
   const { toast, hideToast } = useData();
   const { colors, isDark } = useTheme();
   if (!toast) return null;
@@ -801,7 +826,7 @@ export function Toast({ bottom = 100 }) {
         position: "absolute",
         left: 16,
         right: 16,
-        bottom,
+        bottom: bottom + insets.bottom,
         paddingVertical: 12,
         paddingHorizontal: 14,
         borderRadius: 14,
