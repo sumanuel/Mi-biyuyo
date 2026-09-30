@@ -16,7 +16,7 @@ function clean(body) {
     throw err;
   }
   const kind = KINDS.includes(body.kind) ? body.kind : "otro";
-  const currency = body.currency === "usd" ? "usd" : "ves";
+  const currency = ["usd", "usdt"].includes(body.currency) ? body.currency : "ves";
   const paymentType = PTYPES.includes(body.payment_type)
     ? body.payment_type
     : "none";
@@ -32,7 +32,7 @@ function clean(body) {
     paymentData,
     alertUsd: alert > 0 ? alert : null,
     include: body.include_in_balance !== false,
-    // Saldo inicial en la moneda de la entidad (USD o VES)
+    // Saldo inicial en la moneda de la entidad (USD, VES o USDT)
     initialAmount: Math.max(
       0,
       parseFloat(body.initial_amount ?? body.initial_usd) || 0,
@@ -56,12 +56,16 @@ exports.create = async (req, res, next) => {
   try {
     const d = clean(req.body);
     let initialUsd = d.initialAmount;
-    if (d.currency === "ves" && d.initialAmount > 0) {
+    if (d.currency !== "usd" && d.initialAmount > 0) {
       const { rows: r } = await pool.query(
         `SELECT usd_to_ves, binance_to_ves FROM exchange_rates WHERE user_id = $1`,
         [req.user.id],
       );
-      initialUsd = toUsd(d.initialAmount, "VES", r[0] || {});
+      initialUsd = toUsd(
+        d.initialAmount,
+        d.currency === "usdt" ? "BINANCE" : "VES",
+        r[0] || {},
+      );
     }
     const { rows } = await pool.query(
       `INSERT INTO entities (user_id, name, kind, currency, initial_usd, initial_amount, payment_type, payment_data, alert_usd, include_in_balance)

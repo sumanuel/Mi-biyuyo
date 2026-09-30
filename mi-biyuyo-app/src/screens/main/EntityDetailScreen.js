@@ -21,6 +21,7 @@ import { KIND_ICON, KIND_LABEL, PT, ledgerOf } from "../../utils/ledger";
 import {
   CCY_KEYS,
   CCY_LABEL,
+  ENT_CCY_LABEL,
   endOfMonth,
   monthLabel,
   startOfMonth,
@@ -125,9 +126,7 @@ export default function EntityDetailScreen({ navigation, route }) {
               {e.name}
             </Txt>
             <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
-              {(KIND_LABEL[e.kind] || "Otro") +
-                " · " +
-                (e.ccy === "usd" ? "USD" : "VES")}
+              {(KIND_LABEL[e.kind] || "Otro") + " · " + ENT_CCY_LABEL[e.ccy]}
             </Txt>
           </View>
         </View>

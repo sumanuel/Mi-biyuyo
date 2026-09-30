@@ -156,3 +156,11 @@ export const monthLabel = (str) => {
   const d = str ? parse(str) : new Date();
   return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 };
+
+/** Monedas en que puede estar una entidad → clave del cliente (usd | bcv | bin) y etiqueta. */
+export const ENT_CCY = { usd: "usd", ves: "bcv", usdt: "bin" };
+export const ENT_CCY_LABEL = { usd: "USD", ves: "VES", usdt: "USDT" };
+
+/** Días entre dos fechas YYYY-MM-DD (b − a). */
+export const daysBetween = (a, b) =>
+  Math.round((parse(b) - parse(a)) / 86400000);

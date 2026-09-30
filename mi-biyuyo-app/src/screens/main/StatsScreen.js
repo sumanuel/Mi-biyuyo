@@ -8,12 +8,23 @@ import {
   H1,
   Card,
   Tile,
-  Segmented,
   DispTabs,
   ProgressBar,
   Icon,
 } from "../../components/ui";
-import { compact, dayMonth, grp, nTxt } from "../../utils/money";
+import {
+  addDays,
+  compact,
+  dayMonth,
+  daysBetween,
+  endOfMonth,
+  fullDate,
+  grp,
+  nTxt,
+  parseDate,
+  startOfMonth,
+} from "../../utils/money";
+import DateRangeFilter from "../../components/DateRangeFilter";
 import { go } from "../../navigation/helpers";
 
 const WD = ["D", "L", "M", "M", "J", "V", "S"];
@@ -23,10 +34,15 @@ export default function StatsScreen({ navigation }) {
   const { colors } = useTheme();
   const { model, disp, dv } = useData();
   const { fx } = model;
-  const [days, setDays] = useState(30);
+  // Período elegido con calendarios (por defecto, el mes en curso)
+  const monthStart = startOfMonth();
+  const monthEnd = endOfMonth();
+  const [from, setFrom] = useState(monthStart);
+  const [to, setTo] = useState(monthEnd);
   const [sel, setSel] = useState(null);
 
-  const list = model.moves.filter((m) => m.d < days);
+  const list = model.moves.filter((m) => m.date >= from && m.date <= to);
+  const days = daysBetween(from, to) + 1;
   // Estadísticas: valor del día de cada movimiento, en la moneda elegida
   const dd = (n) => fx.money(disp, n);
   const inc = model.sumIn(list, "ingreso", disp);
@@ -36,13 +52,13 @@ export default function StatsScreen({ navigation }) {
   const gap = fx.rate > 0 ? (fx.rateB / fx.rate - 1) * 100 : 0;
 
   /* ---- barras por tramo ---- */
-  const nb = days === 7 ? 7 : 6;
+  const nb = days <= 7 ? days : 6;
   const size = days / nb;
   const acc = Array.from({ length: nb }, () => ({ i: 0, e: 0 }));
   list.forEach((m) => {
     if (m.type !== "ingreso" && m.type !== "gasto") return;
-    const idx = nb - 1 - Math.floor(m.d / size);
-    if (idx < 0 || idx >= nb) return;
+    const idx = Math.min(nb - 1, Math.floor(daysBetween(from, m.date) / size));
+    if (idx < 0) return;
     if (m.type === "ingreso") acc[idx].i += m.val[disp];
     else acc[idx].e += m.val[disp];
   });
@@ -50,21 +66,16 @@ export default function StatsScreen({ navigation }) {
   const pow = Math.pow(10, Math.floor(Math.log10(rawMax)));
   const niceMax = [1, 2, 5, 10].map((k) => k * pow).find((v) => v >= rawMax);
   const buckets = acc.map((b, i) => {
-    const newestD = (nb - 1 - i) * size;
-    const dt = new Date();
-    dt.setDate(
-      dt.getDate() - Math.round(days === 7 ? newestD : newestD + size - 1),
-    );
-    const vi = b.i;
-    const ve = b.e;
+    // Etiqueta = primer día del tramo (letra del día si el período es de una semana o menos)
+    const dt = parseDate(addDays(from, Math.round(i * size)));
     const px = (v) =>
       v > 0 ? Math.max(3, Math.round((v / niceMax) * CHART_H)) : 0;
     return {
-      label: days === 7 ? WD[dt.getDay()] : dayMonth(dt),
-      hi: px(vi),
-      he: px(ve),
-      vi,
-      ve,
+      label: days <= 7 ? WD[dt.getDay()] : dayMonth(dt),
+      hi: px(b.i),
+      he: px(b.e),
+      vi: b.i,
+      ve: b.e,
     };
   });
   const readout =
@@ -203,22 +214,38 @@ export default function StatsScreen({ navigation }) {
   return (
     <Screen pull>
       <H1>Estadísticas</H1>
-      <Segmented
-        height={40}
-        items={[
-          [7, "7 días"],
-          [30, "30 días"],
-          [90, "90 días"],
-        ].map(([v, label]) => ({
-          label,
-          active: days === v,
-          onPress: () => {
-            setDays(v);
-            setSel(null);
-          },
-        }))}
+      <DateRangeFilter
+        from={from}
+        to={to}
+        onChange={(f, t) => {
+          setFrom(f);
+          setTo(t);
+          setSel(null);
+        }}
       />
       <DispTabs height={40} />
+
+      {list.length === 0 ? (
+        <View
+          style={{
+            padding: 12,
+            paddingHorizontal: 14,
+            borderRadius: 14,
+            backgroundColor: colors.chip,
+          }}
+        >
+          <Txt
+            style={{
+              fontSize: 13,
+              lineHeight: 18,
+              color: colors.textSecondary,
+            }}
+          >
+            No hay ingresos ni gastos entre el {fullDate(from)} y el{" "}
+            {fullDate(to)}.
+          </Txt>
+        </View>
+      ) : null}
 
       <Card style={{ gap: 12 }}>
         <View style={{ gap: 2 }}>
@@ -502,6 +529,13 @@ export default function StatsScreen({ navigation }) {
           </Txt>
         ) : null}
       </Card>
+
+      <View style={{ gap: 2, marginTop: 6 }}>
+        <Txt style={{ fontSize: 16, fontWeight: "800" }}>Situación actual</Txt>
+        <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+          Al día de hoy: estas secciones no cambian con el período elegido.
+        </Txt>
+      </View>
 
       <Card style={{ gap: 14 }}>
         {title("Distribución del saldo")}

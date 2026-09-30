@@ -37,7 +37,14 @@ function label(value) {
  * Campo de fecha con calendario. value = "YYYY-MM-DD".
  * min / max acotan las fechas elegibles (por defecto: hasta hoy).
  */
-export default function DateField({ value, onChange, min, max, tint }) {
+export default function DateField({
+  value,
+  onChange,
+  min,
+  max,
+  tint,
+  compact = false, // solo la fecha (sin «Hoy»/«Ayer» ni «Cambiar»), para filtros en fila
+}) {
   const { colors } = useTheme();
   const [open, setOpen] = useState(false);
   const today = todayStr();
@@ -107,8 +114,8 @@ export default function DateField({ value, onChange, min, max, tint }) {
           minHeight: 48,
           flexDirection: "row",
           alignItems: "center",
-          gap: 10,
-          paddingHorizontal: 14,
+          gap: compact ? 8 : 10,
+          paddingHorizontal: compact ? 10 : 14,
           borderWidth: 1,
           borderColor: colors.border,
           borderRadius: 12,
@@ -116,12 +123,17 @@ export default function DateField({ value, onChange, min, max, tint }) {
         }}
       >
         <Icon name="calendar" size={20} color={accent} stroke={1.8} />
-        <Txt style={{ flex: 1, fontSize: 15, fontWeight: "600" }}>
-          {label(value)}
+        <Txt
+          numberOfLines={1}
+          style={{ flex: 1, fontSize: compact ? 14 : 15, fontWeight: "600" }}
+        >
+          {compact ? fullDate(value) : label(value)}
         </Txt>
-        <Txt style={{ fontSize: 13, fontWeight: "700", color: colors.link }}>
-          Cambiar
-        </Txt>
+        {compact ? null : (
+          <Txt style={{ fontSize: 13, fontWeight: "700", color: colors.link }}>
+            Cambiar
+          </Txt>
+        )}
       </TouchableOpacity>
 
       <Modal

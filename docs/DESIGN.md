@@ -74,6 +74,7 @@ Iconos: `src/components/icons.js` (trazos SVG de 1 path, `viewBox 24`, `strokeWi
 - **Tasas históricas:** cada movimiento, abono y transferencia guarda sus valores en USD, VES y USDT con la tasa **del día en que se registró**; esos valores no se recalculan (historial, detalle, estadísticas).
 - **Se recalculan con la tasa de hoy:** Mi saldo, el saldo de cada entidad (una entidad en VES conserva sus bolívares, su valor en USD cambia con la tasa), y lo pendiente por cobrar/pagar (se mide en la moneda de la deuda; cada abono descuenta su valor del día convertido a esa moneda).
 - Cada entidad tiene el check **«Sumar a Mi saldo»** (activo por defecto). Si se desmarca, la entidad sigue funcionando (movimientos, transferencias) pero no cuenta en Mi saldo, en la distribución del saldo ni en el «Balance del historial»; en la lista aparece con la etiqueta «No suma a Mi saldo».
+- Una entidad puede estar en **USD, VES o USDT**: conserva su saldo en esa moneda y su valor en USD se recalcula con las tasas de hoy.
 - **Mi saldo** = suma del saldo de todas las entidades. Saldo de entidad = saldo inicial + ingresos − gastos ± cobros/pagos ± transferencias.
 - **Por cobrar / por pagar** solo mueven saldo si el dinero ya cambió de manos (`cash = true`). Cada abono descuenta el pendiente y puede registrarse en cualquier moneda.
 - Una **transferencia** no es ingreso ni gasto; la comisión sale de la entidad de origen.
@@ -86,6 +87,8 @@ Iconos: `src/components/icons.js` (trazos SVG de 1 path, `viewBox 24`, `strokeWi
 - Ojito en «Mi saldo» (Inicio y Entidades): oculta o muestra los montos y recuerda la elección.
 
 - **Movimientos de una entidad:** el detalle muestra solo el **mes en curso**; «Ver más movimientos» abre una pantalla con calendarios **Desde / Hasta** (por defecto, primer y último día del mes) y atajos «Este mes», «Mes anterior» y «Últimos 3 meses».
+
+- **Estadísticas:** el período se elige con calendarios **Desde / Hasta** (por defecto, el mes en curso) y atajos «Este mes», «Mes anterior» y «Últimos 3 meses». El gráfico se reparte en hasta 6 tramos (o un tramo por día si el período es de una semana o menos).
 
 ## 4. Pantallas
 
