@@ -46,6 +46,18 @@ node database/seed_demo.js   # opcional: usuario demo con los datos del prototip
 npm run dev
 ```
 
+### App — URL de la API
+
+La app lee la URL de la API de la variable `EXPO_PUBLIC_API_URL` (incluye `/api`):
+
+```bash
+cd mi-biyuyo-app
+cp .env.example .env      # y ajusta EXPO_PUBLIC_API_URL
+npx expo start -c         # reinicia Metro para que tome el cambio
+```
+
+En producción usa la URL HTTPS de tu servidor y vuelve a compilar la app: la variable se incluye en el momento de compilar.
+
 **Endpoints disponibles:**
 
 - `/api/auth` — Login, register, forgot password

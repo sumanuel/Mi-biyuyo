@@ -131,7 +131,7 @@ cd mi-biyuyo-api && npm run migrate && npm run seed && npm run seed:demo && npm 
 cd mi-biyuyo-app && npx expo start --web
 ```
 Usuario demo: `demo@mibiyuyo.test` / `Demo1234!` (mismos datos que el prototipo: saldo USD 1,387.80).
-En un móvil físico, ajusta la IP de `API_BASE_URL` en `src/services/api/client.js`.
+La URL de la API se define con `EXPO_PUBLIC_API_URL` en `mi-biyuyo-app/.env` (copia `.env.example`). Sin ella, la app usa `localhost` (web/iOS) o `10.0.2.2` (emulador Android). En un móvil físico pon la IP de tu PC; en producción, la URL HTTPS del servidor, y recompila la app.
 
 ## 7. Qué entregar a otra IA para modificar el diseño
 
