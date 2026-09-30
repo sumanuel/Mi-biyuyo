@@ -44,6 +44,7 @@ import ItemDatesScreen from "./src/screens/main/ItemDatesScreen";
 import EntityMovementsScreen from "./src/screens/main/EntityMovementsScreen";
 import TransferScreen from "./src/screens/main/TransferScreen";
 import ExchangeRateScreen from "./src/screens/main/ExchangeRateScreen";
+import AboutScreen from "./src/screens/main/AboutScreen";
 import ProfileScreen from "./src/screens/main/ProfileScreen";
 import RateNotificationsScreen from "./src/screens/main/RateNotificationsScreen";
 
@@ -179,6 +180,7 @@ function AppNavigator() {
                     component={ExchangeRateScreen}
                   />
                   <Stack.Screen name="Profile" component={ProfileScreen} />
+                  <Stack.Screen name="About" component={AboutScreen} />
                   <Stack.Screen
                     name="RateNotifications"
                     component={RateNotificationsScreen}

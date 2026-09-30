@@ -134,19 +134,9 @@ export default function SettingsScreen({ navigation }) {
           onPress={soon}
         />
         <Row
-          label="Crear respaldo"
-          sub="Guarda una copia de tus datos"
-          onPress={soon}
-        />
-        <Row
-          label="Importar respaldo"
-          sub="Restaura datos desde un archivo"
-          onPress={soon}
-        />
-        <Row
           label="Acerca de"
           sub="Información de la aplicación"
-          onPress={() => showToast("Mi Biyuyo v1.0.0")}
+          onPress={() => navigation.navigate("About")}
           last
         />
       </Section>
