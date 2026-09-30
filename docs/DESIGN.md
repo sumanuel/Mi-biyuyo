@@ -71,6 +71,8 @@ Iconos: `src/components/icons.js` (trazos SVG de 1 path, `viewBox 24`, `strokeWi
 
 - Todo se almacena en **USD**. Cada movimiento recuerda la moneda en la que se registró: `usd`, `bcv` (bolívares, tasa BCV) o `bin` (**USDT** de Binance).
 - Tasas: `1 USD = A VES` (BCV) y `1 USDT = B VES` (Binance). Conversiones: `VES → USD = v / A`, `VES → USDT = v / B`, `USD → USDT = u · A / B`, `USDT → USD = t · B / A`. Ej.: con A = 850 y B = 950, 850 VES = USD 1.00 = USDT 0.894, y 1 USDT = 950 VES = USD 1.117.
+- **Tasas históricas:** cada movimiento, abono y transferencia guarda sus valores en USD, VES y USDT con la tasa **del día en que se registró**; esos valores no se recalculan (historial, detalle, estadísticas).
+- **Se recalculan con la tasa de hoy:** Mi saldo, el saldo de cada entidad (una entidad en VES conserva sus bolívares, su valor en USD cambia con la tasa), y lo pendiente por cobrar/pagar (se mide en la moneda de la deuda; cada abono descuenta su valor del día convertido a esa moneda).
 - **Mi saldo** = suma del saldo de todas las entidades. Saldo de entidad = saldo inicial + ingresos − gastos ± cobros/pagos ± transferencias.
 - **Por cobrar / por pagar** solo mueven saldo si el dinero ya cambió de manos (`cash = true`). Cada abono descuenta el pendiente y puede registrarse en cualquier moneda.
 - Una **transferencia** no es ingreso ni gasto; la comisión sale de la entidad de origen.

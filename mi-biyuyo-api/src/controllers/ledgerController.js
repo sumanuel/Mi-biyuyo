@@ -15,6 +15,7 @@ exports.get = async (req, res, next) => {
       ),
       pool.query(
         `SELECT id, name, kind, currency, initial_usd::float AS initial_usd,
+                initial_amount::float AS initial_amount,
                 payment_type, payment_data, alert_usd::float AS alert_usd,
                 to_char(created_at,'YYYY-MM-DD') AS created
          FROM entities WHERE user_id = $1 ORDER BY id`,
@@ -22,13 +23,15 @@ exports.get = async (req, res, next) => {
       ),
       pool.query(
         `SELECT t.id, t.category_id, t.description, t.amount::float AS amount, t.currency,
-                t.amount_usd::float AS amount_usd, to_char(t.date,'YYYY-MM-DD') AS date,
+                t.amount_usd::float AS amount_usd, t.amount_ves::float AS amount_ves,
+                t.amount_binance::float AS amount_binance, to_char(t.date,'YYYY-MM-DD') AS date,
                 to_char(t.due_date,'YYYY-MM-DD') AS due_date, t.counterpart_name, t.notes,
                 t.entity_id, t.cash, t.status, t.receipt_name,
                 (t.receipt_data IS NOT NULL) AS has_receipt,
                 COALESCE((SELECT json_agg(json_build_object(
                     'id', p.id, 'amount', p.amount::float, 'currency', p.currency,
-                    'amount_usd', p.amount_usd::float, 'rate', p.rate::float,
+                    'amount_usd', p.amount_usd::float, 'amount_ves', p.amount_ves::float,
+                    'amount_binance', p.amount_binance::float, 'rate', p.rate::float,
                     'date', to_char(p.date,'YYYY-MM-DD'), 'entity_id', p.entity_id, 'notes', p.notes
                   ) ORDER BY p.date, p.id) FROM transaction_payments p WHERE p.transaction_id = t.id), '[]') AS payments,
                 COALESCE((SELECT json_agg(json_build_object(
@@ -40,7 +43,9 @@ exports.get = async (req, res, next) => {
       ),
       pool.query(
         `SELECT id, from_entity_id, to_entity_id, amount_usd::float AS amount_usd,
-                fee_usd::float AS fee_usd, currency, to_char(date,'YYYY-MM-DD') AS date
+                fee_usd::float AS fee_usd, currency, to_char(date,'YYYY-MM-DD') AS date,
+                amount_ves::float AS amount_ves, amount_binance::float AS amount_binance,
+                fee_ves::float AS fee_ves, fee_binance::float AS fee_binance
          FROM transfers WHERE user_id = $1 ORDER BY date DESC, id DESC`,
         [uid],
       ),

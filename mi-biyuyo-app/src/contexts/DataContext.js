@@ -68,8 +68,13 @@ export function DataProvider({ children }) {
     return buildModel(raw, r);
   }, [raw, rates]);
 
+  // dv(número) = USD de hoy convertido con la tasa vigente (saldos, pendientes).
+  // dv({usd,bcv,bin}) = valor guardado el día del movimiento, sin recalcular.
   const dv = useCallback(
-    (usd) => model.fx.money(disp, model.fx.fromUsd(disp, usd)),
+    (x) =>
+      typeof x === "object" && x !== null
+        ? model.fx.money(disp, x[disp])
+        : model.fx.money(disp, model.fx.fromUsd(disp, x)),
     [model, disp],
   );
 
@@ -103,7 +108,8 @@ export function DataProvider({ children }) {
         run(() => transactionService.createPayment(token, id, body)),
       deletePayment: (id, paymentId) =>
         run(() => transactionService.deletePayment(token, id, paymentId)),
-      createEntity: (body) => run(() => ledgerService.createEntity(token, body)),
+      createEntity: (body) =>
+        run(() => ledgerService.createEntity(token, body)),
       updateEntity: (id, body) =>
         run(() => ledgerService.updateEntity(token, id, body)),
       deleteEntity: (id) => run(() => ledgerService.deleteEntity(token, id)),

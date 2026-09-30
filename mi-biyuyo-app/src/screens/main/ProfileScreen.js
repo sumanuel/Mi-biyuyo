@@ -67,9 +67,16 @@ export default function ProfileScreen({ navigation }) {
           </Txt>
         </View>
         <Txt style={{ fontSize: 17, fontWeight: "800" }}>{user?.name}</Txt>
-        <Txt style={{ fontSize: 13, color: colors.textSecondary }}>{user?.email}</Txt>
+        <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
+          {user?.email}
+        </Txt>
       </Card>
-      <Field label="Nombre" value={name} onChangeText={setName} placeholder="Tu nombre" />
+      <Field
+        label="Nombre"
+        value={name}
+        onChangeText={setName}
+        placeholder="Tu nombre"
+      />
       <Field
         label="Correo"
         value={user?.email || ""}

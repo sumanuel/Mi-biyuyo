@@ -14,7 +14,8 @@ import {
 } from "../../components/ui";
 import { grp, parseNum } from "../../utils/money";
 
-const asInput = (v) => (Number(v) > 0 ? String(Number(v)).replace(".", ",") : "");
+const asInput = (v) =>
+  Number(v) > 0 ? String(Number(v)).replace(".", ",") : "";
 
 /** Tasas de cambio: manual o desde fuentes en línea. */
 export default function ExchangeRateScreen({ navigation }) {
@@ -46,7 +47,10 @@ export default function ExchangeRateScreen({ navigation }) {
       return showToast("Ingresa al menos una tasa");
     setSaving(true);
     try {
-      await updateManual(parseNum(bcv) || undefined, parseNum(bin) || undefined);
+      await updateManual(
+        parseNum(bcv) || undefined,
+        parseNum(bin) || undefined,
+      );
       showToast("Tasas guardadas");
       navigation.goBack();
     } catch (err) {
@@ -61,14 +65,21 @@ export default function ExchangeRateScreen({ navigation }) {
       contentStyle={{ paddingTop: 16, gap: 16 }}
       footer={
         <Footer>
-          <Button label="Guardar tasas" onPress={save} height={54} loading={saving} />
+          <Button
+            label="Guardar tasas"
+            onPress={save}
+            height={54}
+            loading={saving}
+          />
         </Footer>
       }
     >
       <Header title="Tasas de cambio" onBack={() => navigation.goBack()} />
 
       <Card style={{ gap: 14 }}>
-        <Txt style={{ fontSize: 13, lineHeight: 18, color: colors.textSecondary }}>
+        <Txt
+          style={{ fontSize: 13, lineHeight: 18, color: colors.textSecondary }}
+        >
           Todos tus montos se guardan en USD. Con estas tasas se convierte entre
           USD, VES (BCV) y USDT (Binance). Ej.: si 1 USD = 850 VES y 1 USDT =
           950 VES, entonces 850 VES = USD 1.00 = USDT 0.89.
@@ -99,7 +110,9 @@ export default function ExchangeRateScreen({ navigation }) {
             }}
           >
             <Txt style={{ fontSize: 13, fontWeight: "600" }}>
-              Brecha Binance: {(gap >= 0 ? "+" : "-") + grp(Math.abs(gap), ".", ",")}% sobre la tasa BCV
+              Brecha Binance:{" "}
+              {(gap >= 0 ? "+" : "-") + grp(Math.abs(gap), ".", ",")}% sobre la
+              tasa BCV
             </Txt>
           </View>
         ) : null}

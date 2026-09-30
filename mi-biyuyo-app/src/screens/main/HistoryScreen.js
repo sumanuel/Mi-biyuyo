@@ -29,7 +29,7 @@ const PAGE = 25;
 
 export default function HistoryScreen({ navigation, route }) {
   const { colors } = useTheme();
-  const { model, dv } = useData();
+  const { model, dv, disp } = useData();
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const [limit, setLimit] = useState(PAGE);
@@ -54,22 +54,25 @@ export default function HistoryScreen({ navigation, route }) {
   const fl = (
     filter === "all" ? sorted : sorted.filter((m) => m.type === filter)
   ).filter(matchQ);
-  const flInc = model.sum(fl, "ingreso");
-  const flExp = model.sum(fl, "gasto");
+  // Historial: valores del día de cada movimiento, en la moneda elegida
+  const flInc = model.sumIn(fl, "ingreso", disp);
+  const flExp = model.sumIn(fl, "gasto", disp);
   const label =
     filter === "all"
       ? "Balance del historial"
       : "Total " + META[filter].plural.toLowerCase();
-  const histUsd =
+  const fl3 = model.flows(disp);
+  const histVal =
     filter === "all"
       ? flInc -
         flExp +
-        model.cashIn -
-        model.cashOut -
-        model.lent +
-        model.borrowed +
-        (qn ? 0 : model.initTotal - model.feesTotal)
-      : fl.reduce((a, m) => a + m.usd, 0);
+        fl3.cashIn -
+        fl3.cashOut -
+        fl3.lent +
+        fl3.borrowed +
+        (qn ? 0 : fl3.init - fl3.fees)
+      : fl.reduce((a, m) => a + m.val[disp], 0);
+  const money = (n) => model.fx.money(disp, n);
   const all = feed(model, fl, filter === "all" && !qn, dv);
   const rows = all.slice(0, limit);
 
@@ -119,7 +122,7 @@ export default function HistoryScreen({ navigation, route }) {
             {label}
           </Txt>
           <Txt style={{ fontSize: 26, fontWeight: "800" }}>
-            {(histUsd < 0 ? "-" : "") + dv(Math.abs(histUsd))}
+            {(histVal < 0 ? "-" : "") + money(Math.abs(histVal))}
           </Txt>
         </View>
         <View style={{ flexDirection: "row", gap: 8 }}>
@@ -142,7 +145,7 @@ export default function HistoryScreen({ navigation, route }) {
                 color: colors.ingreso.fg,
               }}
             >
-              {dv(flInc)}
+              {money(flInc)}
             </Txt>
           </View>
           <View style={{ flex: 1.4, gap: 2 }}>
@@ -156,7 +159,7 @@ export default function HistoryScreen({ navigation, route }) {
                 color: colors.gasto.fg,
               }}
             >
-              {dv(flExp)}
+              {money(flExp)}
             </Txt>
           </View>
         </View>

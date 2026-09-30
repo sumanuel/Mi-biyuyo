@@ -58,7 +58,12 @@ function Row({ label, sub, onPress, last, right }) {
         <Txt style={{ fontSize: 13, color: colors.textSecondary }}>{sub}</Txt>
       </View>
       {right || (
-        <Icon name="chevronRight" size={18} color={colors.textSecondary} stroke={2} />
+        <Icon
+          name="chevronRight"
+          size={18}
+          color={colors.textSecondary}
+          stroke={2}
+        />
       )}
     </TouchableOpacity>
   );
@@ -74,14 +79,23 @@ export default function SettingsScreen({ navigation }) {
     <TouchableOpacity
       onPress={onPress}
       accessibilityLabel={label}
-      style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+      style={{
+        width: 40,
+        height: 40,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
     >
       <Icon name={icon} size={16} color={colors.text} stroke={2.4} />
     </TouchableOpacity>
   );
 
   const doLogout = async () => {
-    const ok = await confirm("Cerrar sesión", "¿Seguro que deseas salir?", "Salir");
+    const ok = await confirm(
+      "Cerrar sesión",
+      "¿Seguro que deseas salir?",
+      "Salir",
+    );
     if (ok) logout();
   };
 
@@ -100,14 +114,35 @@ export default function SettingsScreen({ navigation }) {
           sub="BCV y Binance P2P, manual o en línea"
           onPress={() => navigation.navigate("ExchangeRate")}
         />
-        <Row label="Presupuestos" sub="Límites por categoría y metas de ahorro" onPress={soon} />
-        <Row label="Cuentas compartidas" sub="Gestionar personas con acceso" onPress={soon} last />
+        <Row
+          label="Presupuestos"
+          sub="Límites por categoría y metas de ahorro"
+          onPress={soon}
+        />
+        <Row
+          label="Cuentas compartidas"
+          sub="Gestionar personas con acceso"
+          onPress={soon}
+          last
+        />
       </Section>
 
       <Section title="SISTEMA">
-        <Row label="Exportar a Excel" sub="Movimientos, cuentas y categorías" onPress={soon} />
-        <Row label="Crear respaldo" sub="Guarda una copia de tus datos" onPress={soon} />
-        <Row label="Importar respaldo" sub="Restaura datos desde un archivo" onPress={soon} />
+        <Row
+          label="Exportar a Excel"
+          sub="Movimientos, cuentas y categorías"
+          onPress={soon}
+        />
+        <Row
+          label="Crear respaldo"
+          sub="Guarda una copia de tus datos"
+          onPress={soon}
+        />
+        <Row
+          label="Importar respaldo"
+          sub="Restaura datos desde un archivo"
+          onPress={soon}
+        />
         <Row
           label="Acerca de"
           sub="Información de la aplicación"
@@ -144,7 +179,9 @@ export default function SettingsScreen({ navigation }) {
           }}
         >
           <View style={{ flex: 1, gap: 2 }}>
-            <Txt style={{ fontSize: 15, fontWeight: "600" }}>Umbral de saldo bajo</Txt>
+            <Txt style={{ fontSize: 15, fontWeight: "600" }}>
+              Umbral de saldo bajo
+            </Txt>
             <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
               Avisar cuando tu saldo baje de USD {threshold}
             </Txt>
@@ -159,11 +196,21 @@ export default function SettingsScreen({ navigation }) {
               borderRadius: 12,
             }}
           >
-            {stepBtn("minus", () => setThreshold(threshold - 10), "Reducir umbral")}
-            <Txt style={{ minWidth: 28, textAlign: "center", fontWeight: "800" }}>
+            {stepBtn(
+              "minus",
+              () => setThreshold(threshold - 10),
+              "Reducir umbral",
+            )}
+            <Txt
+              style={{ minWidth: 28, textAlign: "center", fontWeight: "800" }}
+            >
               {threshold}
             </Txt>
-            {stepBtn("plus", () => setThreshold(threshold + 10), "Aumentar umbral")}
+            {stepBtn(
+              "plus",
+              () => setThreshold(threshold + 10),
+              "Aumentar umbral",
+            )}
           </View>
         </View>
       </Section>
@@ -184,7 +231,9 @@ export default function SettingsScreen({ navigation }) {
         }}
       >
         <Icon name="logout" size={18} color={colors.danger.fg} stroke={2} />
-        <Txt style={{ fontSize: 15, fontWeight: "700", color: colors.danger.fg }}>
+        <Txt
+          style={{ fontSize: 15, fontWeight: "700", color: colors.danger.fg }}
+        >
           Cerrar sesión
         </Txt>
       </TouchableOpacity>

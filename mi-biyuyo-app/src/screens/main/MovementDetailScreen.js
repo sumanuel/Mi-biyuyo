@@ -14,13 +14,13 @@ import {
   Icon,
   Empty,
 } from "../../components/ui";
-import { META, isDebtType } from "../../utils/ledger";
+import { META, dayRateTxt, isDebtType } from "../../utils/ledger";
 import { CCY_KEYS, CCY_LABEL, dlabel } from "../../utils/money";
 import { confirm } from "../../utils/confirm";
 
 export default function MovementDetailScreen({ navigation, route }) {
   const { colors } = useTheme();
-  const { model, dv, actions, showToast } = useData();
+  const { model, dv, disp, actions, showToast } = useData();
   const { fx } = model;
   const m = model.moveById[route.params?.id];
   const [receipt, setReceipt] = useState(null);
@@ -28,7 +28,10 @@ export default function MovementDetailScreen({ navigation, route }) {
   if (!m) {
     return (
       <Screen>
-        <Header title="Detalle del movimiento" onBack={() => navigation.goBack()} />
+        <Header
+          title="Detalle del movimiento"
+          onBack={() => navigation.goBack()}
+        />
         <Empty text="No se encontró este movimiento." />
       </Screen>
     );
@@ -38,19 +41,32 @@ export default function MovementDetailScreen({ navigation, route }) {
   const tint = colors[m.type];
   const debt = isDebtType(m.type);
   const sign =
-    m.type === "ingreso" ? "+" : m.type === "gasto" ? "-" : m.cash === false ? "" : m.type === "pagar" ? "+" : "-";
-  const assigned = m.items.reduce((a, it) => a + (it.usd || 0), 0);
-  const rest = Math.max(0, m.usd - assigned);
+    m.type === "ingreso"
+      ? "+"
+      : m.type === "gasto"
+        ? "-"
+        : m.cash === false
+          ? ""
+          : m.type === "pagar"
+            ? "+"
+            : "-";
+  // Valores del día en que se registró (no se recalculan con la tasa de hoy)
+  const total = m.val[disp];
+  const part = (usd) => (m.usd > 0 ? (usd / m.usd) * total : 0);
+  const money = (n) => fx.money(disp, n);
+  const assigned = m.items.reduce((a, it) => a + part(it.usd || 0), 0);
+  const rest = Math.max(0, total - assigned);
   const itemsNote = !m.items.length
     ? "Este movimiento no tiene detalle."
     : assigned > 0
-      ? `Detallado ${dv(assigned)} de ${dv(m.usd)}` + (rest > 0.005 ? `. Sin detallar ${dv(rest)}.` : ".")
-      : `Sin montos por ítem. El total es ${dv(m.usd)}.`;
+      ? `Detallado ${money(assigned)} de ${money(total)}` +
+        (rest > 0.005 ? `. Sin detallar ${money(rest)}.` : ".")
+      : `Sin montos por ítem. El total es ${money(total)}.`;
 
   const rows = CCY_KEYS.map((k) => ({
     label: CCY_LABEL[k],
-    sub: k === m.ccy ? "Moneda del registro" : fx.rateTxt(k),
-    value: fx.ready(k) ? fx.money(k, fx.fromUsd(k, m.usd)) : "Sin tasa",
+    sub: k === m.ccy ? "Moneda del registro" : dayRateTxt(m.val, k),
+    value: fx.money(k, m.val[k]),
   }));
 
   const viewReceipt = async () => {
@@ -81,27 +97,49 @@ export default function MovementDetailScreen({ navigation, route }) {
 
   return (
     <Screen contentStyle={{ paddingTop: 16, paddingBottom: 32 }}>
-      <Header title="Detalle del movimiento" onBack={() => navigation.goBack()} />
+      <Header
+        title="Detalle del movimiento"
+        onBack={() => navigation.goBack()}
+      />
 
       <Card style={{ gap: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <Tile icon={m.cat.icon} soft={tint.soft} fg={tint.fg} size={44} radius={14} iconSize={22} />
+          <Tile
+            icon={m.cat.icon}
+            soft={tint.soft}
+            fg={tint.fg}
+            size={44}
+            radius={14}
+            iconSize={22}
+          />
           <View style={{ flex: 1, gap: 2 }}>
             <Txt numberOfLines={1} style={{ fontSize: 16, fontWeight: "800" }}>
               {m.title}
             </Txt>
             <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
-              {meta.label + " · " + m.cat.name + (m.person ? " · " + m.person : "")}
+              {meta.label +
+                " · " +
+                m.cat.name +
+                (m.person ? " · " + m.person : "")}
             </Txt>
           </View>
         </View>
-        <Txt style={{ fontSize: 30, fontWeight: "800", letterSpacing: -0.6, color: tint.fg }}>
-          {sign + dv(m.usd)}
+        <Txt
+          style={{
+            fontSize: 30,
+            fontWeight: "800",
+            letterSpacing: -0.6,
+            color: tint.fg,
+          }}
+        >
+          {sign + dv(m.val)}
         </Txt>
         <View style={{ gap: 4 }}>
           <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
             {dlabel(m.date) +
-              (m.ent && !(debt && m.cash === false) ? " · " + model.entName(m.ent) : "")}
+              (m.ent && !(debt && m.cash === false)
+                ? " · " + model.entName(m.ent)
+                : "")}
           </Txt>
           <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
             Registrado en {CCY_LABEL[m.ccy]}
@@ -138,7 +176,9 @@ export default function MovementDetailScreen({ navigation, route }) {
               borderBottomColor: colors.divider,
             }}
           >
-            <Txt style={{ fontSize: 14, fontWeight: "600", flexShrink: 1 }}>{x.name}</Txt>
+            <Txt style={{ fontSize: 14, fontWeight: "600", flexShrink: 1 }}>
+              {x.name}
+            </Txt>
             <Txt
               style={{
                 fontSize: 14,
@@ -146,11 +186,18 @@ export default function MovementDetailScreen({ navigation, route }) {
                 color: x.usd != null ? colors.text : colors.textSecondary,
               }}
             >
-              {x.usd != null ? dv(x.usd) : "Sin monto"}
+              {x.usd != null ? money(part(x.usd)) : "Sin monto"}
             </Txt>
           </View>
         ))}
-        <Txt style={{ fontSize: 13, lineHeight: 18, color: colors.textSecondary, paddingTop: 6 }}>
+        <Txt
+          style={{
+            fontSize: 13,
+            lineHeight: 18,
+            color: colors.textSecondary,
+            paddingTop: 6,
+          }}
+        >
           {itemsNote}
         </Txt>
       </Card>
@@ -193,13 +240,23 @@ export default function MovementDetailScreen({ navigation, route }) {
                 justifyContent: "center",
               }}
             >
-              <Icon name="receipt" size={24} color={colors.textSecondary} stroke={1.6} />
+              <Icon
+                name="receipt"
+                size={24}
+                color={colors.textSecondary}
+                stroke={1.6}
+              />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
-              <Txt numberOfLines={1} style={{ fontSize: 14, fontWeight: "700" }}>
+              <Txt
+                numberOfLines={1}
+                style={{ fontSize: 14, fontWeight: "700" }}
+              >
                 {m.receipt || "Recibo"}
               </Txt>
-              <Txt style={{ fontSize: 12, color: colors.link, fontWeight: "700" }}>
+              <Txt
+                style={{ fontSize: 12, color: colors.link, fontWeight: "700" }}
+              >
                 Ver recibo
               </Txt>
             </View>
@@ -223,14 +280,25 @@ export default function MovementDetailScreen({ navigation, route }) {
 
       <TouchableOpacity
         onPress={remove}
-        style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}
+        style={{
+          minHeight: 44,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <Txt style={{ color: colors.danger.fg, fontSize: 13, fontWeight: "700" }}>
+        <Txt
+          style={{ color: colors.danger.fg, fontSize: 13, fontWeight: "700" }}
+        >
           Eliminar movimiento
         </Txt>
       </TouchableOpacity>
 
-      <Modal visible={!!receipt} transparent animationType="fade" onRequestClose={() => setReceipt(null)}>
+      <Modal
+        visible={!!receipt}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReceipt(null)}
+      >
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setReceipt(null)}

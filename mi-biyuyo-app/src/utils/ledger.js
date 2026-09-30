@@ -6,6 +6,7 @@ import {
   makeFx,
   nTxt,
   dlabel,
+  grp,
   daysAgo,
   daysUntil,
 } from "./money";
@@ -110,6 +111,14 @@ export const isDebtType = (t) => t === "cobrar" || t === "pagar";
 export function buildModel(raw, ratesOverride) {
   const fx = makeFx(ratesOverride || raw?.rates);
   const empty = !raw;
+
+  // Valor de un monto en las 3 monedas TAL COMO SE GUARDÓ el día del registro
+  // (tasa de ese día). Solo si falta el dato se completa con la tasa actual.
+  const mkVal = (usd, ves, bin) => ({
+    usd: usd || 0,
+    bcv: ves > 0 ? ves : (usd || 0) * fx.FACT.bcv,
+    bin: bin > 0 ? bin : (usd || 0) * fx.FACT.bin,
+  });
   const rawCats = empty ? [] : raw.categories || [];
 
   const cats = rawCats.map((c) => ({
@@ -130,18 +139,34 @@ export function buildModel(raw, ratesOverride) {
     active: false,
   });
 
-  const ents = (empty ? [] : raw.entities || []).map((e) => ({
-    id: e.id,
-    name: e.name,
-    kind: e.kind,
-    ccy: e.currency,
-    init: e.initial_usd || 0,
-    pt: e.payment_type || "none",
-    pd: e.payment_data || [],
-    alert: e.alert_usd,
-    created: e.created || null,
-    d: e.created ? daysAgo(e.created) : 0,
-  }));
+  const ents = (empty ? [] : raw.entities || []).map((e) => {
+    const init = e.initial_usd || 0;
+    // Saldo inicial en la moneda de la entidad (no cambia con las tasas)
+    const initNative =
+      e.initial_amount != null
+        ? e.initial_amount
+        : e.currency === "usd"
+          ? init
+          : init * fx.rate;
+    return {
+      id: e.id,
+      name: e.name,
+      kind: e.kind,
+      ccy: e.currency,
+      init,
+      initNative,
+      initVal: {
+        usd: init,
+        bcv: e.currency === "usd" ? init * fx.FACT.bcv : initNative,
+        bin: init * fx.FACT.bin,
+      },
+      pt: e.payment_type || "none",
+      pd: e.payment_data || [],
+      alert: e.alert_usd,
+      created: e.created || null,
+      d: e.created ? daysAgo(e.created) : 0,
+    };
+  });
   const entById = {};
   ents.forEach((e) => (entById[e.id] = e));
   const entName = (id) => (entById[id] ? entById[id].name : "");
@@ -159,6 +184,7 @@ export function buildModel(raw, ratesOverride) {
       date: t.date,
       d: daysAgo(t.date),
       usd: t.amount_usd || 0,
+      val: mkVal(t.amount_usd, t.amount_ves, t.amount_binance),
       ccy: CCY_FROM_API[t.currency] || "usd",
       amount: t.amount,
       person: t.counterpart_name || null,
@@ -179,6 +205,7 @@ export function buildModel(raw, ratesOverride) {
         date: p.date,
         d: daysAgo(p.date),
         usd: p.amount_usd || 0,
+        val: mkVal(p.amount_usd, p.amount_ves, p.amount_binance),
         ccy: CCY_FROM_API[p.currency] || "usd",
         rate: p.rate || null,
         ent: p.entity_id || null,
@@ -197,16 +224,55 @@ export function buildModel(raw, ratesOverride) {
     to: t.to_entity_id,
     usd: t.amount_usd,
     fee: t.fee_usd || 0,
+    val: mkVal(t.amount_usd, t.amount_ves, t.amount_binance),
+    feeVal: mkVal(t.fee_usd, t.fee_ves, t.fee_binance),
     ccy: CCY_FROM_API[t.currency] || "usd",
   }));
 
-  /* ---------- deudas ---------- */
-  const paidOf = (m) => (m.pays || []).reduce((a, p) => a + p.usd, 0);
-  const pendOf = (m) => Math.max(0, m.usd - paidOf(m));
+  /* ---------- deudas: pendiente en la moneda de la deuda, valuado con la tasa de hoy ---------- */
   const isLive = (m) => !(isDebtType(m.type) && m.cash === false);
+  const tolOf = (m) => (m.ccy === "bin" ? 0.005 : 0.01);
+  const totalNative = (m) => (m.amount != null ? m.amount : m.val[m.ccy]);
+  // Cada abono descuenta su valor del día convertido a la moneda de la deuda
+  const paidNative = (m) =>
+    (m.pays || []).reduce((a, p) => a + p.val[m.ccy], 0);
+  const pendNative = (m) => {
+    const p = totalNative(m) - paidNative(m);
+    return p <= tolOf(m) ? 0 : p;
+  };
+  const curUsd = (m, native) => {
+    if (fx.ready(m.ccy)) return fx.toUsd(m.ccy, native);
+    const t = totalNative(m);
+    return t > 0 ? (m.usd * native) / t : 0; // sin tasa: proporción del valor guardado
+  };
+  const totalOf = (m) => curUsd(m, totalNative(m));
+  const pendOf = (m) => curUsd(m, pendNative(m));
+  const paidOf = (m) => Math.max(0, totalOf(m) - pendOf(m));
 
   /* ---------- saldos por entidad ---------- */
-  const entBal = (e) => {
+  // Saldo en la moneda de la entidad: cada movimiento entra con su valor del día.
+  const nat = (v, e) => (e.ccy === "usd" ? v.usd : v.bcv);
+  const entNative = (e) => {
+    let b = e.initNative;
+    moves.forEach((m) => {
+      if (m.ent === e.id && isLive(m))
+        b +=
+          m.type === "ingreso" || m.type === "pagar"
+            ? nat(m.val, e)
+            : -nat(m.val, e);
+      (m.pays || []).forEach((q) => {
+        if (q.ent === e.id)
+          b += m.type === "cobrar" ? nat(q.val, e) : -nat(q.val, e);
+      });
+    });
+    transfers.forEach((t) => {
+      if (t.from === e.id) b -= nat(t.val, e) + nat(t.feeVal, e);
+      if (t.to === e.id) b += nat(t.val, e);
+    });
+    return b;
+  };
+  // Saldo con valores en USD guardados (solo respaldo si falta la tasa BCV)
+  const entBalStored = (e) => {
     let b = e.init;
     moves.forEach((m) => {
       if (m.ent === e.id && isLive(m))
@@ -221,27 +287,43 @@ export function buildModel(raw, ratesOverride) {
     });
     return b;
   };
-  const feesTotal = transfers.reduce((a, t) => a + t.fee, 0);
-  const initTotal = ents.reduce((a, e) => a + (e.created ? e.init : 0), 0);
+  // Saldo en USD con la tasa de hoy: una entidad en VES vale distinto si cambia la tasa
+  const entBal = (e) =>
+    e.ccy === "usd"
+      ? entNative(e)
+      : fx.rate > 0
+        ? entNative(e) / fx.rate
+        : entBalStored(e);
   const balance = ents.reduce((a, e) => a + entBal(e), 0);
   const isLow = (e) =>
     e.alert !== null && e.alert !== undefined && entBal(e) < e.alert;
 
-  const sum = (list, t) =>
-    list.filter((m) => m.type === t).reduce((a, m) => a + m.usd, 0);
-
-  const cashIn = moves
-    .filter((m) => m.type === "cobrar")
-    .reduce((a, m) => a + paidOf(m), 0);
-  const cashOut = moves
-    .filter((m) => m.type === "pagar")
-    .reduce((a, m) => a + paidOf(m), 0);
-  const lent = moves
-    .filter((m) => m.type === "cobrar" && m.cash)
-    .reduce((a, m) => a + m.usd, 0);
-  const borrowed = moves
-    .filter((m) => m.type === "pagar" && m.cash)
-    .reduce((a, m) => a + m.usd, 0);
+  /* ---------- sumas históricas (valor del día) en la moneda que se muestra ---------- */
+  const sumIn = (list, t, c) =>
+    list.filter((m) => m.type === t).reduce((a, m) => a + m.val[c], 0);
+  const sum = (list, t) => sumIn(list, t, "usd");
+  const flows = (c) => ({
+    cashIn: moves
+      .filter((m) => m.type === "cobrar")
+      .reduce(
+        (a, m) => a + (m.pays || []).reduce((x, p) => x + p.val[c], 0),
+        0,
+      ),
+    cashOut: moves
+      .filter((m) => m.type === "pagar")
+      .reduce(
+        (a, m) => a + (m.pays || []).reduce((x, p) => x + p.val[c], 0),
+        0,
+      ),
+    lent: moves
+      .filter((m) => m.type === "cobrar" && m.cash)
+      .reduce((a, m) => a + m.val[c], 0),
+    borrowed: moves
+      .filter((m) => m.type === "pagar" && m.cash)
+      .reduce((a, m) => a + m.val[c], 0),
+    init: ents.reduce((a, e) => a + (e.created ? e.initVal[c] : 0), 0),
+    fees: transfers.reduce((a, t) => a + t.feeVal[c], 0),
+  });
 
   const dueText = (m) => {
     if (m.dueIn === null || m.dueIn === undefined) return "Sin fecha";
@@ -263,19 +345,30 @@ export function buildModel(raw, ratesOverride) {
     transfers,
     paidOf,
     pendOf,
+    totalOf,
+    usdOfNative: curUsd,
+    totalNative,
+    pendNative,
     isLive,
     entBal,
+    entNative,
     balance,
-    initTotal,
-    feesTotal,
     isLow,
     sum,
-    cashIn,
-    cashOut,
-    lent,
-    borrowed,
+    sumIn,
+    flows,
     dueText,
   };
+}
+
+/** Texto de la tasa del día con la que se guardó un valor {usd,bcv,bin}. */
+export function dayRateTxt(val, c) {
+  if (c === "usd") return "Moneda base";
+  if (c === "bcv" && val.usd > 0)
+    return "Tasa del día " + grp(val.bcv / val.usd, ".", ",");
+  if (c === "bin" && val.bin > 0)
+    return "Tasa del día " + grp(val.bcv / val.bin, ".", ",");
+  return "";
 }
 
 /** Estado de una deuda: texto y tono (ok | danger | warn | neutral). */
@@ -317,7 +410,7 @@ export function rowOf(model, m, dv) {
       " · " +
       dlabel(m.date) +
       itemsPart,
-    amount: sign + dv(m.usd),
+    amount: sign + dv(m.val),
     line2: debt
       ? pend > 0.005
         ? "Pendiente " + dv(pend)
@@ -341,7 +434,7 @@ export function abonoRow(model, m, p, dv) {
       (p.ent ? " · " + model.entName(p.ent) : "") +
       " · " +
       dlabel(p.date),
-    amount: (cobro ? "+" : "-") + dv(p.usd),
+    amount: (cobro ? "+" : "-") + dv(p.val),
     line2: "Registrado en " + CCY_LABEL[p.ccy],
     nav: { name: "DebtDetail", params: { id: m.id } },
   };
@@ -355,7 +448,7 @@ export function initialRow(model, e, dv) {
     icon: KIND_ICON[e.kind] || "card",
     tone: "ingreso",
     sub: e.name + " · " + dlabel(e.created),
-    amount: "+" + dv(e.init),
+    amount: "+" + dv(e.initVal),
     line2: "Saldo inicial de la entidad",
     nav: { name: "EntityDetail", params: { id: e.id } },
   };
@@ -365,9 +458,15 @@ export function initialRow(model, e, dv) {
 export const withInitial = (model) =>
   model.ents.filter((e) => e.init > 0.005 && e.created);
 
+const addVal2 = (a, b) => ({
+  usd: a.usd + b.usd,
+  bcv: a.bcv + b.bcv,
+  bin: a.bin + b.bin,
+});
+
 export function transferRow(model, t, dv, ref) {
   const sign = ref ? (t.to === ref ? "+" : "-") : "";
-  const amt = ref ? (t.to === ref ? t.usd : t.usd + t.fee) : t.usd;
+  const amt = ref ? (t.to === ref ? t.val : addVal2(t.val, t.feeVal)) : t.val;
   return {
     key: "t" + t.id,
     title: "Transferencia",
@@ -380,7 +479,7 @@ export function transferRow(model, t, dv, ref) {
       " · " +
       dlabel(t.date),
     amount: sign + dv(amt),
-    line2: t.fee > 0 ? "Comisión " + dv(t.fee) : "Sin comisión",
+    line2: t.fee > 0 ? "Comisión " + dv(t.feeVal) : "Sin comisión",
     nav: { name: "Entities" },
   };
 }

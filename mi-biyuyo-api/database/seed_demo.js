@@ -108,9 +108,9 @@ async function run() {
     const entId = {};
     for (const e of ENTS) {
       const { rows } = await client.query(
-        `INSERT INTO entities (user_id, name, kind, currency, initial_usd, payment_type, payment_data, alert_usd)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
-        [uid, e.name, e.kind, e.ccy, e.init, e.pt, JSON.stringify(e.pd), e.alert ?? null],
+        `INSERT INTO entities (user_id, name, kind, currency, initial_usd, initial_amount, payment_type, payment_data, alert_usd)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+        [uid, e.name, e.kind, e.ccy, e.init, e.ccy === "usd" ? e.init : e.init * RATE, e.pt, JSON.stringify(e.pd), e.alert ?? null],
       );
       entId[e.key] = rows[0].id;
     }
@@ -183,8 +183,9 @@ async function run() {
     }
 
     await client.query(
-      `INSERT INTO transfers (user_id, from_entity_id, to_entity_id, amount_usd, fee_usd, currency, date)
-       VALUES ($1,$2,$3,20,0.5,'USD',$4)`,
+      `INSERT INTO transfers (user_id, from_entity_id, to_entity_id, amount_usd, fee_usd, currency, date,
+                              amount_ves, amount_binance, fee_ves, fee_binance)
+       VALUES ($1,$2,$3,20,0.5,'USD',$4, 20*${RATE}, 20*${FACT.bin}, 0.5*${RATE}, 0.5*${FACT.bin})`,
       [uid, entId.paypal, entId.binance, dateAgo(11)],
     );
 

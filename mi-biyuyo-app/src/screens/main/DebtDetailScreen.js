@@ -41,14 +41,18 @@ export default function DebtDetailScreen({ navigation, route }) {
   const st = debtStatus(model, debt);
   const closed = pend <= 0.005;
 
-  // Historial: del más reciente al más antiguo, con el saldo tras cada abono.
-  let run = debt.usd;
+  // Historial: del más reciente al más antiguo. Cada abono conserva su valor del día;
+  // el saldo tras cada abono se calcula en la moneda de la deuda y se valúa con la tasa de hoy.
+  let runNative = model.totalNative(debt);
   const pays = debt.pays
     .slice()
-    .sort((a, b) => (a.date === b.date ? a.id - b.id : a.date < b.date ? -1 : 1));
+    .sort((a, b) =>
+      a.date === b.date ? a.id - b.id : a.date < b.date ? -1 : 1,
+    );
   const timeline = pays
     .map((p) => {
-      run = Math.max(0, run - p.usd);
+      runNative = Math.max(0, runNative - p.val[debt.ccy]);
+      const settled = runNative <= (debt.ccy === "bin" ? 0.005 : 0.01);
       const r = p.rate || fx.FACT[p.ccy];
       return {
         key: "p" + p.id,
@@ -61,10 +65,12 @@ export default function DebtDetailScreen({ navigation, route }) {
             : p.ccy === "bin"
               ? "1 USDT = USD " + grp(1 / r, ",", ".")
               : "Tasa " + grp(r, ".", ",")),
-        amount: (isCobro ? "+" : "-") + fx.money(p.ccy, p.usd * r),
+        amount: (isCobro ? "+" : "-") + fx.money(p.ccy, p.val[p.ccy]),
         eq: "≈ " + fx.money("usd", p.usd),
-        rest: run <= 0.005 ? "Saldada" : "Saldo " + dv(run),
-        restOk: run <= 0.005,
+        rest: settled
+          ? "Saldada"
+          : "Saldo " + dv(model.usdOfNative(debt, runNative)),
+        restOk: settled,
         dot: tint.strong,
       };
     })
@@ -73,7 +79,7 @@ export default function DebtDetailScreen({ navigation, route }) {
     key: "origin",
     title: "Deuda registrada",
     sub: dlabel(debt.date) + " · " + CCY_LABEL[debt.ccy],
-    amount: fx.money(debt.ccy, fx.fromUsd(debt.ccy, debt.usd)),
+    amount: fx.money(debt.ccy, model.totalNative(debt)),
     eq: "≈ " + fx.money("usd", debt.usd),
     rest: "",
     neutral: true,
@@ -92,7 +98,13 @@ export default function DebtDetailScreen({ navigation, route }) {
       footer={
         <Footer>
           <Button
-            label={closed ? "Deuda saldada" : isCobro ? "Registrar cobro" : "Registrar pago"}
+            label={
+              closed
+                ? "Deuda saldada"
+                : isCobro
+                  ? "Registrar cobro"
+                  : "Registrar pago"
+            }
             disabled={closed}
             bg={tint.strong}
             height={54}
@@ -144,7 +156,15 @@ export default function DebtDetailScreen({ navigation, route }) {
           </Txt>
         </View>
         <ProgressBar
-          pct={debt.usd > 0 ? Math.round((paid / debt.usd) * 100) : 0}
+          pct={
+            model.totalNative(debt) > 0
+              ? Math.round(
+                  ((model.totalNative(debt) - model.pendNative(debt)) /
+                    model.totalNative(debt)) *
+                    100,
+                )
+              : 0
+          }
           color={tint.strong}
         />
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
@@ -152,7 +172,7 @@ export default function DebtDetailScreen({ navigation, route }) {
             {(isCobro ? "Cobrado " : "Pagado ") + dv(paid)}
           </Txt>
           <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
-            Total {dv(debt.usd)}
+            Total {dv(model.totalOf(debt))}
           </Txt>
         </View>
       </Card>
@@ -164,7 +184,9 @@ export default function DebtDetailScreen({ navigation, route }) {
       </Card>
 
       <View style={{ gap: 10 }}>
-        <Txt style={{ fontSize: 15, fontWeight: "700" }}>Historial de abonos</Txt>
+        <Txt style={{ fontSize: 15, fontWeight: "700" }}>
+          Historial de abonos
+        </Txt>
         <Card pad={0} style={{ paddingVertical: 4, paddingHorizontal: 14 }}>
           {timeline.map((e, i) => (
             <View

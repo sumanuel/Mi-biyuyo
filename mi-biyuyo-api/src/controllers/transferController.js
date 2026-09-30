@@ -1,5 +1,5 @@
 const pool = require("../config/database");
-const { toUsd } = require("../utils/currencyConverter");
+const { convertToAll } = require("../utils/currencyConverter");
 
 exports.create = async (req, res, next) => {
   try {
@@ -24,22 +24,29 @@ exports.create = async (req, res, next) => {
       [req.user.id],
     );
     const rates = r[0] || { usd_to_ves: 0, binance_to_ves: 0 };
-    const amountUsd = toUsd(amount, currency, rates);
-    const feeUsd = parseFloat(fee) > 0 ? toUsd(fee, currency, rates) : 0;
+    // Se guardan los 3 valores con la tasa del día de la transferencia
+    const a = convertToAll(amount, currency, rates);
+    const f = parseFloat(fee) > 0 ? convertToAll(fee, currency, rates) : null;
 
     const { rows } = await pool.query(
-      `INSERT INTO transfers (user_id, from_entity_id, to_entity_id, amount_usd, fee_usd, currency, date)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
+      `INSERT INTO transfers
+         (user_id, from_entity_id, to_entity_id, amount_usd, fee_usd, currency, date,
+          amount_ves, amount_binance, fee_ves, fee_binance)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING id, from_entity_id, to_entity_id, amount_usd::float AS amount_usd,
                  fee_usd::float AS fee_usd, currency, to_char(date,'YYYY-MM-DD') AS date`,
       [
         req.user.id,
         from_entity_id,
         to_entity_id,
-        amountUsd,
-        feeUsd,
+        a.amount_usd,
+        f ? f.amount_usd : 0,
         currency,
         date || new Date().toISOString().slice(0, 10),
+        a.amount_ves,
+        a.amount_binance,
+        f ? f.amount_ves : 0,
+        f ? f.amount_binance : 0,
       ],
     );
     res.status(201).json(rows[0]);
