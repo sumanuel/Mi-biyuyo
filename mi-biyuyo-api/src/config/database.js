@@ -7,6 +7,8 @@ const pool = new Pool({
   user: process.env.DB_USER || "postgres",
   password: process.env.DB_PASSWORD || "123456",
   database: process.env.DB_NAME || "mi_biyuyo",
+  // DB_SSL=true cifra la conexión (recomendado con un servidor remoto)
+  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
 });
 
 pool.on("error", (err) => {
