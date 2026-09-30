@@ -142,6 +142,28 @@ export default function EntityDetailScreen({ navigation, route }) {
         </View>
       </Card>
 
+      {!e.include ? (
+        <View
+          style={{
+            paddingVertical: 12,
+            paddingHorizontal: 14,
+            borderRadius: 14,
+            backgroundColor: colors.chip,
+          }}
+        >
+          <Txt
+            style={{
+              fontSize: 13,
+              lineHeight: 18,
+              color: colors.textSecondary,
+            }}
+          >
+            Esta entidad no suma a Mi saldo. Sus movimientos siguen
+            registrándose aquí.
+          </Txt>
+        </View>
+      ) : null}
+
       {low ? (
         <View
           style={{

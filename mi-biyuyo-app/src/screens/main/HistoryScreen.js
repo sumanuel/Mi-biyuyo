@@ -64,13 +64,9 @@ export default function HistoryScreen({ navigation, route }) {
   const fl3 = model.flows(disp);
   const histVal =
     filter === "all"
-      ? flInc -
-        flExp +
-        fl3.cashIn -
-        fl3.cashOut -
-        fl3.lent +
-        fl3.borrowed +
-        (qn ? 0 : fl3.init - fl3.fees)
+      ? qn
+        ? flInc - flExp + fl3.cashIn - fl3.cashOut - fl3.lent + fl3.borrowed
+        : model.histBalance(disp) // = Mi saldo con los valores del día
       : fl.reduce((a, m) => a + m.val[disp], 0);
   const money = (n) => model.fx.money(disp, n);
   const all = feed(model, fl, filter === "all" && !qn, dv);

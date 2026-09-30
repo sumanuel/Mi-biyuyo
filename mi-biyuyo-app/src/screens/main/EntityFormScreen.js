@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useData, errorMessage } from "../../contexts/DataContext";
 import {
@@ -16,6 +16,7 @@ import {
   Button,
   Field,
   Label,
+  Icon,
 } from "../../components/ui";
 import { KIND_LABEL, KIND_PT, PT } from "../../utils/ledger";
 import { CCY_KEYS, CCY_LABEL, grp, parseNum } from "../../utils/money";
@@ -48,6 +49,7 @@ export default function EntityFormScreen({ navigation, route }) {
       ? round2(ccy === "usd" ? editing.alert : editing.alert * fx.rate)
       : "",
   );
+  const [include, setInclude] = useState(editing ? editing.include : true);
   const [busy, setBusy] = useState(false);
 
   const num = parseNum(init);
@@ -69,6 +71,7 @@ export default function EntityFormScreen({ navigation, route }) {
       payment_data: vals.slice(0, PT[pt].f.length),
       alert_usd: alertUsd,
       initial_amount: num,
+      include_in_balance: include,
     };
     try {
       if (editing) {
@@ -232,6 +235,55 @@ export default function EntityFormScreen({ navigation, route }) {
           </Txt>
         </View>
       )}
+
+      <TouchableOpacity
+        onPress={() => setInclude((v) => !v)}
+        activeOpacity={0.85}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: include }}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          padding: 16,
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: 16,
+        }}
+      >
+        <View
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: 8,
+            borderWidth: 2,
+            borderColor: include ? colors.accent : colors.disabled,
+            backgroundColor: include ? colors.accent : "transparent",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {include ? (
+            <Icon name="check" size={16} color="#ffffff" stroke={3} />
+          ) : null}
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            Sumar a Mi saldo
+          </Txt>
+          <Txt
+            style={{
+              fontSize: 12,
+              lineHeight: 17,
+              color: colors.textSecondary,
+            }}
+          >
+            Si lo desmarcas, la entidad sigue funcionando pero su saldo no se
+            cuenta en Mi saldo.
+          </Txt>
+        </View>
+      </TouchableOpacity>
 
       <Card style={{ gap: 12 }}>
         <Txt style={{ fontSize: 14, fontWeight: "700" }}>

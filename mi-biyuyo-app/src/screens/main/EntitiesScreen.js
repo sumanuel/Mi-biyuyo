@@ -12,7 +12,7 @@ import {
   Empty,
   Button,
 } from "../../components/ui";
-import { KIND_ICON, PT } from "../../utils/ledger";
+import { KIND_ICON, PT, balanceNote } from "../../utils/ledger";
 
 export function ptSummary(e) {
   const v = (e.pd || []).filter(Boolean);
@@ -63,7 +63,7 @@ export default function EntitiesScreen({ navigation }) {
           {dv(model.balance)}
         </Txt>
         <Txt style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>
-          Suma de tus {model.ents.length} entidades
+          {balanceNote(model)}
         </Txt>
       </View>
 
@@ -116,9 +116,18 @@ export default function EntitiesScreen({ navigation }) {
               </View>
               <View style={{ alignItems: "flex-end", gap: 3, maxWidth: "40%" }}>
                 <Txt style={{ fontSize: 15, fontWeight: "800" }}>{dv(b)}</Txt>
-                <Txt style={{ fontSize: 11, color: colors.textSecondary }}>
-                  {shareOf(b)} del total
-                </Txt>
+                {e.include ? (
+                  <Txt style={{ fontSize: 11, color: colors.textSecondary }}>
+                    {shareOf(b)} del total
+                  </Txt>
+                ) : (
+                  <Pill
+                    label="No suma a Mi saldo"
+                    bg={colors.chip}
+                    fg={colors.textSecondary}
+                    style={{ alignSelf: "flex-end" }}
+                  />
+                )}
                 {model.isLow(e) ? (
                   <Pill
                     label="Saldo bajo"
