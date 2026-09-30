@@ -243,6 +243,14 @@ export default function DebtDetailScreen({ navigation, route }) {
           ))}
         </Card>
       </View>
+
+      <Button
+        label="Editar deuda"
+        outline
+        height={50}
+        style={{ borderRadius: 14 }}
+        onPress={() => navigation.navigate("MovementForm", { editId: debt.id })}
+      />
     </Screen>
   );
 }

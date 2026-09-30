@@ -372,6 +372,7 @@ export function buildModel(raw, ratesOverride) {
     totalOf,
     usdOfNative: curUsd,
     totalNative,
+    paidNative,
     pendNative,
     isLive,
     entBal,

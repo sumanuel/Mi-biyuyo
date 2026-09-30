@@ -116,6 +116,8 @@ export function DataProvider({ children }) {
     () => ({
       createMovement: (body) =>
         run(() => transactionService.createTransaction(token, body)),
+      updateMovement: (id, body) =>
+        run(() => transactionService.updateTransaction(token, id, body)),
       deleteMovement: (id) =>
         run(() => transactionService.deleteTransaction(token, id)),
       addPayment: (id, body) =>
