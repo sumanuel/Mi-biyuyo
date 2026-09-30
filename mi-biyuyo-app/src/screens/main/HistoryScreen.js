@@ -44,20 +44,16 @@ export default function HistoryScreen({ navigation, route }) {
     setLimit(PAGE);
   };
 
+  // Desde el resumen de Inicio: tipo y rango ya elegidos
   useEffect(() => {
-    if (route.params?.q !== undefined) {
-      setQ(route.params.q);
-      setFilter("all");
-      setLimit(PAGE);
-      // Una búsqueda desde el inicio abarca todo el historial
-      const first = model.moves.reduce(
-        (a, m) => (m.date < a ? m.date : a),
-        startOfMonth(),
-      );
-      setFrom(first);
-      setTo(endOfMonth());
-    }
-  }, [route.params?.q, route.params?.ts]);
+    const p = route.params;
+    if (!p?.filter) return;
+    setFilter(p.filter);
+    setQ("");
+    setLimit(PAGE);
+    setFrom(p.from || startOfMonth());
+    setTo(p.to || endOfMonth());
+  }, [route.params?.filter, route.params?.ts]);
 
   const qn = q.trim().toLowerCase();
   const matchQ = (m) =>
