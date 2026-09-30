@@ -538,23 +538,32 @@ export function feed(model, list, withTransfers, dv) {
   return out.sort((a, b) => a.d - b.d).map((o) => o.r);
 }
 
-/** Movimientos que tocan una entidad. */
-export function ledgerOf(model, entId, dv) {
+/**
+ * Movimientos que tocan una entidad, del más reciente al más antiguo.
+ * `range` = { from, to } (YYYY-MM-DD, ambos incluidos) para no traer todo el historial.
+ */
+export function ledgerOf(model, entId, dv, range) {
   const out = [];
+  const inRange = (date) =>
+    !range ||
+    ((!range.from || date >= range.from) && (!range.to || date <= range.to));
+  const add = (d, date, r) => {
+    if (inRange(date)) out.push({ d, r });
+  };
   model.moves.forEach((m) => {
     if (m.ent === entId && model.isLive(m))
-      out.push({ d: m.d, r: rowOf(model, m, dv) });
+      add(m.d, m.date, rowOf(model, m, dv));
     (m.pays || []).forEach((q) => {
-      if (q.ent === entId) out.push({ d: q.d, r: abonoRow(model, m, q, dv) });
+      if (q.ent === entId) add(q.d, q.date, abonoRow(model, m, q, dv));
     });
   });
   model.transfers.forEach((t) => {
     if (t.from === entId || t.to === entId)
-      out.push({ d: t.d, r: transferRow(model, t, dv, entId) });
+      add(t.d, t.date, transferRow(model, t, dv, entId));
   });
   withInitial(model)
     .filter((e) => e.id === entId)
-    .forEach((e) => out.push({ d: e.d, r: initialRow(model, e, dv) }));
+    .forEach((e) => add(e.d, e.created, initialRow(model, e, dv)));
   return out.sort((a, b) => a.d - b.d).map((o) => o.r);
 }
 

@@ -1,22 +1,37 @@
 const pool = require("../config/database");
 const axios = require("axios");
 
-const SOURCES = {
-  BCV: "https://pydolarvenezuela-api.vercel.app/api/v1/dollar/page/bcv",
-  BINANCE: "https://pydolarvenezuela-api.vercel.app/api/v1/dollar/page/binance",
-  DOLAR_TODAY:
-    "https://pydolarvenezuela-api.vercel.app/api/v1/dollar/page/dolartoday",
-};
+// Fuentes de tasas (el servicio pydolarvenezuela ya no existe):
+//  - BCV: ve.dolarapi.com (oficial)
+//  - BINANCE: precio de USDT en Binance P2P (criptoya); respaldo: dólar paralelo de dolarapi
+const DOLARAPI = "https://ve.dolarapi.com/v1/dolares";
+const CRIPTOYA_BINANCE = "https://criptoya.com/api/binancep2p/USDT/VES/1";
+
+async function fetchDolarApi(fuente) {
+  const { data } = await axios.get(DOLARAPI, { timeout: 8000 });
+  const item = (Array.isArray(data) ? data : []).find((d) => d.fuente === fuente);
+  const price = parseFloat(item?.promedio);
+  if (!(price > 0)) throw new Error(`dolarapi sin dato de ${fuente}`);
+  return price;
+}
+
+async function fetchBinance() {
+  try {
+    const { data } = await axios.get(CRIPTOYA_BINANCE, { timeout: 8000 });
+    const ask = parseFloat(data?.ask);
+    const bid = parseFloat(data?.bid);
+    const vals = [ask, bid].filter((n) => n > 0);
+    if (vals.length) return vals.reduce((a, n) => a + n, 0) / vals.length;
+    throw new Error("criptoya sin datos");
+  } catch {
+    return fetchDolarApi("paralelo");
+  }
+}
 
 async function fetchRate(source) {
-  const url = SOURCES[source];
-  if (!url) throw new Error(`Fuente desconocida: ${source}`);
-  const { data } = await axios.get(url, { timeout: 8000 });
-  // API returns { monitors: { ... } } or { price: number }
-  const price =
-    data?.price ?? data?.monitors?.usd?.price ?? data?.monitors?.default?.price;
-  if (!price) throw new Error("Respuesta de API inesperada");
-  return parseFloat(price);
+  if (source === "BCV") return fetchDolarApi("oficial");
+  if (source === "BINANCE") return fetchBinance();
+  throw new Error(`Fuente desconocida: ${source}`);
 }
 
 exports.get = async (req, res, next) => {
@@ -58,7 +73,7 @@ exports.fetch = async (req, res, next) => {
     let binanceVes = null;
     const errors = [];
 
-    for (const source of ["BCV", "DOLAR_TODAY"]) {
+    for (const source of ["BCV"]) {
       try {
         usdVes = await fetchRate(source);
         break;

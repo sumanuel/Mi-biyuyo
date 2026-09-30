@@ -18,6 +18,7 @@ import {
   MovRow,
   Icon,
   Divider,
+  EyeButton,
 } from "../../components/ui";
 import { go } from "../../navigation/helpers";
 import {
@@ -27,7 +28,8 @@ import {
   feed,
   pillOf,
 } from "../../utils/ledger";
-import { grp, nTxt } from "../../utils/money";
+import { grp, maskMoney, nTxt } from "../../utils/money";
+import { useRateNotifications } from "../../contexts/RateNotificationsContext";
 
 const MAX_ENTITIES = 2;
 const MAX_MOVEMENTS = 20;
@@ -35,7 +37,10 @@ const MAX_MOVEMENTS = 20;
 export default function HomeScreen({ navigation }) {
   const { user } = useAuth();
   const { colors } = useTheme();
-  const { model, dv, threshold, showToast } = useData();
+  const { model, dv, threshold, showToast, hideBalance, toggleHideBalance } =
+    useData();
+  const { unread } = useRateNotifications();
+  const shown = (text) => (hideBalance ? maskMoney(text) : text);
   const { fx } = model;
 
   const m30 = model.moves.filter((m) => m.d < 30);
@@ -145,8 +150,8 @@ export default function HomeScreen({ navigation }) {
           <H1 style={{ fontSize: 24 }}>{user?.name || "Mi Biyuyo"}</H1>
         </View>
         <TouchableOpacity
-          onPress={() => navigation.navigate("ExchangeRate")}
-          accessibilityLabel="Tasas de cambio"
+          onPress={() => navigation.navigate("RateNotifications")}
+          accessibilityLabel="Notificaciones"
           style={{
             width: 44,
             height: 44,
@@ -159,6 +164,28 @@ export default function HomeScreen({ navigation }) {
           }}
         >
           <Icon name="bell" size={20} color={colors.text} stroke={2} />
+          {unread > 0 ? (
+            <View
+              style={{
+                position: "absolute",
+                top: -4,
+                right: -4,
+                minWidth: 18,
+                height: 18,
+                borderRadius: 9,
+                paddingHorizontal: 4,
+                backgroundColor: colors.gasto.strong,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Txt
+                style={{ fontSize: 10, fontWeight: "800", color: "#ffffff" }}
+              >
+                {unread > 9 ? "9+" : unread}
+              </Txt>
+            </View>
+          ) : null}
         </TouchableOpacity>
       </View>
 
@@ -170,16 +197,26 @@ export default function HomeScreen({ navigation }) {
           gap: 14,
         }}
       >
-        <Txt
+        <View
           style={{
-            fontSize: 12,
-            fontWeight: "700",
-            letterSpacing: 0.96,
-            color: "rgba(255,255,255,0.85)",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: -8,
           }}
         >
-          MI SALDO
-        </Txt>
+          <Txt
+            style={{
+              fontSize: 12,
+              fontWeight: "700",
+              letterSpacing: 0.96,
+              color: "rgba(255,255,255,0.85)",
+            }}
+          >
+            MI SALDO
+          </Txt>
+          <EyeButton hidden={hideBalance} onPress={toggleHideBalance} />
+        </View>
         <Txt
           style={{
             fontSize: 36,
@@ -188,7 +225,7 @@ export default function HomeScreen({ navigation }) {
             color: "#ffffff",
           }}
         >
-          {fx.money("usd", model.balance)}
+          {shown(fx.money("usd", model.balance))}
         </Txt>
         <Txt
           style={{
@@ -222,7 +259,9 @@ export default function HomeScreen({ navigation }) {
               <Txt
                 style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}
               >
-                {fx.ready(label === "BCV" ? "bcv" : "bin") ? value : "Sin tasa"}
+                {fx.ready(label === "BCV" ? "bcv" : "bin")
+                  ? shown(value)
+                  : "Sin tasa"}
               </Txt>
             </View>
           ))}

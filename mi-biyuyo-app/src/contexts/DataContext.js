@@ -15,6 +15,7 @@ import * as transactionService from "../services/api/transactionService";
 import { buildModel } from "../utils/ledger";
 
 const THRESHOLD_KEY = "@mb_threshold";
+const HIDE_KEY = "@mb_hide_balance";
 const DataContext = createContext(null);
 
 export function errorMessage(err, fallback = "No se pudo completar la acción") {
@@ -29,6 +30,7 @@ export function DataProvider({ children }) {
   const [error, setError] = useState(null);
   const [disp, setDisp] = useState("usd");
   const [threshold, setThresholdState] = useState(50);
+  const [hideBalance, setHideBalance] = useState(false);
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
 
@@ -53,6 +55,18 @@ export function DataProvider({ children }) {
   useEffect(() => {
     AsyncStorage.getItem(THRESHOLD_KEY).then((v) => {
       if (v !== null && !isNaN(Number(v))) setThresholdState(Number(v));
+    });
+  }, []);
+
+  useEffect(() => {
+    AsyncStorage.getItem(HIDE_KEY).then((v) => setHideBalance(v === "1"));
+  }, []);
+
+  // Ojito de Mi saldo: oculta o muestra los montos (se recuerda entre sesiones)
+  const toggleHideBalance = useCallback(() => {
+    setHideBalance((h) => {
+      AsyncStorage.setItem(HIDE_KEY, h ? "0" : "1");
+      return !h;
     });
   }, []);
 
@@ -134,6 +148,8 @@ export function DataProvider({ children }) {
         dv,
         threshold,
         setThreshold,
+        hideBalance,
+        toggleHideBalance,
         toast,
         showToast,
         hideToast,
