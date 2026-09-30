@@ -51,12 +51,14 @@ export function AuthProvider({ children }) {
     ]);
   }, []);
 
-  const register = useCallback(async (name, email, password) => {
-    const { token: t, user: u } = await authService.register(
-      name,
-      email,
-      password,
-    );
+  // Crea la cuenta: todavía no hay sesión, primero se verifica el correo con un código
+  const register = useCallback(
+    (name, email, password) => authService.register(name, email, password),
+    [],
+  );
+
+  const verifyEmail = useCallback(async (email, code) => {
+    const { token: t, user: u } = await authService.verifyEmail(email, code);
     setToken(t);
     setUser(u);
     await AsyncStorage.multiSet([
@@ -82,7 +84,16 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ token, user, loading, login, register, logout, updateUser }}
+      value={{
+        token,
+        user,
+        loading,
+        login,
+        register,
+        verifyEmail,
+        logout,
+        updateUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -1,6 +1,10 @@
 import React from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  DefaultTheme,
+  DarkTheme,
+} from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
@@ -128,13 +132,23 @@ function MainTabs() {
 }
 
 function AppNavigator() {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const { token, loading } = useAuth();
 
   if (loading) return <SplashScreen />;
 
+  // El fondo de la ventana sigue el tema (evita franjas blancas bajo la barra de navegación)
+  const navTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme : DefaultTheme).colors,
+      background: colors.page,
+      card: colors.surface,
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
       <StatusBar style={isDark ? "light" : "dark"} />
       {token ? (
         <ExchangeRateProvider>
@@ -206,6 +220,13 @@ function AppNavigator() {
   );
 }
 
+function ThemedRoot({ children }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.page }}>{children}</View>
+  );
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts(FONT_ASSETS);
   if (!fontsLoaded) return null;
@@ -213,7 +234,9 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
-          <AppNavigator />
+          <ThemedRoot>
+            <AppNavigator />
+          </ThemedRoot>
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,33 +11,51 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
 import * as authService from "../../services/api/authService";
 import { Icon, IC } from "../../components/icons";
 
-// Acceso (prototipo "Acceso Mi Biyuyo"): una sola pantalla con tres modos.
-const C = {
-  page: "#f4f7fb",
-  brand: "#1f7a59",
-  text: "#193227",
-  muted: "#66766d",
-  border: "#d8e4db",
-  field: "#f6faf7",
-  link: "#245fd1",
-  error: "#cf4f43",
-  hint: "#8a94a6",
-};
+// Acceso (prototipo "Acceso Mi Biyuyo"): una sola pantalla con cuatro modos.
+// Los colores siguen el tema de la app (claro u oscuro).
+function useC() {
+  const { colors } = useTheme();
+  return {
+    page: colors.page,
+    card: colors.surface,
+    brand: "#1f7a59",
+    text: colors.text,
+    muted: colors.textSecondary,
+    border: colors.border,
+    field: colors.surfaceAlt,
+    link: colors.link,
+    error: colors.danger.fg,
+    hint: colors.placeholder,
+  };
+}
 
 const HELPER = {
   login: "Inicia sesión para cargar tus finanzas y sincronizar tus datos.",
-  register: "Crea tu cuenta para guardar y sincronizar tus finanzas en la nube.",
+  register:
+    "Crea tu cuenta para guardar y sincronizar tus finanzas en la nube.",
   reset: "Recupera el acceso a tus finanzas con el correo de tu cuenta.",
+  verify:
+    "Un último paso: confirma que el correo es tuyo con el código que te enviamos.",
 };
 
 function T({ style, ...p }) {
+  const C = useC();
   return <Text {...p} style={[{ color: C.text }, style]} />;
 }
 
-function PwField({ label, value, onChangeText, placeholder, autoComplete, onSubmit }) {
+function PwField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  autoComplete,
+  onSubmit,
+}) {
+  const C = useC();
   const [shown, setShown] = useState(false);
   return (
     <View style={{ gap: 10, marginTop: 4 }}>
@@ -65,12 +83,23 @@ function PwField({ label, value, onChangeText, placeholder, autoComplete, onSubm
           returnKeyType="go"
           autoCapitalize="none"
           autoComplete={autoComplete}
-          style={{ flex: 1, minWidth: 0, paddingVertical: 14, fontSize: 15, color: C.text }}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            paddingVertical: 14,
+            fontSize: 15,
+            color: C.text,
+          }}
         />
         <TouchableOpacity
           onPress={() => setShown((v) => !v)}
           accessibilityLabel="Mostrar u ocultar contraseña"
-          style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+          style={{
+            width: 40,
+            height: 40,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
           <Icon name={shown ? "eyeOff" : "eye"} size={18} color={C.muted} />
         </TouchableOpacity>
@@ -80,7 +109,8 @@ function PwField({ label, value, onChangeText, placeholder, autoComplete, onSubm
 }
 
 export default function AuthScreen({ initialMode = "login" }) {
-  const { login, register } = useAuth();
+  const C = useC();
+  const { login, register, verifyEmail } = useAuth();
   const [mode, setMode] = useState(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -89,7 +119,28 @@ export default function AuthScreen({ initialMode = "login" }) {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [busy, setBusy] = useState(false);
+  const [code, setCode] = useState("");
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [devCode, setDevCode] = useState("");
+  const [cooldown, setCooldown] = useState(0);
 
+  // Cuenta atrás para poder pedir otro código
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const isVerify = mode === "verify";
+  const startVerify = (mail, dev) => {
+    setPendingEmail(mail);
+    setDevCode(dev || "");
+    setCode("");
+    setError("");
+    setInfo("");
+    setCooldown(60);
+    setMode("verify");
+  };
   const isLogin = mode === "login";
   const isRegister = mode === "register";
   const isReset = mode === "reset";
@@ -99,11 +150,42 @@ export default function AuthScreen({ initialMode = "login" }) {
     setInfo("");
   };
 
+  const submitCode = async () => {
+    if (code.trim().length !== 6)
+      return setError("Escribe el código de 6 dígitos.");
+    setBusy(true);
+    setError("");
+    try {
+      await verifyEmail(pendingEmail, code.trim());
+    } catch (e) {
+      setError(e?.response?.data?.error || "No se pudo verificar el código");
+      setBusy(false);
+    }
+  };
+
+  const resend = async () => {
+    if (cooldown > 0) return;
+    setError("");
+    try {
+      const r = await authService.resendCode(pendingEmail);
+      setDevCode(r.dev_code || "");
+      setInfo("Te enviamos un código nuevo.");
+      setCooldown(60);
+    } catch (e) {
+      setError(e?.response?.data?.error || "No se pudo reenviar el código");
+      if (e?.response?.data?.retry_after)
+        setCooldown(e.response.data.retry_after);
+    }
+  };
+
   const submit = async () => {
     setInfo("");
+    if (isVerify) return submitCode();
     if (isReset) {
       if (!email.trim())
-        return setError("Escribe tu correo para enviarte el enlace de recuperación.");
+        return setError(
+          "Escribe tu correo para enviarte el enlace de recuperación.",
+        );
       setBusy(true);
       try {
         await authService.forgotPassword(email.trim());
@@ -118,7 +200,8 @@ export default function AuthScreen({ initialMode = "login" }) {
       }
       return;
     }
-    if (isRegister && !name.trim()) return setError("Debes ingresar tu nombre.");
+    if (isRegister && !name.trim())
+      return setError("Debes ingresar tu nombre.");
     if (!email.trim()) return setError("Debes ingresar tu correo.");
     if (!password) return setError("Debes ingresar tu contraseña.");
     if (isRegister && password.length < 6)
@@ -128,9 +211,21 @@ export default function AuthScreen({ initialMode = "login" }) {
     setError("");
     setBusy(true);
     try {
-      if (isRegister) await register(name.trim(), email.trim(), password);
-      else await login(email.trim(), password);
+      if (isRegister) {
+        const r = await register(name.trim(), email.trim(), password);
+        setBusy(false);
+        startVerify(r.email || email.trim(), r.dev_code);
+      } else {
+        await login(email.trim(), password);
+      }
     } catch (e) {
+      const d = e?.response?.data;
+      if (d?.code === "EMAIL_NOT_VERIFIED") {
+        setBusy(false);
+        startVerify(d.email || email.trim(), d.dev_code);
+        setInfo("Tu correo aún no está verificado. Te enviamos un código.");
+        return;
+      }
       let msg = isRegister ? "Error al registrarse" : "Error al iniciar sesión";
       if (e?.response?.status === 409) msg = "Este correo ya está registrado";
       else if (e?.response?.data?.error) msg = e.response.data.error;
@@ -154,7 +249,9 @@ export default function AuthScreen({ initialMode = "login" }) {
       }}
     >
       <Icon d={d} size={16} color="#0f5a3f" stroke={1.9} />
-      <T style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}>{label}</T>
+      <T style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}>
+        {label}
+      </T>
     </View>
   );
 
@@ -222,10 +319,23 @@ export default function AuthScreen({ initialMode = "login" }) {
             <T style={{ color: "#ffffff", fontSize: 24, fontWeight: "800" }}>
               Mi Biyuyo Cloud
             </T>
-            <T style={{ color: "rgba(255,255,255,0.84)", fontSize: 14, lineHeight: 20 }}>
+            <T
+              style={{
+                color: "rgba(255,255,255,0.84)",
+                fontSize: 14,
+                lineHeight: 20,
+              }}
+            >
               {HELPER[mode]}
             </T>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 8 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 10,
+                marginTop: 8,
+              }}
+            >
               {chip(
                 "M7 19a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 17.9 8.6 4.7 4.7 0 0 1 17.5 19z M9.5 13.5l2 2 3.5-4",
                 "Sincronización",
@@ -240,7 +350,7 @@ export default function AuthScreen({ initialMode = "login" }) {
 
           <View
             style={{
-              backgroundColor: "#ffffff",
+              backgroundColor: C.card,
               borderRadius: 24,
               padding: 18,
               gap: 10,
@@ -251,7 +361,17 @@ export default function AuthScreen({ initialMode = "login" }) {
               elevation: 3,
             }}
           >
-            {!isReset ? (
+            {isVerify ? (
+              <View style={{ gap: 6, marginBottom: 4 }}>
+                <T style={{ fontSize: 18, fontWeight: "800" }}>
+                  Verifica tu correo
+                </T>
+                <T style={{ fontSize: 13, lineHeight: 18, color: C.muted }}>
+                  Enviamos un código de 6 dígitos a {pendingEmail}. Vence en 15
+                  minutos.
+                </T>
+              </View>
+            ) : !isReset ? (
               <View
                 style={{
                   flexDirection: "row",
@@ -291,7 +411,9 @@ export default function AuthScreen({ initialMode = "login" }) {
               </View>
             ) : (
               <View style={{ gap: 6, marginBottom: 4 }}>
-                <T style={{ fontSize: 18, fontWeight: "800" }}>Recuperar contraseña</T>
+                <T style={{ fontSize: 18, fontWeight: "800" }}>
+                  Recuperar contraseña
+                </T>
                 <T style={{ fontSize: 13, lineHeight: 18, color: C.muted }}>
                   Escribe el correo de tu cuenta y te enviaremos un enlace para
                   crear una contraseña nueva.
@@ -299,7 +421,50 @@ export default function AuthScreen({ initialMode = "login" }) {
               </View>
             )}
 
-            {isRegister
+            {isVerify ? (
+              <>
+                <TextInput
+                  value={code}
+                  onChangeText={(v) => {
+                    setCode(v.replace(/[^0-9]/g, "").slice(0, 6));
+                    setError("");
+                  }}
+                  onSubmitEditing={submitCode}
+                  placeholder="000000"
+                  placeholderTextColor={C.hint}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  autoFocus
+                  accessibilityLabel="Código de verificación"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: C.border,
+                    borderRadius: 12,
+                    backgroundColor: C.field,
+                    color: C.text,
+                    textAlign: "center",
+                    fontSize: 28,
+                    fontWeight: "800",
+                    letterSpacing: 10,
+                    minHeight: 60,
+                  }}
+                />
+                {devCode ? (
+                  <T
+                    style={{
+                      color: C.muted,
+                      fontSize: 12,
+                      textAlign: "center",
+                    }}
+                  >
+                    Modo desarrollo (correo sin configurar): tu código es{" "}
+                    {devCode}
+                  </T>
+                ) : null}
+              </>
+            ) : null}
+
+            {!isVerify && isRegister
               ? field("Nombre", {
                   value: name,
                   onChangeText: setName,
@@ -307,18 +472,20 @@ export default function AuthScreen({ initialMode = "login" }) {
                   autoComplete: "name",
                 })
               : null}
-            {field("Correo", {
-              value: email,
-              onChangeText: (v) => {
-                setEmail(v);
-                setError("");
-              },
-              placeholder: "correo@dominio.com",
-              keyboardType: "email-address",
-              autoCapitalize: "none",
-              autoComplete: "email",
-            })}
-            {!isReset ? (
+            {!isVerify
+              ? field("Correo", {
+                  value: email,
+                  onChangeText: (v) => {
+                    setEmail(v);
+                    setError("");
+                  },
+                  placeholder: "correo@dominio.com",
+                  keyboardType: "email-address",
+                  autoCapitalize: "none",
+                  autoComplete: "email",
+                })
+              : null}
+            {!isReset && !isVerify ? (
               <PwField
                 label="Contraseña"
                 value={password}
@@ -331,7 +498,7 @@ export default function AuthScreen({ initialMode = "login" }) {
                 onSubmit={submit}
               />
             ) : null}
-            {isRegister ? (
+            {isRegister && !isVerify ? (
               <PwField
                 label="Confirmar contraseña"
                 value={confirm}
@@ -346,12 +513,27 @@ export default function AuthScreen({ initialMode = "login" }) {
             ) : null}
 
             {info ? (
-              <T style={{ color: C.brand, fontSize: 13, fontWeight: "600", marginTop: 4, lineHeight: 18 }}>
+              <T
+                style={{
+                  color: C.brand,
+                  fontSize: 13,
+                  fontWeight: "600",
+                  marginTop: 4,
+                  lineHeight: 18,
+                }}
+              >
                 {info}
               </T>
             ) : null}
             {error ? (
-              <T style={{ color: C.error, fontSize: 13, fontWeight: "600", marginTop: 4 }}>
+              <T
+                style={{
+                  color: C.error,
+                  fontSize: 13,
+                  fontWeight: "600",
+                  marginTop: 4,
+                }}
+              >
                 {error}
               </T>
             ) : null}
@@ -372,16 +554,70 @@ export default function AuthScreen({ initialMode = "login" }) {
               {busy ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <T style={{ color: "#ffffff", fontSize: 15, fontWeight: "800" }}>
-                  {isReset ? "Enviar enlace" : isRegister ? "Crear cuenta" : "Entrar"}
+                <T
+                  style={{ color: "#ffffff", fontSize: 15, fontWeight: "800" }}
+                >
+                  {isVerify
+                    ? "Verificar"
+                    : isReset
+                      ? "Enviar enlace"
+                      : isRegister
+                        ? "Crear cuenta"
+                        : "Entrar"}
                 </T>
               )}
             </TouchableOpacity>
 
+            {isVerify ? (
+              <>
+                <TouchableOpacity
+                  onPress={resend}
+                  disabled={cooldown > 0}
+                  style={{
+                    alignSelf: "center",
+                    marginTop: 4,
+                    minHeight: 40,
+                    paddingHorizontal: 12,
+                    justifyContent: "center",
+                  }}
+                >
+                  <T
+                    style={{
+                      color: cooldown > 0 ? C.muted : C.link,
+                      fontSize: 13,
+                      fontWeight: "700",
+                    }}
+                  >
+                    {cooldown > 0
+                      ? `Reenviar código en ${cooldown} s`
+                      : "Reenviar código"}
+                  </T>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => go("register")}
+                  style={{
+                    alignSelf: "center",
+                    minHeight: 40,
+                    paddingHorizontal: 12,
+                    justifyContent: "center",
+                  }}
+                >
+                  <T style={{ color: C.link, fontSize: 13, fontWeight: "700" }}>
+                    Usar otro correo
+                  </T>
+                </TouchableOpacity>
+              </>
+            ) : null}
             {isLogin ? (
               <TouchableOpacity
                 onPress={() => go("reset")}
-                style={{ alignSelf: "center", marginTop: 4, minHeight: 40, paddingHorizontal: 12, justifyContent: "center" }}
+                style={{
+                  alignSelf: "center",
+                  marginTop: 4,
+                  minHeight: 40,
+                  paddingHorizontal: 12,
+                  justifyContent: "center",
+                }}
               >
                 <T style={{ color: C.link, fontSize: 13, fontWeight: "700" }}>
                   Recuperar contraseña
@@ -391,7 +627,13 @@ export default function AuthScreen({ initialMode = "login" }) {
             {isReset ? (
               <TouchableOpacity
                 onPress={() => go("login")}
-                style={{ alignSelf: "center", marginTop: 4, minHeight: 40, paddingHorizontal: 12, justifyContent: "center" }}
+                style={{
+                  alignSelf: "center",
+                  marginTop: 4,
+                  minHeight: 40,
+                  paddingHorizontal: 12,
+                  justifyContent: "center",
+                }}
               >
                 <T style={{ color: C.link, fontSize: 13, fontWeight: "700" }}>
                   Volver a iniciar sesión
@@ -408,7 +650,8 @@ export default function AuthScreen({ initialMode = "login" }) {
                 textAlign: "center",
               }}
             >
-              Al continuar, tus datos locales se vinculan con tu espacio seguro en la nube.
+              Al continuar, tus datos locales se vinculan con tu espacio seguro
+              en la nube.
             </T>
           </View>
         </ScrollView>

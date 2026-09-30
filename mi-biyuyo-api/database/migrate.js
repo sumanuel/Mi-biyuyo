@@ -216,6 +216,33 @@ async function migrate() {
     // ── v6: entidades en USDT (la columna currency admitía solo 3 caracteres) ──
     await client.query(`ALTER TABLE entities ALTER COLUMN currency TYPE VARCHAR(10)`);
 
+    // ── v7: verificación del correo con código ──
+    // Los usuarios que ya existían quedan verificados; los nuevos deberán verificar.
+    const { rows: hasCol } = await client.query(
+      `SELECT 1 FROM information_schema.columns
+       WHERE table_name = 'users' AND column_name = 'email_verified'`,
+    );
+    if (!hasCol.length) {
+      await client.query(
+        `ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT false`,
+      );
+      await client.query(`UPDATE users SET email_verified = true`);
+    }
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS email_verification_codes (
+        id         SERIAL PRIMARY KEY,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        code_hash  VARCHAR(64) NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        attempts   INTEGER NOT NULL DEFAULT 0,
+        used_at    TIMESTAMP,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_email_codes_user ON email_verification_codes(user_id, created_at DESC)`,
+    );
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {

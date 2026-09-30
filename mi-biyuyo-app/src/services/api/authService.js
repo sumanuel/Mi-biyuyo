@@ -36,3 +36,13 @@ export const resetPassword = async (token, password) => {
   });
   return data;
 };
+
+export const verifyEmail = async (email, code) => {
+  const { data } = await client.post("/auth/verify-email", { email, code });
+  return data;
+};
+
+export const resendCode = async (email) => {
+  const { data } = await client.post("/auth/resend-code", { email });
+  return data;
+};

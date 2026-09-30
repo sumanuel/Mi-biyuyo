@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const pool = require("../config/database");
 const { body } = require("express-validator");
+const { sendMail, mailConfigured } = require("../utils/mailer");
 
 const SALT_ROUNDS = 12;
 
@@ -12,6 +13,67 @@ function signToken(userId) {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
+}
+
+const CODE_MINUTES = 15;
+const CODE_MAX_ATTEMPTS = 5;
+const RESEND_SECONDS = 60;
+
+const hashCode = (code) =>
+  crypto.createHash("sha256").update(String(code)).digest("hex");
+
+function httpError(status, message, extra) {
+  const err = new Error(message);
+  err.status = status;
+  if (extra) err.extra = extra;
+  return err;
+}
+
+/**
+ * Crea y envía un código de 6 dígitos para verificar el correo.
+ * Respeta un intervalo mínimo entre envíos. Devuelve { devCode } solo si el
+ * correo no está configurado y el servidor no está en producción.
+ */
+async function issueVerificationCode(user) {
+  const { rows: last } = await pool.query(
+    `SELECT created_at FROM email_verification_codes
+     WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`,
+    [user.id],
+  );
+  if (last.length) {
+    const wait =
+      RESEND_SECONDS - (Date.now() - new Date(last[0].created_at)) / 1000;
+    if (wait > 0)
+      throw httpError(
+        429,
+        `Espera ${Math.ceil(wait)} segundos para pedir otro código`,
+        { retry_after: Math.ceil(wait) },
+      );
+  }
+  const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
+  await pool.query(
+    `UPDATE email_verification_codes SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL`,
+    [user.id],
+  );
+  await pool.query(
+    `INSERT INTO email_verification_codes (user_id, code_hash, expires_at) VALUES ($1, $2, $3)`,
+    [user.id, hashCode(code), new Date(Date.now() + CODE_MINUTES * 60000)],
+  );
+  try {
+    await sendMail({
+      to: user.email,
+      subject: "Tu código de verificación — Mi Biyuyo",
+      text: `Tu código de verificación es ${code}. Vence en ${CODE_MINUTES} minutos.`,
+      html: `<p>Hola ${user.name || ""},</p>
+             <p>Tu código para verificar tu correo en Mi Biyuyo es:</p>
+             <p style="font-size:28px;font-weight:800;letter-spacing:6px">${code}</p>
+             <p>Vence en ${CODE_MINUTES} minutos. Si no creaste una cuenta, ignora este correo.</p>`,
+    });
+  } catch (mailErr) {
+    console.error("Error enviando código:", mailErr.message);
+  }
+  const showDev = !mailConfigured() && process.env.NODE_ENV !== "production";
+  return { devCode: showDev ? code : undefined };
 }
 
 async function sendResetEmail(to, resetUrl) {
@@ -52,7 +114,7 @@ exports.register = async (req, res, next) => {
     const avatarColor = colors[Math.floor(Math.random() * colors.length)];
 
     const { rows: userRows } = await pool.query(
-      `INSERT INTO users (name, email, password_hash, avatar_color) VALUES ($1, $2, $3, $4) RETURNING id, name, email, avatar_color, theme_preference, created_at`,
+      `INSERT INTO users (name, email, password_hash, avatar_color, email_verified) VALUES ($1, $2, $3, $4, false) RETURNING id, name, email`,
       [name.trim(), email.toLowerCase(), hash, avatarColor],
     );
     const user = userRows[0];
@@ -63,7 +125,12 @@ exports.register = async (req, res, next) => {
       [user.id],
     );
 
-    res.status(201).json({ token: signToken(user.id), user });
+    const { devCode } = await issueVerificationCode(user);
+    res.status(201).json({
+      needs_verification: true,
+      email: user.email,
+      dev_code: devCode,
+    });
   } catch (err) {
     next(err);
   }
@@ -73,7 +140,7 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const { rows } = await pool.query(
-      `SELECT id, name, email, password_hash, avatar_color, theme_preference FROM users WHERE email = $1`,
+      `SELECT id, name, email, password_hash, avatar_color, theme_preference, email_verified FROM users WHERE email = $1`,
       [email.toLowerCase()],
     );
     if (!rows.length)
@@ -84,8 +151,88 @@ exports.login = async (req, res, next) => {
     if (!valid)
       return res.status(401).json({ error: "Credenciales incorrectas" });
 
+    if (!user.email_verified) {
+      let devCode;
+      try {
+        ({ devCode } = await issueVerificationCode(user));
+      } catch (e) {
+        if (e.status !== 429) throw e; // ya se envió uno hace poco
+      }
+      return res.status(403).json({
+        error: "Debes verificar tu correo para entrar",
+        code: "EMAIL_NOT_VERIFIED",
+        email: user.email,
+        dev_code: devCode,
+      });
+    }
+
     delete user.password_hash;
+    delete user.email_verified;
     res.json({ token: signToken(user.id), user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.verifyEmail = async (req, res, next) => {
+  try {
+    const { email, code } = req.body;
+    const { rows: users } = await pool.query(
+      `SELECT id, name, email, avatar_color, theme_preference, email_verified FROM users WHERE email = $1`,
+      [email.toLowerCase()],
+    );
+    const invalid = httpError(400, "Código incorrecto o vencido");
+    if (!users.length) throw invalid;
+    const user = users[0];
+
+    if (!user.email_verified) {
+      const { rows } = await pool.query(
+        `SELECT id, code_hash, attempts FROM email_verification_codes
+         WHERE user_id = $1 AND used_at IS NULL AND expires_at > NOW()
+         ORDER BY created_at DESC LIMIT 1`,
+        [user.id],
+      );
+      if (!rows.length) throw invalid;
+      const row = rows[0];
+      if (row.attempts >= CODE_MAX_ATTEMPTS)
+        throw httpError(
+          429,
+          "Demasiados intentos. Pide un código nuevo para continuar",
+        );
+      if (row.code_hash !== hashCode(String(code).trim())) {
+        await pool.query(
+          `UPDATE email_verification_codes SET attempts = attempts + 1 WHERE id = $1`,
+          [row.id],
+        );
+        throw invalid;
+      }
+      await pool.query(
+        `UPDATE email_verification_codes SET used_at = NOW() WHERE id = $1`,
+        [row.id],
+      );
+      await pool.query(
+        `UPDATE users SET email_verified = true, updated_at = NOW() WHERE id = $1`,
+        [user.id],
+      );
+    }
+
+    delete user.email_verified;
+    res.json({ token: signToken(user.id), user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.resendCode = async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, name, email, email_verified FROM users WHERE email = $1`,
+      [req.body.email.toLowerCase()],
+    );
+    const generic = { message: "Si el correo existe recibirás un código" };
+    if (!rows.length || rows[0].email_verified) return res.json(generic);
+    const { devCode } = await issueVerificationCode(rows[0]);
+    res.json({ ...generic, dev_code: devCode });
   } catch (err) {
     next(err);
   }
@@ -211,6 +358,13 @@ exports.validateLogin = [
   body("email").isEmail().normalizeEmail(),
   body("password").notEmpty(),
 ];
+
+exports.validateVerifyEmail = [
+  body("email").isEmail().normalizeEmail(),
+  body("code").trim().isLength({ min: 6, max: 6 }).isNumeric(),
+];
+
+exports.validateResendCode = [body("email").isEmail().normalizeEmail()];
 
 exports.validateForgotPassword = [body("email").isEmail().normalizeEmail()];
 
