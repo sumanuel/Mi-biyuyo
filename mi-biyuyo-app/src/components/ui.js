@@ -487,13 +487,13 @@ export function Segmented({ items, height = 44, fontSize = 13, tint }) {
   );
 }
 
-/** Selector de moneda de visualización (USD / VES BCV / VES Binance). */
+/** Selector de moneda de visualización (USD / VES BCV / USDT Binance). */
 export function DispTabs({ height = 44 }) {
   const { disp, setDisp } = useData();
   const items = [
     ["usd", "USD"],
     ["bcv", "VES BCV"],
-    ["bin", "VES Binance"],
+    ["bin", "USDT Binance"],
   ].map(([k, label]) => ({
     label,
     active: disp === k,

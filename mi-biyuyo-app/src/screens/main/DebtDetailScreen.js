@@ -56,7 +56,11 @@ export default function DebtDetailScreen({ navigation, route }) {
         sub:
           dlabel(p.date) +
           " · " +
-          (p.ccy === "usd" ? "Moneda base" : "Tasa " + grp(r, ".", ",")),
+          (p.ccy === "usd"
+            ? "Moneda base"
+            : p.ccy === "bin"
+              ? "1 USDT = USD " + grp(1 / r, ",", ".")
+              : "Tasa " + grp(r, ".", ",")),
         amount: (isCobro ? "+" : "-") + fx.money(p.ccy, p.usd * r),
         eq: "≈ " + fx.money("usd", p.usd),
         rest: run <= 0.005 ? "Saldada" : "Saldo " + dv(run),

@@ -18,7 +18,14 @@ import {
   Empty,
 } from "../../components/ui";
 import DateField from "../../components/DateField";
-import { CCY_KEYS, CCY_LABEL, CCY_TO_API, grp, parseNum, todayStr } from "../../utils/money";
+import {
+  CCY_KEYS,
+  CCY_LABEL,
+  CCY_PREFIX,
+  CCY_TO_API,
+  parseNum,
+  todayStr,
+} from "../../utils/money";
 
 /** Transferencia entre entidades propias (no es ingreso ni gasto). */
 export default function TransferScreen({ navigation, route }) {
@@ -143,7 +150,7 @@ export default function TransferScreen({ navigation, route }) {
           tint={tint}
           options={CCY_KEYS.map((k) => ({
             label: CCY_LABEL[k],
-            sub: k === "usd" ? "Base" : fx.ready(k) ? grp(fx.FACT[k], ".", ",") : "Sin tasa",
+            sub: fx.rateShort(k),
             active: k === ccy,
             onPress: () => setCcy(k),
           }))}
@@ -159,7 +166,7 @@ export default function TransferScreen({ navigation, route }) {
               color: colors.textSecondary,
             }}
           >
-            {ccy === "usd" ? "USD" : "VES"}
+            {CCY_PREFIX[ccy]}
           </Txt>
           <Input
             value={amount}
@@ -211,7 +218,7 @@ export default function TransferScreen({ navigation, route }) {
 
       <Field
         label="Comisión"
-        hint={`(opcional, en ${ccy === "usd" ? "USD" : "VES"})`}
+        hint={`(opcional, en ${CCY_PREFIX[ccy]})`}
         value={fee}
         onChangeText={setFee}
         keyboardType="decimal-pad"

@@ -9,7 +9,8 @@ const EMAIL = process.argv[2] || "demo@mibiyuyo.test";
 const PASSWORD = "Demo1234!";
 const RATE = 150;
 const RATE_B = 165;
-const FACT = { usd: 1, bcv: RATE, bin: RATE_B };
+// Unidades por 1 USD: VES = tasa BCV; USDT (Binance) = BCV / Binance (1 USDT = RATE_B VES)
+const FACT = { usd: 1, bcv: RATE, bin: RATE / RATE_B };
 const API_CCY = { usd: "USD", bcv: "VES", bin: "BINANCE" };
 
 const ENTS = [
@@ -138,7 +139,7 @@ async function run() {
           API_CCY[ccy],
           usd,
           usd * RATE,
-          usd * RATE_B,
+          usd * FACT.bin,
           title,
           dateAgo(d),
           person || null,
@@ -171,7 +172,7 @@ async function run() {
             API_CCY[p.ccy],
             p.usd,
             p.usd * RATE,
-            p.usd * RATE_B,
+            p.usd * FACT.bin,
             dateAgo(p.d),
             p.method,
             entId[METHOD_ENT[p.method] || "cash"],

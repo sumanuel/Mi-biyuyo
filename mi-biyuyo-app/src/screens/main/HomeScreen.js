@@ -57,7 +57,7 @@ export default function HomeScreen({ navigation }) {
   const recent = feed(model, sorted, true, dv).slice(0, MAX_MOVEMENTS);
   const open = (nav) => go(navigation, nav.name, nav.params);
 
-  const rateCard = (label, value) => (
+  const rateCard = (label, value, unit = "USD") => (
     <TouchableOpacity
       onPress={() => navigation.navigate("ExchangeRate")}
       activeOpacity={0.85}
@@ -93,7 +93,7 @@ export default function HomeScreen({ navigation }) {
               {label}
             </Txt>
             <Txt style={{ fontSize: 16, fontWeight: "700" }}>
-              1 USD = {value}
+              1 {unit} = {value}
             </Txt>
           </View>
           <Icon name="chevronRight" size={18} color={colors.textSecondary} stroke={2} />
@@ -234,7 +234,7 @@ export default function HomeScreen({ navigation }) {
 
       <View style={{ gap: 10 }}>
         {rateCard("Tasa BCV", "VES " + grp(fx.rate, ".", ","))}
-        {rateCard("Tasa Binance P2P", "VES " + grp(fx.rateB, ".", ","))}
+        {rateCard("Tasa Binance P2P", "VES " + grp(fx.rateB, ".", ","), "USDT")}
       </View>
 
       <View style={{ gap: 10 }}>
