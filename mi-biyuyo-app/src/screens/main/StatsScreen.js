@@ -125,20 +125,21 @@ export default function StatsScreen({ navigation }) {
   }));
 
   /* ---- distribución y deudas ---- */
-  const dist = model.included
+  // Todas las entidades que suman a Mi saldo (también las que están en negativo)
+  const distRaw = model.included
     .map((e) => ({ id: e.id, name: e.name, b: model.entBal(e) }))
-    .filter((x) => x.b > 0.005)
-    .sort((a, b) => b.b - a.b)
-    .map((x, _i, arr) => ({
-      id: x.id,
-      name: x.name,
-      val: dv(x.b),
-      pct:
-        model.balance > 0
-          ? Math.round((x.b / model.balance) * 100) + "%"
-          : "0%",
-      w: Math.max(4, Math.round((x.b / arr[0].b) * 100)),
-    }));
+    .filter((x) => Math.abs(x.b) > 0.005)
+    .sort((a, b) => b.b - a.b);
+  const distTotal = distRaw.reduce((a, x) => a + Math.abs(x.b), 0) || 1;
+  const distMax = distRaw.reduce((a, x) => Math.max(a, Math.abs(x.b)), 0) || 1;
+  const dist = distRaw.map((x) => ({
+    id: x.id,
+    name: x.name,
+    val: dv(x.b),
+    neg: x.b < 0,
+    pct: Math.round((Math.abs(x.b) / distTotal) * 100) + "%",
+    w: Math.max(4, Math.round((Math.abs(x.b) / distMax) * 100)),
+  }));
   const cobr = model.moves.filter(
     (m) => m.type === "cobrar" && model.pendOf(m) > 0.005,
   );
@@ -183,7 +184,15 @@ export default function StatsScreen({ navigation }) {
           >
             {r.name}
           </Txt>
-          <Txt style={{ fontSize: 14, fontWeight: "700" }}>{r.val}</Txt>
+          <Txt
+            style={{
+              fontSize: 14,
+              fontWeight: "700",
+              color: r.neg ? colors.danger.fg : colors.text,
+            }}
+          >
+            {r.val}
+          </Txt>
           <Txt
             style={{
               width: 38,
@@ -195,7 +204,11 @@ export default function StatsScreen({ navigation }) {
             {r.pct}
           </Txt>
         </View>
-        <ProgressBar height={6} pct={r.w} color={barColor} />
+        <ProgressBar
+          height={6}
+          pct={r.w}
+          color={r.neg ? colors.danger.fg : barColor}
+        />
       </View>
     ));
 
@@ -543,7 +556,7 @@ export default function StatsScreen({ navigation }) {
         {bars(dist, colors.neutral, colors.accent, false)}
         {dist.length === 0 ? (
           <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
-            Sin saldo positivo en tus entidades.
+            Tus entidades no tienen saldo.
           </Txt>
         ) : null}
       </Card>

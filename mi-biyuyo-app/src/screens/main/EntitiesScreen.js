@@ -26,9 +26,11 @@ export default function EntitiesScreen({ navigation }) {
   const { colors } = useTheme();
   const { model, dv, hideBalance, toggleHideBalance } = useData();
   const shareOf = (b) =>
-    model.balance > 0 && b > 0
-      ? Math.round((b / model.balance) * 100) + "%"
-      : "0%";
+    b < -0.005
+      ? "Saldo negativo"
+      : model.balance > 0 && b > 0
+        ? Math.round((b / model.balance) * 100) + "% del total"
+        : "0% del total";
 
   return (
     <Screen pull>
@@ -131,7 +133,7 @@ export default function EntitiesScreen({ navigation }) {
                 <Txt style={{ fontSize: 15, fontWeight: "800" }}>{dv(b)}</Txt>
                 {e.include ? (
                   <Txt style={{ fontSize: 11, color: colors.textSecondary }}>
-                    {shareOf(b)} del total
+                    {shareOf(b)}
                   </Txt>
                 ) : (
                   <Pill
