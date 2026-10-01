@@ -48,6 +48,8 @@ const HELPER = {
   reset: "Recupera el acceso a tus finanzas con el correo de tu cuenta.",
   verify:
     "Un último paso: confirma que el correo es tuyo con el código que te enviamos.",
+  newpass:
+    "Casi listo: usa el código que te enviamos por correo para crear tu contraseña nueva.",
 };
 
 function T({ style, ...p }) {
@@ -185,6 +187,20 @@ export default function AuthScreen({ initialMode = "login" }) {
   };
 
   const isVerify = mode === "verify";
+  const isNewPass = mode === "newpass";
+  const startNewPass = (mail, dev, wait) => {
+    setPendingEmail(mail);
+    setDevCode(dev || "");
+    setCode("");
+    setPassword("");
+    setConfirm("");
+    setError("");
+    setInfo(
+      "Te enviamos un código a tu correo. Si no aparece, revisa también spam.",
+    );
+    setCooldown(wait || 60);
+    setMode("newpass");
+  };
   const startVerify = (mail, dev) => {
     setPendingEmail(mail);
     setDevCode(dev || "");
@@ -216,11 +232,40 @@ export default function AuthScreen({ initialMode = "login" }) {
     }
   };
 
+  const submitNewPass = async () => {
+    if (code.trim().length !== 6)
+      return setError("Escribe el código de 6 dígitos.");
+    if (password.length < 6)
+      return setError("La contraseña debe tener al menos 6 caracteres.");
+    if (password !== confirm) return setError("Las contraseñas no coinciden.");
+    setBusy(true);
+    setError("");
+    try {
+      await authService.resetPassword(pendingEmail, code.trim(), password);
+      setEmail(pendingEmail);
+      setPassword("");
+      setConfirm("");
+      setCode("");
+      setMode("login");
+      setInfo("Contraseña actualizada. Ya puedes iniciar sesión.");
+    } catch (e) {
+      setError(
+        e?.response?.data?.error ||
+          e?.response?.data?.errors?.[0]?.msg ||
+          "No se pudo cambiar la contraseña",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const resend = async () => {
     if (cooldown > 0) return;
     setError("");
     try {
-      const r = await authService.resendCode(pendingEmail);
+      const r = isNewPass
+        ? await authService.forgotPassword(pendingEmail)
+        : await authService.resendCode(pendingEmail);
       setDevCode(r.dev_code || "");
       setInfo("Te enviamos un código nuevo.");
       setCooldown(60);
@@ -234,20 +279,18 @@ export default function AuthScreen({ initialMode = "login" }) {
   const submit = async () => {
     setInfo("");
     if (isVerify) return submitCode();
+    if (isNewPass) return submitNewPass();
     if (isReset) {
       if (!email.trim())
         return setError(
-          "Escribe tu correo para enviarte el enlace de recuperación.",
+          "Escribe tu correo para enviarte el código de recuperación.",
         );
       setBusy(true);
       try {
-        await authService.forgotPassword(email.trim());
-        setError("");
-        setInfo(
-          "Te enviamos un correo para restablecer tu contraseña. Si no aparece en unos minutos, revisa también la carpeta spam.",
-        );
+        const r = await authService.forgotPassword(email.trim());
+        startNewPass(email.trim(), r.dev_code, r.retry_after);
       } catch {
-        setError("No se pudo enviar el correo. Intenta de nuevo.");
+        setError("No se pudo enviar el código. Intenta de nuevo.");
       } finally {
         setBusy(false);
       }
@@ -419,7 +462,17 @@ export default function AuthScreen({ initialMode = "login" }) {
               elevation: 3,
             }}
           >
-            {isVerify ? (
+            {isNewPass ? (
+              <View style={{ gap: 6, marginBottom: 4 }}>
+                <T style={{ fontSize: 18, fontWeight: "800" }}>
+                  Restablece tu contraseña
+                </T>
+                <T style={{ fontSize: 13, lineHeight: 18, color: C.muted }}>
+                  Escribe el código de 6 dígitos que enviamos a {pendingEmail} y
+                  tu contraseña nueva. Vence en 15 minutos.
+                </T>
+              </View>
+            ) : isVerify ? (
               <View style={{ gap: 6, marginBottom: 4 }}>
                 <T style={{ fontSize: 18, fontWeight: "800" }}>
                   Verifica tu correo
@@ -473,13 +526,13 @@ export default function AuthScreen({ initialMode = "login" }) {
                   Recuperar contraseña
                 </T>
                 <T style={{ fontSize: 13, lineHeight: 18, color: C.muted }}>
-                  Escribe el correo de tu cuenta y te enviaremos un enlace para
+                  Escribe el correo de tu cuenta y te enviaremos un código para
                   crear una contraseña nueva.
                 </T>
               </View>
             )}
 
-            {isVerify ? (
+            {isVerify || isNewPass ? (
               <>
                 <TextInput
                   value={code}
@@ -487,13 +540,17 @@ export default function AuthScreen({ initialMode = "login" }) {
                     setCode(v.replace(/[^0-9]/g, "").slice(0, 6));
                     setError("");
                   }}
-                  onSubmitEditing={submitCode}
+                  onSubmitEditing={isVerify ? submitCode : undefined}
                   placeholder="000000"
                   placeholderTextColor={C.hint}
                   keyboardType="number-pad"
                   maxLength={6}
                   autoFocus
-                  accessibilityLabel="Código de verificación"
+                  accessibilityLabel={
+                    isNewPass
+                      ? "Código de recuperación"
+                      : "Código de verificación"
+                  }
                   style={{
                     borderWidth: 1,
                     borderColor: C.border,
@@ -522,7 +579,7 @@ export default function AuthScreen({ initialMode = "login" }) {
               </>
             ) : null}
 
-            {!isVerify && isRegister
+            {!isVerify && !isNewPass && isRegister
               ? field("Nombre", {
                   value: name,
                   onChangeText: setName,
@@ -531,7 +588,7 @@ export default function AuthScreen({ initialMode = "login" }) {
                   ...chain(0),
                 })
               : null}
-            {!isVerify
+            {!isVerify && !isNewPass
               ? field("Correo", {
                   value: email,
                   onChangeText: (v) => {
@@ -547,19 +604,24 @@ export default function AuthScreen({ initialMode = "login" }) {
               : null}
             {!isReset && !isVerify ? (
               <PwField
-                label="Contraseña"
+                label={isNewPass ? "Contraseña nueva" : "Contraseña"}
                 value={password}
                 onChangeText={(v) => {
                   setPassword(v);
                   setError("");
                 }}
                 placeholder="Mínimo 6 caracteres"
-                autoComplete={isRegister ? "new-password" : "current-password"}
+                autoComplete={
+                  isRegister || isNewPass ? "new-password" : "current-password"
+                }
                 onSubmit={submit}
-                chainProps={chain(2, { last: !isRegister, onSubmit: submit })}
+                chainProps={chain(2, {
+                  last: !isRegister && !isNewPass,
+                  onSubmit: submit,
+                })}
               />
             ) : null}
-            {isRegister && !isVerify ? (
+            {(isRegister || isNewPass) && !isVerify ? (
               <PwField
                 label="Confirmar contraseña"
                 value={confirm}
@@ -621,16 +683,18 @@ export default function AuthScreen({ initialMode = "login" }) {
                 >
                   {isVerify
                     ? "Verificar"
-                    : isReset
-                      ? "Enviar enlace"
-                      : isRegister
-                        ? "Crear cuenta"
-                        : "Entrar"}
+                    : isNewPass
+                      ? "Cambiar contraseña"
+                      : isReset
+                        ? "Enviar código"
+                        : isRegister
+                          ? "Crear cuenta"
+                          : "Entrar"}
                 </T>
               )}
             </TouchableOpacity>
 
-            {isVerify ? (
+            {isVerify || isNewPass ? (
               <>
                 <TouchableOpacity
                   onPress={resend}
@@ -656,7 +720,7 @@ export default function AuthScreen({ initialMode = "login" }) {
                   </T>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => go("register")}
+                  onPress={() => go(isNewPass ? "login" : "register")}
                   style={{
                     alignSelf: "center",
                     minHeight: 40,
@@ -665,7 +729,7 @@ export default function AuthScreen({ initialMode = "login" }) {
                   }}
                 >
                   <T style={{ color: C.link, fontSize: 13, fontWeight: "700" }}>
-                    Usar otro correo
+                    {isNewPass ? "Volver a iniciar sesión" : "Usar otro correo"}
                   </T>
                 </TouchableOpacity>
               </>

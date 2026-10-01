@@ -109,7 +109,6 @@ async function migrate() {
       `CREATE INDEX IF NOT EXISTS idx_payments_transaction      ON transaction_payments(transaction_id)`,
     );
 
-
     // ── v2: entidades, transferencias, ítems y campos nuevos (idempotente) ──
     await client.query(`
       CREATE TABLE IF NOT EXISTS entities (
@@ -146,25 +145,56 @@ async function migrate() {
         amount_usd     DECIMAL(15,4)
       )
     `);
-    await client.query(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS code VARCHAR(30)`);
-    await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS entity_id INTEGER REFERENCES entities(id) ON DELETE SET NULL`);
-    await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS cash BOOLEAN NOT NULL DEFAULT TRUE`);
-    await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS due_date DATE`);
-    await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS receipt_name VARCHAR(120)`);
-    await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS receipt_data TEXT`);
-    await client.query(`ALTER TABLE transaction_payments ADD COLUMN IF NOT EXISTS entity_id INTEGER REFERENCES entities(id) ON DELETE SET NULL`);
-    await client.query(`ALTER TABLE transaction_payments ADD COLUMN IF NOT EXISTS rate DECIMAL(15,4)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_entities_user ON entities(user_id)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_transfers_user ON transfers(user_id, date DESC)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_items_transaction ON transaction_items(transaction_id)`);
-
+    await client.query(
+      `ALTER TABLE categories ADD COLUMN IF NOT EXISTS code VARCHAR(30)`,
+    );
+    await client.query(
+      `ALTER TABLE transactions ADD COLUMN IF NOT EXISTS entity_id INTEGER REFERENCES entities(id) ON DELETE SET NULL`,
+    );
+    await client.query(
+      `ALTER TABLE transactions ADD COLUMN IF NOT EXISTS cash BOOLEAN NOT NULL DEFAULT TRUE`,
+    );
+    await client.query(
+      `ALTER TABLE transactions ADD COLUMN IF NOT EXISTS due_date DATE`,
+    );
+    await client.query(
+      `ALTER TABLE transactions ADD COLUMN IF NOT EXISTS receipt_name VARCHAR(120)`,
+    );
+    await client.query(
+      `ALTER TABLE transactions ADD COLUMN IF NOT EXISTS receipt_data TEXT`,
+    );
+    await client.query(
+      `ALTER TABLE transaction_payments ADD COLUMN IF NOT EXISTS entity_id INTEGER REFERENCES entities(id) ON DELETE SET NULL`,
+    );
+    await client.query(
+      `ALTER TABLE transaction_payments ADD COLUMN IF NOT EXISTS rate DECIMAL(15,4)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_entities_user ON entities(user_id)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_transfers_user ON transfers(user_id, date DESC)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_items_transaction ON transaction_items(transaction_id)`,
+    );
 
     // ── v3: valores históricos (tasa del día) y saldo inicial en la moneda de la entidad ──
-    await client.query(`ALTER TABLE transfers ADD COLUMN IF NOT EXISTS amount_ves DECIMAL(15,4)`);
-    await client.query(`ALTER TABLE transfers ADD COLUMN IF NOT EXISTS amount_binance DECIMAL(15,4)`);
-    await client.query(`ALTER TABLE transfers ADD COLUMN IF NOT EXISTS fee_ves DECIMAL(15,4)`);
-    await client.query(`ALTER TABLE transfers ADD COLUMN IF NOT EXISTS fee_binance DECIMAL(15,4)`);
-    await client.query(`ALTER TABLE entities ADD COLUMN IF NOT EXISTS initial_amount DECIMAL(15,4)`);
+    await client.query(
+      `ALTER TABLE transfers ADD COLUMN IF NOT EXISTS amount_ves DECIMAL(15,4)`,
+    );
+    await client.query(
+      `ALTER TABLE transfers ADD COLUMN IF NOT EXISTS amount_binance DECIMAL(15,4)`,
+    );
+    await client.query(
+      `ALTER TABLE transfers ADD COLUMN IF NOT EXISTS fee_ves DECIMAL(15,4)`,
+    );
+    await client.query(
+      `ALTER TABLE transfers ADD COLUMN IF NOT EXISTS fee_binance DECIMAL(15,4)`,
+    );
+    await client.query(
+      `ALTER TABLE entities ADD COLUMN IF NOT EXISTS initial_amount DECIMAL(15,4)`,
+    );
     // Relleno de datos anteriores con la tasa vigente del usuario (aproximación única)
     await client.query(`
       UPDATE transfers t SET
@@ -181,7 +211,6 @@ async function migrate() {
                                                      (SELECT usd_to_ves FROM exchange_rates r WHERE r.user_id = e.user_id), 0) END
       WHERE e.initial_amount IS NULL
     `);
-
 
     // ── v4: corrige valores USDT guardados con la fórmula anterior (Binance como bolívares) ──
     // Señal: amount_binance > 5 × amount_usd (con la fórmula correcta ronda 1×). Se reconstruyen
@@ -208,13 +237,15 @@ async function migrate() {
       WHERE currency = 'BINANCE' AND amount_usd > 0 AND rate > 5
     `);
 
-
     // ── v5: entidades que no suman a "Mi saldo" ──
-    await client.query(`ALTER TABLE entities ADD COLUMN IF NOT EXISTS include_in_balance BOOLEAN NOT NULL DEFAULT TRUE`);
-
+    await client.query(
+      `ALTER TABLE entities ADD COLUMN IF NOT EXISTS include_in_balance BOOLEAN NOT NULL DEFAULT TRUE`,
+    );
 
     // ── v6: entidades en USDT (la columna currency admitía solo 3 caracteres) ──
-    await client.query(`ALTER TABLE entities ALTER COLUMN currency TYPE VARCHAR(10)`);
+    await client.query(
+      `ALTER TABLE entities ALTER COLUMN currency TYPE VARCHAR(10)`,
+    );
 
     // ── v7: verificación del correo con código ──
     // Los usuarios que ya existían quedan verificados; los nuevos deberán verificar.
@@ -241,6 +272,11 @@ async function migrate() {
     `);
     await client.query(
       `CREATE INDEX IF NOT EXISTS idx_email_codes_user ON email_verification_codes(user_id, created_at DESC)`,
+    );
+
+    // ── v8: los códigos sirven para verificar el correo ('verify') o recuperar la contraseña ('reset') ──
+    await client.query(
+      `ALTER TABLE email_verification_codes ADD COLUMN IF NOT EXISTS purpose VARCHAR(20) NOT NULL DEFAULT 'verify'`,
     );
 
     await client.query("COMMIT");
