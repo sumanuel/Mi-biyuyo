@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   RefreshControl,
+  KeyboardAvoidingView,
   useWindowDimensions,
 } from "react-native";
 import {
@@ -21,6 +22,10 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useData } from "../contexts/DataContext";
 import { fontFor } from "../theme/font";
 import { Icon, UI } from "./icons";
+import { scrollIntoView, useKeyboardVisible } from "../utils/keyboard";
+
+// Permite que un campo avise a su pantalla para desplazarse sobre el teclado
+const ScrollCtx = React.createContext(null);
 
 /* ---------- Texto e inputs con Plus Jakarta Sans ---------- */
 export function Txt({ style, children, ...rest }) {
@@ -44,13 +49,28 @@ export function Txt({ style, children, ...rest }) {
   );
 }
 
-export function Input({ style, ...rest }) {
+export const Input = React.forwardRef(function Input(
+  { style, onFocus, ...rest },
+  fwd,
+) {
   const { colors } = useTheme();
+  const scrollRef = React.useContext(ScrollCtx);
+  const inner = React.useRef(null);
   const flat = StyleSheet.flatten(style) || {};
+  const setRef = (node) => {
+    inner.current = node;
+    if (typeof fwd === "function") fwd(node);
+    else if (fwd) fwd.current = node;
+  };
   return (
     <TextInput
+      ref={setRef}
       placeholderTextColor={colors.placeholder}
       {...rest}
+      onFocus={(e) => {
+        onFocus?.(e);
+        scrollIntoView(scrollRef, inner.current);
+      }}
       style={[
         { color: colors.text, fontFamily: fontFor(flat.fontWeight || "400") },
         Platform.select({ web: { outlineStyle: "none" } }),
@@ -59,7 +79,7 @@ export function Input({ style, ...rest }) {
       ]}
     />
   );
-}
+});
 
 /* ---------- Estructura de pantalla ---------- */
 /**
@@ -82,6 +102,7 @@ export function Screen({
   const tabHeight = React.useContext(BottomTabBarHeightContext);
   // Pantalla de pila sin pie: separar el contenido de la barra del sistema
   const bottomGap = !footer && tabHeight === undefined ? insets.bottom : 0;
+  const scrollRef = React.useRef(null);
   const [refreshing, setRefreshing] = React.useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
@@ -131,34 +152,44 @@ export function Screen({
         Platform.OS === "web" ? { maxHeight: winH, overflow: "hidden" } : null,
       ]}
     >
-      {usesScroll ? (
-        <ScrollView
-          style={{ flex: 1, minHeight: 0 }}
-          contentContainerStyle={[
-            { padding: 16, paddingTop: 20, paddingBottom: 24, gap: 14 },
-            contentStyle,
-          ]}
-          keyboardShouldPersistTaps={keyboard}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            pull ? (
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={colors.accent}
-              />
-            ) : undefined
-          }
+      <ScrollCtx.Provider value={scrollRef}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "web" ? undefined : "padding"}
         >
-          {body}
-          {bottomGap ? <View style={{ height: bottomGap }} /> : null}
-        </ScrollView>
-      ) : (
-        <View style={[{ flex: 1 }, data && !model.ready ? null : contentStyle]}>
-          {body}
-        </View>
-      )}
-      {data && !model.ready ? null : footer}
+          {usesScroll ? (
+            <ScrollView
+              ref={scrollRef}
+              style={{ flex: 1, minHeight: 0 }}
+              contentContainerStyle={[
+                { padding: 16, paddingTop: 20, paddingBottom: 24, gap: 14 },
+                contentStyle,
+              ]}
+              keyboardShouldPersistTaps={keyboard}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                pull ? (
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    tintColor={colors.accent}
+                  />
+                ) : undefined
+              }
+            >
+              {body}
+              {bottomGap ? <View style={{ height: bottomGap }} /> : null}
+            </ScrollView>
+          ) : (
+            <View
+              style={[{ flex: 1 }, data && !model.ready ? null : contentStyle]}
+            >
+              {body}
+            </View>
+          )}
+          {data && !model.ready ? null : footer}
+        </KeyboardAvoidingView>
+      </ScrollCtx.Provider>
     </SafeAreaView>
   );
 }
@@ -167,12 +198,14 @@ export function Screen({
 export function Footer({ children }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardVisible();
   return (
     <View
       style={{
         padding: 16,
-        // Deja libre la barra de navegación del sistema (botones de Android)
-        paddingBottom: 16 + insets.bottom,
+        // Deja libre la barra de navegación del sistema (botones de Android),
+        // salvo con el teclado abierto: él ya cubre esa zona
+        paddingBottom: 16 + (keyboard ? 0 : insets.bottom),
         backgroundColor: colors.page,
         borderTopWidth: 1,
         borderTopColor: colors.border,

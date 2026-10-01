@@ -22,9 +22,8 @@ import {
   CCY_KEYS,
   CCY_LABEL,
   ENT_CCY_LABEL,
-  endOfMonth,
+  last30Range,
   monthLabel,
-  startOfMonth,
 } from "../../utils/money";
 import { go } from "../../navigation/helpers";
 import { confirm } from "../../utils/confirm";
@@ -50,11 +49,8 @@ export default function EntityDetailScreen({ navigation, route }) {
   const data = (e.pd || [])
     .map((v, i) => ({ label: pt.f[i] || "", value: v }))
     .filter((f) => f.value && f.label);
-  // Solo el mes en curso; el resto se ve en «Ver más movimientos» (con rango de fechas)
-  const ledger = ledgerOf(model, e.id, dv, {
-    from: startOfMonth(),
-    to: endOfMonth(),
-  });
+  // Solo los últimos 30 días; el resto se ve en «Ver más movimientos» (con rango de fechas)
+  const ledger = ledgerOf(model, e.id, dv, last30Range());
   const low = model.isLow(e);
 
   const copy = async () => {
@@ -292,7 +288,7 @@ export default function EntityDetailScreen({ navigation, route }) {
         ))}
         {!ledger.length ? (
           <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
-            Sin movimientos este mes.
+            Sin movimientos en los últimos 30 días.
           </Txt>
         ) : null}
         <Button

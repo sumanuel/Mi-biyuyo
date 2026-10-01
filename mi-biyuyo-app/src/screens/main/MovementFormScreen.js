@@ -36,6 +36,7 @@ import {
 } from "../../utils/money";
 import { takePhoto, pickFile } from "../../utils/receipt";
 import DateField from "../../components/DateField";
+import { useFocusChain } from "../../hooks/useFocusChain";
 
 const DUE_OPTS = [
   { l: "7 días", v: 7 },
@@ -58,6 +59,7 @@ const SUG_GASTO = [
 const SUG_PAGAR = ["Cuota", "Intereses", "Seguro", "Comisión"];
 
 export default function MovementFormScreen({ navigation, route }) {
+  const chain = useFocusChain();
   const { colors } = useTheme();
   const { model, actions, showToast } = useData();
   const { fx } = model;
@@ -450,6 +452,7 @@ export default function MovementFormScreen({ navigation, route }) {
             keyboardType="decimal-pad"
             placeholder="0,00"
             accessibilityLabel="Monto"
+            {...chain(0)}
             style={{
               flex: 1,
               minWidth: 0,
@@ -471,6 +474,7 @@ export default function MovementFormScreen({ navigation, route }) {
           value={person}
           onChangeText={setPerson}
           placeholder="Nombre de la persona"
+          {...chain(1)}
         />
       ) : null}
 
@@ -480,6 +484,7 @@ export default function MovementFormScreen({ navigation, route }) {
         value={desc}
         onChangeText={setDesc}
         placeholder={meta.descHint}
+        {...chain(2, { last: true })}
       />
 
       {showItems ? (

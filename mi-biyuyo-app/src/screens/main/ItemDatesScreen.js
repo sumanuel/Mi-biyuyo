@@ -10,7 +10,7 @@ import {
   Card,
   Empty,
 } from "../../components/ui";
-import { itemAgg } from "../../utils/ledger";
+import { byRecent, itemAgg } from "../../utils/ledger";
 import { fullDate, nTxt } from "../../utils/money";
 import { go } from "../../navigation/helpers";
 
@@ -28,7 +28,7 @@ export default function ItemDatesScreen({ navigation, route }) {
         .trim()
         .toLowerCase(),
   );
-  const buys = item ? item.buys.slice().sort((a, b) => a.m.d - b.m.d) : [];
+  const buys = item ? item.buys.slice().sort((a, b) => byRecent(a.m, b.m)) : [];
 
   return (
     <Screen data={false} contentStyle={{ paddingTop: 16 }}>

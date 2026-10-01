@@ -16,8 +16,8 @@ import {
   Button,
 } from "../../components/ui";
 import DateRangeFilter from "../../components/DateRangeFilter";
-import { META, feed } from "../../utils/ledger";
-import { endOfMonth, fullDate, startOfMonth } from "../../utils/money";
+import { META, byRecent, feed } from "../../utils/ledger";
+import { fullDate, last30Range } from "../../utils/money";
 import { go } from "../../navigation/helpers";
 
 const FILTERS = [
@@ -35,8 +35,8 @@ export default function HistoryScreen({ navigation, route }) {
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const [limit, setLimit] = useState(PAGE);
-  const [from, setFrom] = useState(startOfMonth());
-  const [to, setTo] = useState(endOfMonth());
+  const [from, setFrom] = useState(last30Range().from);
+  const [to, setTo] = useState(last30Range().to);
 
   const setRange = (f, t) => {
     setFrom(f);
@@ -51,8 +51,8 @@ export default function HistoryScreen({ navigation, route }) {
     setFilter(p.filter);
     setQ("");
     setLimit(PAGE);
-    setFrom(p.from || startOfMonth());
-    setTo(p.to || endOfMonth());
+    setFrom(p.from || last30Range().from);
+    setTo(p.to || last30Range().to);
   }, [route.params?.filter, route.params?.ts]);
 
   const qn = q.trim().toLowerCase();
@@ -63,7 +63,7 @@ export default function HistoryScreen({ navigation, route }) {
       .join(" ")
       .toLowerCase()
       .includes(qn);
-  const sorted = model.moves.slice().sort((a, b) => a.d - b.d);
+  const sorted = model.moves.slice().sort(byRecent);
   const fl = (
     filter === "all" ? sorted : sorted.filter((m) => m.type === filter)
   )
@@ -100,7 +100,7 @@ export default function HistoryScreen({ navigation, route }) {
           fontSize: 15,
         }}
       />
-      <DateRangeFilter from={from} to={to} onChange={setRange} />
+      <DateRangeFilter last30 from={from} to={to} onChange={setRange} />
       <DispTabs height={40} />
       <ChipRow scroll>
         {FILTERS.map(([k, l]) => (

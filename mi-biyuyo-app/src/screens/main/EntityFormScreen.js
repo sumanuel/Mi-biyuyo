@@ -27,6 +27,7 @@ import {
   grp,
   parseNum,
 } from "../../utils/money";
+import { useFocusChain } from "../../hooks/useFocusChain";
 
 const KINDS = ["efectivo", "banco", "digital", "otro"];
 const PTS = ["pm", "acct", "email", "id", "none"];
@@ -35,6 +36,7 @@ const round2 = (n) => String(Math.round(n * 100) / 100).replace(".", ",");
 
 /** Nueva entidad o edición de una existente (params.id). */
 export default function EntityFormScreen({ navigation, route }) {
+  const chain = useFocusChain();
   const { colors } = useTheme();
   const { model, actions, showToast } = useData();
   const { fx } = model;
@@ -128,6 +130,7 @@ export default function EntityFormScreen({ navigation, route }) {
         value={name}
         onChangeText={setName}
         placeholder="Ej: Banco 1, Efectivo, PayPal"
+        {...chain(0)}
       />
 
       <View style={{ gap: 8 }}>
@@ -210,6 +213,7 @@ export default function EntityFormScreen({ navigation, route }) {
               keyboardType="decimal-pad"
               placeholder="0,00"
               accessibilityLabel="Saldo inicial"
+              {...chain(1)}
               style={{
                 flex: 1,
                 minWidth: 0,
@@ -332,6 +336,7 @@ export default function EntityFormScreen({ navigation, route }) {
             onChangeText={setAlertStr}
             keyboardType="decimal-pad"
             placeholder="0,00"
+            {...chain(2)}
           />
         ) : null}
       </Card>
@@ -352,6 +357,7 @@ export default function EntityFormScreen({ navigation, route }) {
       {PT[pt].f.map((label, i) => (
         <Field
           key={pt + i}
+          {...chain(3 + i, { last: i === PT[pt].f.length - 1 })}
           label={label}
           value={vals[i] || ""}
           onChangeText={(v) =>
