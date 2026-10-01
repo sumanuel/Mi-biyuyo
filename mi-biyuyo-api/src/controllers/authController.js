@@ -2,7 +2,6 @@ require("dotenv").config();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
 const pool = require("../config/database");
 const { body } = require("express-validator");
 const { sendMail, mailConfigured } = require("../utils/mailer");
@@ -29,16 +28,32 @@ function httpError(status, message, extra) {
   return err;
 }
 
+const MAILS = {
+  verify: {
+    subject: "Tu código de verificación — Mi Biyuyo",
+    intro: "Tu código para verificar tu correo en Mi Biyuyo es:",
+    outro: "Si no creaste una cuenta, ignora este correo.",
+    text: (code) => `Tu código de verificación es ${code}.`,
+  },
+  reset: {
+    subject: "Código para restablecer tu contraseña — Mi Biyuyo",
+    intro: "Tu código para restablecer tu contraseña de Mi Biyuyo es:",
+    outro:
+      "Si no lo solicitaste, ignora este correo: tu contraseña no cambiará.",
+    text: (code) => `Tu código para restablecer la contraseña es ${code}.`,
+  },
+};
+
 /**
- * Crea y envía un código de 6 dígitos para verificar el correo.
+ * Crea y envía un código de 6 dígitos (purpose: 'verify' o 'reset').
  * Respeta un intervalo mínimo entre envíos. Devuelve { devCode } solo si el
  * correo no está configurado y el servidor no está en producción.
  */
-async function issueVerificationCode(user) {
+async function issueCode(user, purpose) {
   const { rows: last } = await pool.query(
     `SELECT created_at FROM email_verification_codes
-     WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`,
-    [user.id],
+     WHERE user_id = $1 AND purpose = $2 ORDER BY created_at DESC LIMIT 1`,
+    [user.id, purpose],
   );
   if (last.length) {
     const wait =
@@ -52,22 +67,29 @@ async function issueVerificationCode(user) {
   }
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
   await pool.query(
-    `UPDATE email_verification_codes SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL`,
-    [user.id],
+    `UPDATE email_verification_codes SET used_at = NOW()
+     WHERE user_id = $1 AND purpose = $2 AND used_at IS NULL`,
+    [user.id, purpose],
   );
   await pool.query(
-    `INSERT INTO email_verification_codes (user_id, code_hash, expires_at) VALUES ($1, $2, $3)`,
-    [user.id, hashCode(code), new Date(Date.now() + CODE_MINUTES * 60000)],
+    `INSERT INTO email_verification_codes (user_id, code_hash, expires_at, purpose) VALUES ($1, $2, $3, $4)`,
+    [
+      user.id,
+      hashCode(code),
+      new Date(Date.now() + CODE_MINUTES * 60000),
+      purpose,
+    ],
   );
+  const m = MAILS[purpose];
   try {
     await sendMail({
       to: user.email,
-      subject: "Tu código de verificación — Mi Biyuyo",
-      text: `Tu código de verificación es ${code}. Vence en ${CODE_MINUTES} minutos.`,
+      subject: m.subject,
+      text: `${m.text(code)} Vence en ${CODE_MINUTES} minutos.`,
       html: `<p>Hola ${user.name || ""},</p>
-             <p>Tu código para verificar tu correo en Mi Biyuyo es:</p>
+             <p>${m.intro}</p>
              <p style="font-size:28px;font-weight:800;letter-spacing:6px">${code}</p>
-             <p>Vence en ${CODE_MINUTES} minutos. Si no creaste una cuenta, ignora este correo.</p>`,
+             <p>Vence en ${CODE_MINUTES} minutos. ${m.outro}</p>`,
     });
   } catch (mailErr) {
     console.error("Error enviando código:", mailErr.message);
@@ -76,22 +98,7 @@ async function issueVerificationCode(user) {
   return { devCode: showDev ? code : undefined };
 }
 
-async function sendResetEmail(to, resetUrl) {
-  const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT || "587"),
-    secure: process.env.EMAIL_SECURE === "true",
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
-    subject: "Restablecer contraseña — Mi Biyuyo",
-    html: `<p>Haz clic en el siguiente enlace para restablecer tu contraseña (válido 60 min):</p>
-           <p><a href="${resetUrl}">${resetUrl}</a></p>
-           <p>Si no solicitaste esto, ignora este correo.</p>`,
-  });
-}
+const issueVerificationCode = (user) => issueCode(user, "verify");
 
 exports.register = async (req, res, next) => {
   try {
@@ -188,7 +195,7 @@ exports.verifyEmail = async (req, res, next) => {
     if (!user.email_verified) {
       const { rows } = await pool.query(
         `SELECT id, code_hash, attempts FROM email_verification_codes
-         WHERE user_id = $1 AND used_at IS NULL AND expires_at > NOW()
+         WHERE user_id = $1 AND purpose = 'verify' AND used_at IS NULL AND expires_at > NOW()
          ORDER BY created_at DESC LIMIT 1`,
         [user.id],
       );
@@ -266,45 +273,23 @@ exports.updateProfile = async (req, res, next) => {
   }
 };
 
+// Recuperar contraseña con un código enviado al correo.
+// Siempre responde igual, exista o no el correo, para no revelar qué cuentas existen.
 exports.forgotPassword = async (req, res, next) => {
   try {
-    const { email } = req.body;
-    const { rows } = await pool.query("SELECT id FROM users WHERE email = $1", [
-      email.toLowerCase(),
-    ]);
-    // Always respond 200 to avoid user enumeration
-    if (!rows.length)
-      return res.json({ message: "Si el correo existe recibirás un enlace" });
-
-    const userId = rows[0].id;
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const tokenHash = crypto
-      .createHash("sha256")
-      .update(rawToken)
-      .digest("hex");
-    const expiresAt = new Date(
-      Date.now() +
-        parseInt(process.env.RESET_TOKEN_EXPIRES_MINUTES || "60") * 60000,
+    const generic = { message: "Si el correo existe recibirás un código" };
+    const { rows } = await pool.query(
+      "SELECT id, name, email FROM users WHERE email = $1",
+      [req.body.email.toLowerCase()],
     );
-
-    // Invalidate previous tokens
-    await pool.query(
-      `UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL`,
-      [userId],
-    );
-    await pool.query(
-      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
-      [userId, tokenHash, expiresAt],
-    );
-
-    const resetUrl = `mibiyuyo://reset-password?token=${rawToken}`;
+    if (!rows.length) return res.json(generic);
     try {
-      await sendResetEmail(email, resetUrl);
-    } catch (emailErr) {
-      console.error("Error enviando email:", emailErr.message);
+      const { devCode } = await issueCode(rows[0], "reset");
+      return res.json({ ...generic, dev_code: devCode });
+    } catch (e) {
+      if (e.status !== 429) throw e; // ya se envió uno hace poco
+      return res.json({ ...generic, retry_after: e.extra?.retry_after });
     }
-
-    res.json({ message: "Si el correo existe recibirás un enlace" });
   } catch (err) {
     next(err);
   }
@@ -312,29 +297,46 @@ exports.forgotPassword = async (req, res, next) => {
 
 exports.resetPassword = async (req, res, next) => {
   try {
-    const { token, password } = req.body;
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const { email, code, password } = req.body;
+    const invalid = httpError(400, "Código incorrecto o vencido");
+    const { rows: users } = await pool.query(
+      "SELECT id FROM users WHERE email = $1",
+      [email.toLowerCase()],
+    );
+    if (!users.length) throw invalid;
+    const userId = users[0].id;
 
     const { rows } = await pool.query(
-      `SELECT id, user_id FROM password_reset_tokens
-       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()`,
-      [tokenHash],
+      `SELECT id, code_hash, attempts FROM email_verification_codes
+       WHERE user_id = $1 AND purpose = 'reset' AND used_at IS NULL AND expires_at > NOW()
+       ORDER BY created_at DESC LIMIT 1`,
+      [userId],
     );
-    if (!rows.length)
-      return res.status(400).json({ error: "Token inválido o expirado" });
+    if (!rows.length) throw invalid;
+    const row = rows[0];
+    if (row.attempts >= CODE_MAX_ATTEMPTS)
+      throw httpError(
+        429,
+        "Demasiados intentos. Pide un código nuevo para continuar",
+      );
+    if (row.code_hash !== hashCode(String(code).trim())) {
+      await pool.query(
+        `UPDATE email_verification_codes SET attempts = attempts + 1 WHERE id = $1`,
+        [row.id],
+      );
+      throw invalid;
+    }
 
-    const { id: tokenId, user_id } = rows[0];
     const hash = await bcrypt.hash(password, SALT_ROUNDS);
-
+    // Tener el código del correo prueba que la cuenta es de quien lo pide: queda verificada
     await pool.query(
-      `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
-      [hash, user_id],
+      `UPDATE users SET password_hash = $1, email_verified = true, updated_at = NOW() WHERE id = $2`,
+      [hash, userId],
     );
     await pool.query(
-      `UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1`,
-      [tokenId],
+      `UPDATE email_verification_codes SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL`,
+      [userId],
     );
-
     res.json({ message: "Contraseña actualizada correctamente" });
   } catch (err) {
     next(err);
@@ -369,6 +371,9 @@ exports.validateResendCode = [body("email").isEmail().normalizeEmail()];
 exports.validateForgotPassword = [body("email").isEmail().normalizeEmail()];
 
 exports.validateResetPassword = [
-  body("token").notEmpty(),
-  body("password").isLength({ min: 6 }),
+  body("email").isEmail().normalizeEmail(),
+  body("code").trim().isLength({ min: 6, max: 6 }).isNumeric(),
+  body("password")
+    .isLength({ min: 6 })
+    .withMessage("La contraseña debe tener al menos 6 caracteres"),
 ];
