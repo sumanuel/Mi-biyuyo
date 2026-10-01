@@ -26,9 +26,11 @@ import {
   parseNum,
   todayStr,
 } from "../../utils/money";
+import { useFocusChain } from "../../hooks/useFocusChain";
 
 /** Transferencia entre entidades propias (no es ingreso ni gasto). */
 export default function TransferScreen({ navigation, route }) {
+  const chain = useFocusChain();
   const { colors } = useTheme();
   const { model, dv, actions, showToast } = useData();
   const { fx } = model;
@@ -176,6 +178,7 @@ export default function TransferScreen({ navigation, route }) {
             keyboardType="decimal-pad"
             placeholder="0,00"
             accessibilityLabel="Monto a transferir"
+            {...chain(0)}
             style={{
               flex: 1,
               minWidth: 0,
@@ -225,6 +228,7 @@ export default function TransferScreen({ navigation, route }) {
         onChangeText={setFee}
         keyboardType="decimal-pad"
         placeholder="0,00"
+        {...chain(1, { last: true })}
       />
 
       <Card pad={14} style={{ gap: 8 }}>

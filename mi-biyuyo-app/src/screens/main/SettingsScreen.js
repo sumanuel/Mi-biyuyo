@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { View, TouchableOpacity, Switch, Modal } from "react-native";
+import {
+  View,
+  TouchableOpacity,
+  Switch,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useData } from "../../contexts/DataContext";
@@ -287,7 +294,8 @@ export default function SettingsScreen({ navigation }) {
         animationType="fade"
         onRequestClose={() => setPwOpen(false)}
       >
-        <View
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "web" ? undefined : "padding"}
           style={{
             flex: 1,
             backgroundColor: colors.overlay,
@@ -353,7 +361,7 @@ export default function SettingsScreen({ navigation }) {
               />
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Section title="AVISOS">

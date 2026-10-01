@@ -128,6 +128,12 @@ export const fullDate = (str) => {
 /** Oculta el número de un monto conservando la moneda: "USD 1,387.80" → "USD ••••••". */
 export const maskMoney = (text) => String(text).split(" ")[0] + " ••••••";
 
+/** Últimos 30 días (hoy y los 29 anteriores): rango por defecto de los historiales. */
+export const last30Range = () => ({
+  from: addDays(todayStr(), -29),
+  to: todayStr(),
+});
+
 /* ---------- rangos por mes ---------- */
 export const startOfMonth = (str) => {
   const d = str ? parse(str) : new Date();

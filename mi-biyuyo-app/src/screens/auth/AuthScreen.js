@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useFocusChain } from "../../hooks/useFocusChain";
 import * as authService from "../../services/api/authService";
 import { Icon, IC } from "../../components/icons";
 import {
@@ -61,6 +62,7 @@ function PwField({
   placeholder,
   autoComplete,
   onSubmit,
+  chainProps,
 }) {
   const C = useC();
   const [shown, setShown] = useState(false);
@@ -90,6 +92,7 @@ function PwField({
           returnKeyType="go"
           autoCapitalize="none"
           autoComplete={autoComplete}
+          {...chainProps}
           style={{
             flex: 1,
             minWidth: 0,
@@ -117,6 +120,8 @@ function PwField({
 
 export default function AuthScreen({ initialMode = "login" }) {
   const C = useC();
+  const sv = useRef(null);
+  const chain = useFocusChain(sv);
   const { login, register, verifyEmail } = useAuth();
   const [mode, setMode] = useState(initialMode);
   const [name, setName] = useState("");
@@ -332,9 +337,10 @@ export default function AuthScreen({ initialMode = "login" }) {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.page }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "web" ? undefined : "padding"}
       >
         <ScrollView
+          ref={sv}
           contentContainerStyle={{
             flexGrow: 1,
             justifyContent: "center",
@@ -522,6 +528,7 @@ export default function AuthScreen({ initialMode = "login" }) {
                   onChangeText: setName,
                   placeholder: "Nombre del usuario",
                   autoComplete: "name",
+                  ...chain(0),
                 })
               : null}
             {!isVerify
@@ -535,6 +542,7 @@ export default function AuthScreen({ initialMode = "login" }) {
                   keyboardType: "email-address",
                   autoCapitalize: "none",
                   autoComplete: "email",
+                  ...chain(1, { last: isReset, onSubmit: submit }),
                 })
               : null}
             {!isReset && !isVerify ? (
@@ -548,6 +556,7 @@ export default function AuthScreen({ initialMode = "login" }) {
                 placeholder="Mínimo 6 caracteres"
                 autoComplete={isRegister ? "new-password" : "current-password"}
                 onSubmit={submit}
+                chainProps={chain(2, { last: !isRegister, onSubmit: submit })}
               />
             ) : null}
             {isRegister && !isVerify ? (
@@ -561,6 +570,7 @@ export default function AuthScreen({ initialMode = "login" }) {
                 placeholder="Repite la contraseña"
                 autoComplete="new-password"
                 onSubmit={submit}
+                chainProps={chain(3, { last: true, onSubmit: submit })}
               />
             ) : null}
 

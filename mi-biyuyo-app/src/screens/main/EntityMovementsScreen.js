@@ -13,21 +13,19 @@ import {
 } from "../../components/ui";
 import DateRangeFilter from "../../components/DateRangeFilter";
 import { ledgerOf } from "../../utils/ledger";
-import { endOfMonth, fullDate, startOfMonth } from "../../utils/money";
+import { fullDate, last30Range } from "../../utils/money";
 import { go } from "../../navigation/helpers";
 
 const PAGE = 50;
 
-/** Movimientos de una entidad en un rango de fechas (por defecto, el mes en curso). */
+/** Movimientos de una entidad en un rango de fechas (por defecto, los últimos 30 días). */
 export default function EntityMovementsScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { model, dv } = useData();
   const e = model.entById[route.params?.id];
 
-  const monthStart = startOfMonth();
-  const monthEnd = endOfMonth();
-  const [from, setFrom] = useState(monthStart);
-  const [to, setTo] = useState(monthEnd);
+  const [from, setFrom] = useState(last30Range().from);
+  const [to, setTo] = useState(last30Range().to);
   const [limit, setLimit] = useState(PAGE);
 
   if (!e) {
@@ -55,7 +53,7 @@ export default function EntityMovementsScreen({ navigation, route }) {
         onBack={() => navigation.goBack()}
       />
 
-      <DateRangeFilter from={from} to={to} onChange={setRange} />
+      <DateRangeFilter last30 from={from} to={to} onChange={setRange} />
 
       <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
         {rows.length === 1 ? "1 movimiento" : `${rows.length} movimientos`} del{" "}

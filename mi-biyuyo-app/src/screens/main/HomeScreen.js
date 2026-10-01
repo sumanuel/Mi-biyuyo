@@ -25,6 +25,7 @@ import {
   KIND_ICON,
   alertsOf,
   balanceNote,
+  byRecent,
   feed,
   pillOf,
 } from "../../utils/ledger";
@@ -69,7 +70,7 @@ export default function HomeScreen({ navigation }) {
   const pc = pillOf(cobr.length, overdue(cobr));
   const pp = pillOf(pag.length, overdue(pag));
   const alerts = alertsOf(model, dv, threshold);
-  const sorted = model.moves.slice().sort((a, b) => a.d - b.d);
+  const sorted = model.moves.slice().sort(byRecent);
   const recent = feed(model, sorted, true, dv).slice(0, MAX_MOVEMENTS);
   const open = (nav) => go(navigation, nav.name, nav.params);
 

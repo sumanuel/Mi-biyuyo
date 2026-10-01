@@ -168,6 +168,7 @@ export function buildModel(raw, ratesOverride) {
       include: e.include_in_balance !== false, // ¿suma a Mi saldo?
       created: e.created || null,
       d: e.created ? daysAgo(e.created) : 0,
+      ts: e.ts || 0,
     };
   });
   const entById = {};
@@ -186,6 +187,7 @@ export function buildModel(raw, ratesOverride) {
       hasDesc: !!t.description,
       date: t.date,
       d: daysAgo(t.date),
+      ts: t.ts || 0,
       usd: t.amount_usd || 0,
       val: mkVal(t.amount_usd, t.amount_ves, t.amount_binance),
       ccy: CCY_FROM_API[t.currency] || "usd",
@@ -207,6 +209,7 @@ export function buildModel(raw, ratesOverride) {
         id: p.id,
         date: p.date,
         d: daysAgo(p.date),
+        ts: p.ts || 0,
         usd: p.amount_usd || 0,
         val: mkVal(p.amount_usd, p.amount_ves, p.amount_binance),
         ccy: CCY_FROM_API[p.currency] || "usd",
@@ -223,6 +226,7 @@ export function buildModel(raw, ratesOverride) {
     id: t.id,
     date: t.date,
     d: daysAgo(t.date),
+    ts: t.ts || 0,
     from: t.from_entity_id,
     to: t.to_entity_id,
     usd: t.amount_usd,
@@ -512,6 +516,9 @@ export function transferRow(model, t, dv, ref) {
   };
 }
 
+/** Del más reciente al más antiguo: por fecha y, en el mismo día, por hora de registro. */
+export const byRecent = (a, b) => a.d - b.d || (b.ts || 0) - (a.ts || 0);
+
 /**
  * Mezcla movimientos, abonos y (opcional) transferencias, del más reciente al más antiguo.
  * `range` = { from, to } (YYYY-MM-DD, ambos incluidos) filtra también abonos, transferencias y saldos iniciales.
@@ -522,24 +529,29 @@ export function feed(model, list, withTransfers, dv, range) {
     ((!range.from || date >= range.from) && (!range.to || date <= range.to));
   const out = list
     .filter((m) => inRange(m.date))
-    .map((m) => ({ d: m.d, k: m.id, r: rowOf(model, m, dv) }));
+    .map((m) => ({ d: m.d, ts: m.ts, k: m.id, r: rowOf(model, m, dv) }));
   list.forEach((m) =>
     (m.pays || []).forEach((p) => {
       if (inRange(p.date))
-        out.push({ d: p.d, k: p.id, r: abonoRow(model, m, p, dv) });
+        out.push({ d: p.d, ts: p.ts, k: p.id, r: abonoRow(model, m, p, dv) });
     }),
   );
   if (withTransfers) {
     model.transfers.forEach((t) => {
       if (inRange(t.date))
-        out.push({ d: t.d, k: t.id, r: transferRow(model, t, dv) });
+        out.push({ d: t.d, ts: t.ts, k: t.id, r: transferRow(model, t, dv) });
     });
     withInitial(model).forEach((e) => {
       if (inRange(e.created))
-        out.push({ d: e.d, k: "i" + e.id, r: initialRow(model, e, dv) });
+        out.push({
+          d: e.d,
+          ts: e.ts,
+          k: "i" + e.id,
+          r: initialRow(model, e, dv),
+        });
     });
   }
-  return out.sort((a, b) => a.d - b.d).map((o) => o.r);
+  return out.sort(byRecent).map((o) => o.r);
 }
 
 /**
@@ -551,24 +563,24 @@ export function ledgerOf(model, entId, dv, range) {
   const inRange = (date) =>
     !range ||
     ((!range.from || date >= range.from) && (!range.to || date <= range.to));
-  const add = (d, date, r) => {
-    if (inRange(date)) out.push({ d, r });
+  const add = (d, date, r, ts) => {
+    if (inRange(date)) out.push({ d, ts, r });
   };
   model.moves.forEach((m) => {
     if (m.ent === entId && model.isLive(m))
-      add(m.d, m.date, rowOf(model, m, dv));
+      add(m.d, m.date, rowOf(model, m, dv), m.ts);
     (m.pays || []).forEach((q) => {
-      if (q.ent === entId) add(q.d, q.date, abonoRow(model, m, q, dv));
+      if (q.ent === entId) add(q.d, q.date, abonoRow(model, m, q, dv), q.ts);
     });
   });
   model.transfers.forEach((t) => {
     if (t.from === entId || t.to === entId)
-      add(t.d, t.date, transferRow(model, t, dv, entId));
+      add(t.d, t.date, transferRow(model, t, dv, entId), t.ts);
   });
   withInitial(model)
     .filter((e) => e.id === entId)
-    .forEach((e) => add(e.d, e.created, initialRow(model, e, dv)));
-  return out.sort((a, b) => a.d - b.d).map((o) => o.r);
+    .forEach((e) => add(e.d, e.created, initialRow(model, e, dv), e.ts));
+  return out.sort(byRecent).map((o) => o.r);
 }
 
 /** Alertas de saldo bajo (por entidad y total). */

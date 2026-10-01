@@ -14,12 +14,14 @@ import {
 } from "../../components/ui";
 import { grp, parseNum } from "../../utils/money";
 import * as watcher from "../../services/rateWatcher";
+import { useFocusChain } from "../../hooks/useFocusChain";
 
 const asInput = (v) =>
   Number(v) > 0 ? String(Number(v)).replace(".", ",") : "";
 
 /** Tasas de cambio: manual o desde fuentes en línea. */
 export default function ExchangeRateScreen({ navigation }) {
+  const chain = useFocusChain();
   const { colors } = useTheme();
   const { rates, loading, fetchExternal, updateManual } = useExchangeRate();
   const { showToast } = useData();
@@ -102,6 +104,7 @@ export default function ExchangeRateScreen({ navigation }) {
           onChangeText={setBcv}
           keyboardType="decimal-pad"
           placeholder="0,00"
+          {...chain(0)}
         />
         <Field
           label="Tasa Binance P2P"
@@ -110,6 +113,7 @@ export default function ExchangeRateScreen({ navigation }) {
           onChangeText={setBin}
           keyboardType="decimal-pad"
           placeholder="0,00"
+          {...chain(1, { last: true })}
         />
         {gap !== null ? (
           <View

@@ -17,7 +17,8 @@ exports.get = async (req, res, next) => {
         `SELECT id, name, kind, currency, initial_usd::float AS initial_usd,
                 initial_amount::float AS initial_amount,
                 payment_type, payment_data, alert_usd::float AS alert_usd,
-                include_in_balance, to_char(created_at,'YYYY-MM-DD') AS created
+                include_in_balance, to_char(created_at,'YYYY-MM-DD') AS created,
+                (EXTRACT(EPOCH FROM created_at) * 1000)::float AS ts
          FROM entities WHERE user_id = $1 ORDER BY id`,
         [uid],
       ),
@@ -27,12 +28,14 @@ exports.get = async (req, res, next) => {
                 t.amount_binance::float AS amount_binance, to_char(t.date,'YYYY-MM-DD') AS date,
                 to_char(t.due_date,'YYYY-MM-DD') AS due_date, t.counterpart_name, t.notes,
                 t.entity_id, t.cash, t.status, t.receipt_name,
+                (EXTRACT(EPOCH FROM t.created_at) * 1000)::float AS ts,
                 (t.receipt_data IS NOT NULL) AS has_receipt,
                 COALESCE((SELECT json_agg(json_build_object(
                     'id', p.id, 'amount', p.amount::float, 'currency', p.currency,
                     'amount_usd', p.amount_usd::float, 'amount_ves', p.amount_ves::float,
                     'amount_binance', p.amount_binance::float, 'rate', p.rate::float,
-                    'date', to_char(p.date,'YYYY-MM-DD'), 'entity_id', p.entity_id, 'notes', p.notes
+                    'date', to_char(p.date,'YYYY-MM-DD'), 'entity_id', p.entity_id, 'notes', p.notes,
+                    'ts', (EXTRACT(EPOCH FROM p.created_at) * 1000)::float
                   ) ORDER BY p.date, p.id) FROM transaction_payments p WHERE p.transaction_id = t.id), '[]') AS payments,
                 COALESCE((SELECT json_agg(json_build_object(
                     'id', i.id, 'name', i.name, 'amount_usd', i.amount_usd::float
@@ -45,7 +48,8 @@ exports.get = async (req, res, next) => {
         `SELECT id, from_entity_id, to_entity_id, amount_usd::float AS amount_usd,
                 fee_usd::float AS fee_usd, currency, to_char(date,'YYYY-MM-DD') AS date,
                 amount_ves::float AS amount_ves, amount_binance::float AS amount_binance,
-                fee_ves::float AS fee_ves, fee_binance::float AS fee_binance
+                fee_ves::float AS fee_ves, fee_binance::float AS fee_binance,
+                (EXTRACT(EPOCH FROM created_at) * 1000)::float AS ts
          FROM transfers WHERE user_id = $1 ORDER BY date DESC, id DESC`,
         [uid],
       ),

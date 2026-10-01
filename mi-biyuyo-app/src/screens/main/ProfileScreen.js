@@ -12,9 +12,11 @@ import {
   Field,
   Button,
 } from "../../components/ui";
+import { useFocusChain } from "../../hooks/useFocusChain";
 
 /** Mi perfil: nombre editable y correo (solo lectura). */
 export default function ProfileScreen({ navigation }) {
+  const chain = useFocusChain();
   const { colors } = useTheme();
   const { user, updateUser } = useAuth();
   const { showToast } = useData();
@@ -76,6 +78,7 @@ export default function ProfileScreen({ navigation }) {
         value={name}
         onChangeText={setName}
         placeholder="Tu nombre"
+        {...chain(0, { last: true })}
       />
       <Field
         label="Correo"

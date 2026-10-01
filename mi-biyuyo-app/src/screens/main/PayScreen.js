@@ -28,9 +28,11 @@ import {
   todayStr,
 } from "../../utils/money";
 import DateField from "../../components/DateField";
+import { useFocusChain } from "../../hooks/useFocusChain";
 
 /** Registrar un cobro (por cobrar) o un pago (por pagar) parcial. */
 export default function PayScreen({ navigation, route }) {
+  const chain = useFocusChain();
   const { colors } = useTheme();
   const { model, dv, actions, showToast } = useData();
   const { fx } = model;
@@ -177,6 +179,7 @@ export default function PayScreen({ navigation, route }) {
             keyboardType="decimal-pad"
             placeholder="0,00"
             accessibilityLabel="Monto del abono"
+            {...chain(0, { last: true })}
             style={{
               flex: 1,
               minWidth: 0,
