@@ -5,15 +5,15 @@ Venezuela sigue igual (USD, bolívares y USDT con tasas) y el resto de países u
 
 ## 1. Dónde está cada cosa
 
-Todo el trabajo está en la rama **`multi-pais-api`** (integración). **`main` no se ha tocado** y sigue en `b8ce66f`.
+Todo el trabajo está en una sola rama: **`multi-pais-api`** (integración). **`main` no se ha tocado** y sigue en `b8ce66f`.
 
 | Rama | Contenido | Estado |
 |---|---|---|
-| `multi-pais-api` | API (país, modo, arreglos de deudas) + app (selector de país, modo una moneda) + métodos de pago por país | Subida a GitHub, **sin fusionar a `main`** |
-| `multi-pais-app` | App multi-país | Ya incluida en `multi-pais-api`; se puede borrar |
-| `metodos-pago-pais` | Métodos de pago por país | Ya incluida en `multi-pais-api`; se puede borrar |
+| `multi-pais-api` | API (país, modo, arreglos de deudas) + app (selector de país, modo una moneda) + métodos de pago por país + estos documentos | Subida a GitHub, **sin fusionar a `main`** |
 
-Plan completo (fases y decisiones): `C:\Users\user\.claude\plans\clever-leaping-nebula.md`.
+Las ramas intermedias `multi-pais-app` y `metodos-pago-pais` ya se fusionaron en `multi-pais-api` y se borraron (local y en GitHub).
+
+Plan completo (fases, decisiones y estado de avance): [`docs/MULTI-PAIS-PLAN.md`](MULTI-PAIS-PLAN.md).
 
 ## 2. Qué cambia
 
@@ -63,5 +63,5 @@ Orden de despliegue: base de datos → API → app. La API nueva funciona con la
 
 ## 7. Limpieza opcional
 
-- Borrar las ramas ya incluidas (`multi-pais-app`, `metodos-pago-pais`) local y remotamente.
-- Después de fusionar a `main`, borrar también `multi-pais-api`.
+- Las ramas `multi-pais-app` y `metodos-pago-pais` ya se borraron.
+- Después de fusionar `multi-pais-api` a `main`, borrarla también (local y en GitHub).
