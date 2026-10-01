@@ -112,3 +112,41 @@ exports.remove = async (req, res, next) => {
     next(err);
   }
 };
+
+// Guarda el orden que el usuario eligió para sus categorías (lista de ids, de la primera a la última).
+exports.reorder = async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const ids = [...new Set((req.body.ids || []).map(Number))].filter((n) =>
+      Number.isInteger(n),
+    );
+    if (!ids.length || ids.length > 300)
+      return res.status(422).json({ error: "Lista de categorías inválida" });
+
+    // Solo categorías que el usuario puede ver (del sistema o suyas)
+    const { rows } = await client.query(
+      `SELECT id FROM categories WHERE id = ANY($1::int[]) AND (user_id IS NULL OR user_id = $2)`,
+      [ids, req.user.id],
+    );
+    const valid = new Set(rows.map((r) => r.id));
+    const list = ids.filter((id) => valid.has(id));
+
+    await client.query("BEGIN");
+    await client.query(
+      `DELETE FROM category_order WHERE user_id = $1 AND category_id = ANY($2::int[])`,
+      [req.user.id, list],
+    );
+    await client.query(
+      `INSERT INTO category_order (user_id, category_id, position)
+       SELECT $1, x.id, x.pos FROM unnest($2::int[], $3::int[]) AS x(id, pos)`,
+      [req.user.id, list, list.map((_, i) => i)],
+    );
+    await client.query("COMMIT");
+    res.json({ message: "Orden guardado", count: list.length });
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+};

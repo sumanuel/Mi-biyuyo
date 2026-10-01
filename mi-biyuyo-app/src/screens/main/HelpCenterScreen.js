@@ -31,6 +31,14 @@ const TOPICS = [
     ],
   },
   {
+    title: "Ordenar tus categorías",
+    body: [
+      "En Registrar puedes poner las categorías en el orden que prefieras, para tener a mano las que más usas.",
+      "Mantén presionada una categoría un instante, arrástrala al lugar que quieras y suéltala. Las demás se acomodan solas, y si la lista es larga se desplaza cuando llegas al borde de la pantalla.",
+      "Cada tipo (gastos, ingresos, por cobrar y por pagar) tiene su propio orden. Se guarda en tu cuenta, así que lo conservas si cambias de teléfono.",
+    ],
+  },
+  {
     title: "Por cobrar y por pagar",
     body: [
       "Por cobrar es lo que te deben (por ejemplo, un préstamo que hiciste). Por pagar es lo que tú debes.",
