@@ -22,7 +22,12 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useData } from "../contexts/DataContext";
 import { fontFor } from "../theme/font";
 import { Icon, UI } from "./icons";
-import { scrollIntoView, useKeyboardVisible } from "../utils/keyboard";
+import {
+  focusedInput,
+  scrollIntoView,
+  useKeyboardHeight,
+  useKeyboardVisible,
+} from "../utils/keyboard";
 
 // Permite que un campo avise a su pantalla para desplazarse sobre el teclado
 const ScrollCtx = React.createContext(null);
@@ -103,6 +108,11 @@ export function Screen({
   // Pantalla de pila sin pie: separar el contenido de la barra del sistema
   const bottomGap = !footer && tabHeight === undefined ? insets.bottom : 0;
   const scrollRef = React.useRef(null);
+  const kbHeight = useKeyboardHeight();
+  // Cuando el teclado termina de abrir, el área visible ya es menor: se vuelve a centrar el campo
+  React.useEffect(() => {
+    if (kbHeight > 0) scrollIntoView(scrollRef, focusedInput(), 60);
+  }, [kbHeight]);
   const [refreshing, setRefreshing] = React.useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
@@ -162,7 +172,13 @@ export function Screen({
               ref={scrollRef}
               style={{ flex: 1, minHeight: 0 }}
               contentContainerStyle={[
-                { padding: 16, paddingTop: 20, paddingBottom: 24, gap: 14 },
+                {
+                  padding: 16,
+                  paddingTop: 20,
+                  // Con el teclado abierto se deja espacio para poder subir los últimos campos
+                  paddingBottom: 24 + kbHeight,
+                  gap: 14,
+                },
                 contentStyle,
               ]}
               keyboardShouldPersistTaps={keyboard}

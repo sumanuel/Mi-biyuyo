@@ -484,7 +484,7 @@ export default function MovementFormScreen({ navigation, route }) {
         value={desc}
         onChangeText={setDesc}
         placeholder={meta.descHint}
-        {...chain(2, { last: true })}
+        {...chain(2, { last: !(showItems && itemsOpen) })}
       />
 
       {showItems ? (
@@ -524,6 +524,7 @@ export default function MovementFormScreen({ navigation, route }) {
                 <Input
                   value={iName}
                   onChangeText={setIName}
+                  {...chain(3, { last: true })}
                   onSubmitEditing={() => addNamed(iName)}
                   placeholder="Ej: queso, jamón, vino"
                   accessibilityLabel="Nuevo ítem"
@@ -582,7 +583,7 @@ export default function MovementFormScreen({ navigation, route }) {
                 ))}
               </ChipRow>
               <View>
-                {items.map((it) => (
+                {items.map((it, idx) => (
                   <View
                     key={it.id}
                     style={{
@@ -613,6 +614,7 @@ export default function MovementFormScreen({ navigation, route }) {
                         keyboardType="decimal-pad"
                         placeholder="0,00"
                         accessibilityLabel={`Monto de ${it.name}`}
+                        {...chain(10 + idx, { last: idx === items.length - 1 })}
                         style={{
                           width: 92,
                           minHeight: 40,
