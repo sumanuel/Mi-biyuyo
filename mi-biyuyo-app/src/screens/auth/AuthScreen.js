@@ -8,10 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
+import { COUNTRIES, COUNTRY_LIST } from "../../config/countries";
 import { useFocusChain } from "../../hooks/useFocusChain";
 import {
   focusedInput,
@@ -140,6 +142,10 @@ export default function AuthScreen({ initialMode = "login" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  // País elegido al registrarse (define la moneda y no se puede cambiar después)
+  const [country, setCountry] = useState(null);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [countryQ, setCountryQ] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [busy, setBusy] = useState(false);
@@ -308,6 +314,7 @@ export default function AuthScreen({ initialMode = "login" }) {
     }
     if (isRegister && !name.trim())
       return setError("Debes ingresar tu nombre.");
+    if (isRegister && !country) return setError("Selecciona tu país.");
     if (!email.trim()) return setError("Debes ingresar tu correo.");
     if (!password) return setError("Debes ingresar tu contraseña.");
     if (isRegister && password.length < 6)
@@ -318,7 +325,7 @@ export default function AuthScreen({ initialMode = "login" }) {
     setBusy(true);
     try {
       if (isRegister) {
-        const r = await register(name.trim(), email.trim(), password);
+        const r = await register(name.trim(), email.trim(), password, country);
         setBusy(false);
         startVerify(r.email || email.trim(), r.dev_code);
       } else {
@@ -599,6 +606,53 @@ export default function AuthScreen({ initialMode = "login" }) {
                   ...chain(0),
                 })
               : null}
+            {!isVerify && !isNewPass && isRegister ? (
+              <View style={{ gap: 10, marginTop: 4 }}>
+                <T style={{ fontSize: 13, fontWeight: "700" }}>País</T>
+                <TouchableOpacity
+                  onPress={() => {
+                    setCountryQ("");
+                    setCountryOpen(true);
+                  }}
+                  accessibilityLabel="Elegir país"
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    borderWidth: 1,
+                    borderColor: C.border,
+                    borderRadius: 12,
+                    backgroundColor: C.field,
+                    padding: 14,
+                    minHeight: 48,
+                  }}
+                >
+                  <T
+                    style={{
+                      fontSize: 15,
+                      color: country ? C.text : C.hint,
+                    }}
+                  >
+                    {country ? COUNTRIES[country].name : "Selecciona tu país"}
+                  </T>
+                  <Icon
+                    name="chevronRight"
+                    size={18}
+                    color={C.muted}
+                    stroke={2}
+                  />
+                </TouchableOpacity>
+                {country ? (
+                  <T style={{ fontSize: 12, lineHeight: 17, color: C.muted }}>
+                    Moneda: {COUNTRIES[country].currencyName}
+                    {COUNTRIES[country].mode === "single"
+                      ? ` (${COUNTRIES[country].currency})`
+                      : ""}
+                    . Se fija al crear tu cuenta y no se puede cambiar después.
+                  </T>
+                ) : null}
+              </View>
+            ) : null}
             {!isVerify && !isNewPass
               ? field("Correo", {
                   value: email,
@@ -816,6 +870,96 @@ export default function AuthScreen({ initialMode = "login" }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <Modal
+        visible={countryOpen}
+        transparent
+        animationType="none"
+        onRequestClose={() => setCountryOpen(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: C.card,
+              borderRadius: 20,
+              padding: 16,
+              gap: 10,
+              maxHeight: "80%",
+            }}
+          >
+            <T style={{ fontSize: 17, fontWeight: "800" }}>Elige tu país</T>
+            <TextInput
+              value={countryQ}
+              onChangeText={setCountryQ}
+              placeholder="Buscar país"
+              placeholderTextColor={C.hint}
+              accessibilityLabel="Buscar país"
+              style={{
+                borderWidth: 1,
+                borderColor: C.border,
+                borderRadius: 12,
+                backgroundColor: C.field,
+                color: C.text,
+                padding: 12,
+                fontSize: 15,
+              }}
+            />
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {COUNTRY_LIST.filter((c) =>
+                c.name.toLowerCase().includes(countryQ.trim().toLowerCase()),
+              ).map((c) => (
+                <TouchableOpacity
+                  key={c.code}
+                  onPress={() => {
+                    setCountry(c.code);
+                    setCountryOpen(false);
+                    setError("");
+                  }}
+                  style={{
+                    paddingVertical: 12,
+                    gap: 2,
+                    borderBottomWidth: 1,
+                    borderBottomColor: C.border,
+                  }}
+                >
+                  <T
+                    style={{
+                      fontSize: 15,
+                      fontWeight: country === c.code ? "800" : "600",
+                      color: country === c.code ? C.brand : C.text,
+                    }}
+                  >
+                    {c.name}
+                  </T>
+                  <T style={{ fontSize: 12, color: C.muted }}>
+                    {c.currencyName}
+                    {c.mode === "single" ? ` · ${c.currency}` : ""}
+                  </T>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              onPress={() => setCountryOpen(false)}
+              style={{
+                alignSelf: "center",
+                minHeight: 40,
+                justifyContent: "center",
+                paddingHorizontal: 12,
+              }}
+            >
+              <T style={{ color: C.link, fontSize: 13, fontWeight: "700" }}>
+                Cancelar
+              </T>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

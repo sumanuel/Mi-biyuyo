@@ -561,8 +561,16 @@ export function Segmented({ items, height = 44, fontSize = 13, tint }) {
 }
 
 /** Selector de moneda de visualización (USD / VES BCV / USDT Binance). */
+/** Muestra su contenido solo en modo Venezuela (varias monedas y tasas). */
+export function OnlyMulti({ children }) {
+  const { model } = useData();
+  return model.fx.single ? null : <>{children}</>;
+}
+
 export function DispTabs({ height = 44 }) {
-  const { disp, setDisp } = useData();
+  const { disp, setDisp, model } = useData();
+  // Con una sola moneda no hay nada que alternar
+  if (model.fx.single) return null;
   const items = [
     ["usd", "USD"],
     ["bcv", "VES BCV"],
@@ -658,6 +666,8 @@ export function Field({ label, hint, style, inputStyle, error, ...input }) {
 /** Opciones de moneda: tarjetas con etiqueta y tasa. */
 export function CcyOptions({ options, tint }) {
   const { colors } = useTheme();
+  const { model } = useData();
+  if (model.fx.single) return null;
   return (
     <View style={{ flexDirection: "row", gap: 8 }}>
       {options.map((o) => (
@@ -692,6 +702,8 @@ export function CcyOptions({ options, tint }) {
 /** Filas de equivalencias en las 3 monedas. rows: [{label, sub, value, active}] */
 export function ConvRows({ rows, tint, title }) {
   const { colors } = useTheme();
+  const { model } = useData();
+  if (model.fx.single) return null;
   return (
     <View style={{ gap: 8 }}>
       {title ? <Eyebrow>{title}</Eyebrow> : null}

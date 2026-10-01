@@ -13,6 +13,7 @@ import {
   ProgressBar,
   Icon,
   Button,
+  OnlyMulti,
 } from "../../components/ui";
 import {
   addDays,
@@ -309,29 +310,31 @@ export default function StatsScreen({ navigation }) {
             de tus ingresos del período
           </Txt>
         </Card>
-        <Card pad={14} style={{ flex: 1, gap: 4 }}>
-          <Txt
-            style={{
-              fontSize: 12,
-              color: colors.textSecondary,
-              fontWeight: "600",
-            }}
-          >
-            Brecha Binance
-          </Txt>
-          <Txt style={{ fontSize: 22, fontWeight: "800" }}>
-            {(gap >= 0 ? "+" : "-") + grp(Math.abs(gap), ".", ",") + "%"}
-          </Txt>
-          <Txt
-            style={{
-              fontSize: 12,
-              lineHeight: 16,
-              color: colors.textSecondary,
-            }}
-          >
-            sobre la tasa BCV
-          </Txt>
-        </Card>
+        <OnlyMulti>
+          <Card pad={14} style={{ flex: 1, gap: 4 }}>
+            <Txt
+              style={{
+                fontSize: 12,
+                color: colors.textSecondary,
+                fontWeight: "600",
+              }}
+            >
+              Brecha Binance
+            </Txt>
+            <Txt style={{ fontSize: 22, fontWeight: "800" }}>
+              {(gap >= 0 ? "+" : "-") + grp(Math.abs(gap), ".", ",") + "%"}
+            </Txt>
+            <Txt
+              style={{
+                fontSize: 12,
+                lineHeight: 16,
+                color: colors.textSecondary,
+              }}
+            >
+              sobre la tasa BCV
+            </Txt>
+          </Card>
+        </OnlyMulti>
       </View>
 
       <Card style={{ gap: 12 }}>

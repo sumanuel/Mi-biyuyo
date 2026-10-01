@@ -5,11 +5,12 @@ export const login = async (email, password) => {
   return data;
 };
 
-export const register = async (name, email, password) => {
+export const register = async (name, email, password, country) => {
   const { data } = await client.post("/auth/register", {
     name,
     email,
     password,
+    ...(country ? { country } : {}),
   });
   return data;
 };

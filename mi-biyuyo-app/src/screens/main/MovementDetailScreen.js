@@ -141,9 +141,11 @@ export default function MovementDetailScreen({ navigation, route }) {
                 ? " · " + model.entName(m.ent)
                 : "")}
           </Txt>
-          <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
-            Registrado en {CCY_LABEL[m.ccy]}
-          </Txt>
+          {fx.single ? null : (
+            <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
+              Registrado en {CCY_LABEL[m.ccy]}
+            </Txt>
+          )}
         </View>
       </Card>
 

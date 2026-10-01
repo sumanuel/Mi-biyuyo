@@ -1,6 +1,7 @@
 import React from "react";
 import { Image, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useProfile } from "../../contexts/AuthContext";
 import { Screen, Header, Txt, Card } from "../../components/ui";
 import app from "../../../app.json";
 
@@ -10,10 +11,18 @@ const FEATURES = [
   "Cada movimiento conserva la tasa del día en que se registró",
   "Estadísticas por rango de fechas y alertas de saldo bajo",
 ];
+const FEATURES_SINGLE = [
+  "Ingresos, gastos, por cobrar y por pagar en la moneda de tu país",
+  "Entidades (efectivo, bancos, billeteras) con transferencias entre ellas",
+  "Estadísticas por rango de fechas y alertas de saldo bajo",
+  "Montos con el formato de números de tu país",
+];
 
 /** Acerca de: versión, descripción y fuentes de las tasas. */
 export default function AboutScreen({ navigation }) {
   const { colors } = useTheme();
+  const profile = useProfile();
+  const features = profile.single ? FEATURES_SINGLE : FEATURES;
   const info = (label, value) => (
     <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
       <Txt style={{ fontSize: 14, color: colors.textSecondary }}>{label}</Txt>
@@ -39,13 +48,20 @@ export default function AboutScreen({ navigation }) {
 
       <Card style={{ gap: 10 }}>
         {info("Versión", app.expo.version)}
-        {info("Moneda base", "USD")}
-        {info("Monedas", "USD · VES · USDT")}
+        {info("País", profile.name)}
+        {profile.single ? (
+          info("Moneda", `${profile.currencyName} (${profile.currency})`)
+        ) : (
+          <>
+            {info("Moneda base", "USD")}
+            {info("Monedas", "USD · VES · USDT")}
+          </>
+        )}
       </Card>
 
       <Card style={{ gap: 10 }}>
         <Txt style={{ fontSize: 14, fontWeight: "700" }}>Qué puedes hacer</Txt>
-        {FEATURES.map((f) => (
+        {features.map((f) => (
           <View key={f} style={{ flexDirection: "row", gap: 8 }}>
             <Txt style={{ color: colors.accent, fontWeight: "800" }}>•</Txt>
             <Txt
@@ -62,18 +78,24 @@ export default function AboutScreen({ navigation }) {
         ))}
       </Card>
 
-      <Card style={{ gap: 6 }}>
-        <Txt style={{ fontSize: 14, fontWeight: "700" }}>
-          Fuente de las tasas
-        </Txt>
-        <Txt
-          style={{ fontSize: 13, lineHeight: 18, color: colors.textSecondary }}
-        >
-          La tasa BCV se consulta en DolarApi y la de Binance P2P en CriptoYa.
-          Puedes escribirlas a mano o actualizarlas cada día desde Tasas de
-          cambio. Son referenciales.
-        </Txt>
-      </Card>
+      {profile.single ? null : (
+        <Card style={{ gap: 6 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            Fuente de las tasas
+          </Txt>
+          <Txt
+            style={{
+              fontSize: 13,
+              lineHeight: 18,
+              color: colors.textSecondary,
+            }}
+          >
+            La tasa BCV se consulta en DolarApi y la de Binance P2P en CriptoYa.
+            Puedes escribirlas a mano o actualizarlas cada día desde Tasas de
+            cambio. Son referenciales.
+          </Txt>
+        </Card>
+      )}
 
       <Txt
         style={{

@@ -108,8 +108,8 @@ export const PT = {
 export const isDebtType = (t) => t === "cobrar" || t === "pagar";
 
 /** Construye el modelo derivado a partir de la respuesta de /api/ledger. */
-export function buildModel(raw, ratesOverride) {
-  const fx = makeFx(ratesOverride || raw?.rates);
+export function buildModel(raw, ratesOverride, profile) {
+  const fx = makeFx(ratesOverride || raw?.rates, profile);
   const empty = !raw;
 
   // Valor de un monto en las 3 monedas TAL COMO SE GUARDÓ el día del registro
@@ -454,7 +454,9 @@ export function rowOf(model, m, dv) {
       ? pend > 0.005
         ? "Pendiente " + dv(pend)
         : "Saldada"
-      : "Registrado en " + CCY_LABEL[m.ccy],
+      : model.fx.single
+        ? ""
+        : "Registrado en " + CCY_LABEL[m.ccy],
     line2Danger: over && pend > 0.005,
     nav: { name: "MovementDetail", params: { id: m.id } },
   };
@@ -470,7 +472,7 @@ export function abonoRow(model, m, p, dv) {
     sub: "Abono a: " + m.title + (p.ent ? " · " + model.entName(p.ent) : ""),
     date: dlabel(p.date),
     amount: (cobro ? "+" : "-") + dv(p.val),
-    line2: "Registrado en " + CCY_LABEL[p.ccy],
+    line2: model.fx.single ? "" : "Registrado en " + CCY_LABEL[p.ccy],
     nav: { name: "DebtDetail", params: { id: m.id } },
   };
 }

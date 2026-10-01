@@ -29,13 +29,13 @@ const SLIDES = [
   {
     key: "currencies",
     icon: "globe",
-    eyebrow: "Dólar, bolívares y USDT",
-    title: "Tres monedas, una sola base",
-    text: "El dólar (USD) es la base. Registra en bolívares (BCV) o en USDT (Binance P2P) y todo se convierte con las tasas del día.",
+    eyebrow: "Tu país, tu moneda",
+    title: "Se adapta a tu país",
+    text: "Al registrarte eliges tu país: Mi Biyuyo usa tu moneda local y el formato de números que conoces. En Venezuela, además, convierte entre dólares, bolívares y USDT con las tasas del día.",
     points: [
-      "Cada movimiento conserva la tasa del día en que lo registraste",
-      "Mi saldo y tus deudas se recalculan con la tasa de hoy",
-      "Aviso diario de la tasa a las 7:00 a. m.",
+      "Tu moneda y tu formato de números, sin conversiones",
+      "Venezuela: dólar, bolívares (BCV) y USDT (Binance)",
+      "El país se elige una sola vez, al crear tu cuenta",
     ],
   },
   {

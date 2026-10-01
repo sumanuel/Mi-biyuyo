@@ -20,7 +20,7 @@ import { ExchangeRateProvider } from "./src/contexts/ExchangeRateContext";
 import { DataProvider } from "./src/contexts/DataContext";
 import { RateNotificationsProvider } from "./src/contexts/RateNotificationsContext";
 import DailyRateWatcher from "./src/components/DailyRateWatcher";
-import "./src/services/rateWatcher"; // define la tarea en segundo plano de la tasa diaria
+import { unregisterBackgroundTask } from "./src/services/rateWatcher"; // define la tarea en segundo plano de la tasa diaria
 import { FONT_ASSETS } from "./src/theme/font";
 import { Icon, Txt, Toast } from "./src/components/ui";
 
@@ -143,10 +143,15 @@ function MainTabs() {
 
 function AppNavigator() {
   const { isDark, colors } = useTheme();
-  const { token, loading, restored, logout } = useAuth();
+  const { token, loading, restored, logout, profile } = useAuth();
   const [lockChecked, setLockChecked] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [onboardingReady, setOnboardingReady] = useState(false);
+
+  // Sin tasas (países de una sola moneda): se apaga la revisión diaria que pudo dejar otra cuenta en este equipo
+  useEffect(() => {
+    if (token && profile.single) unregisterBackgroundTask().catch(() => {});
+  }, [token, profile.single]);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Introducción: se muestra solo la primera vez (se puede repetir desde Ajustes)
@@ -298,7 +303,7 @@ function AppNavigator() {
                     />
                   </Stack.Navigator>
                   <Toast />
-                  <DailyRateWatcher />
+                  {profile.single ? null : <DailyRateWatcher />}
                 </View>
               </RateNotificationsProvider>
             </GuideProvider>

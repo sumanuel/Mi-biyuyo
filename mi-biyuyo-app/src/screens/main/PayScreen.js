@@ -16,16 +16,17 @@ import {
   ConvRows,
   Button,
   Empty,
+  OnlyMulti,
 } from "../../components/ui";
 import {
   CCY_KEYS,
   CCY_LABEL,
-  CCY_PREFIX,
   CCY_TO_API,
   fmtIn,
   grp,
   parseNum,
   todayStr,
+  ccyPrefix,
 } from "../../utils/money";
 import DateField from "../../components/DateField";
 import { useFocusChain } from "../../hooks/useFocusChain";
@@ -147,20 +148,22 @@ export default function PayScreen({ navigation, route }) {
         </View>
       </Card>
 
-      <View style={{ gap: 8 }}>
-        <Txt style={{ fontSize: 14, fontWeight: "700" }}>
-          Moneda del registro
-        </Txt>
-        <CcyOptions
-          tint={tint}
-          options={CCY_KEYS.map((k) => ({
-            label: CCY_LABEL[k],
-            sub: fx.rateShort(k),
-            active: k === ccy,
-            onPress: () => setCcy(k),
-          }))}
-        />
-      </View>
+      <OnlyMulti>
+        <View style={{ gap: 8 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            Moneda del registro
+          </Txt>
+          <CcyOptions
+            tint={tint}
+            options={CCY_KEYS.map((k) => ({
+              label: CCY_LABEL[k],
+              sub: fx.rateShort(k),
+              active: k === ccy,
+              onPress: () => setCcy(k),
+            }))}
+          />
+        </View>
+      </OnlyMulti>
 
       <Card style={{ gap: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -171,13 +174,13 @@ export default function PayScreen({ navigation, route }) {
               color: colors.textSecondary,
             }}
           >
-            {CCY_PREFIX[ccy]}
+            {ccyPrefix(ccy)}
           </Txt>
           <Input
             value={amount}
             onChangeText={setAmount}
             keyboardType="decimal-pad"
-            placeholder="0,00"
+            placeholder={fmtIn(0)}
             accessibilityLabel="Monto del abono"
             {...chain(0, { last: true })}
             style={{
@@ -196,7 +199,9 @@ export default function PayScreen({ navigation, route }) {
             [
               "Saldo total",
               () =>
-                setAmount(fmtIn(fx.fromUsd(ccy, pend), ccy === "bin" ? 3 : 2)),
+                setAmount(
+                  fmtIn(fx.fromUsd(ccy, pend), ccy === "bin" ? 3 : undefined),
+                ),
             ],
             [
               "Mitad",
@@ -247,7 +252,9 @@ export default function PayScreen({ navigation, route }) {
             </Txt>
           </View>
         ) : null}
-        <View style={{ height: 1, backgroundColor: colors.divider }} />
+        <OnlyMulti>
+          <View style={{ height: 1, backgroundColor: colors.divider }} />
+        </OnlyMulti>
         <ConvRows title="EQUIVALENCIAS" rows={rows} tint={tint} />
         <View
           style={{
