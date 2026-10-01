@@ -26,6 +26,7 @@ export function useFocusChain(scrollRef) {
     },
     returnKeyType: last ? "done" : "next",
     blurOnSubmit: false,
+    submitBehavior: "submit", // sin cerrar el teclado al pasar al siguiente campo
     onFocus: scrollRef
       ? () => scrollIntoView(scrollRef, refs.current[i])
       : undefined,

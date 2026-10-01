@@ -13,6 +13,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useFocusChain } from "../../hooks/useFocusChain";
+import {
+  focusedInput,
+  scrollIntoView,
+  useKeyboardHeight,
+} from "../../utils/keyboard";
 import * as authService from "../../services/api/authService";
 import { Icon, IC } from "../../components/icons";
 import {
@@ -124,6 +129,11 @@ export default function AuthScreen({ initialMode = "login" }) {
   const C = useC();
   const sv = useRef(null);
   const chain = useFocusChain(sv);
+  const kbHeight = useKeyboardHeight();
+  // Con el teclado ya abierto, vuelve a centrar el campo enfocado
+  useEffect(() => {
+    if (kbHeight > 0) scrollIntoView(sv, focusedInput(), 60);
+  }, [kbHeight]);
   const { login, register, verifyEmail } = useAuth();
   const [mode, setMode] = useState(initialMode);
   const [name, setName] = useState("");
@@ -389,6 +399,7 @@ export default function AuthScreen({ initialMode = "login" }) {
             justifyContent: "center",
             paddingHorizontal: 18,
             paddingVertical: 24,
+            paddingBottom: 24 + kbHeight,
             gap: 18,
           }}
           keyboardShouldPersistTaps="handled"

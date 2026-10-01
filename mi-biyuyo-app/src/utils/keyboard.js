@@ -1,31 +1,35 @@
 import { useEffect, useState } from "react";
-import { Keyboard, Platform } from "react-native";
+import { Keyboard, Platform, TextInput } from "react-native";
 
-/** ¿Está abierto el teclado? */
-export function useKeyboardVisible() {
-  const [visible, setVisible] = useState(false);
+const SHOW = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+const HIDE = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+/** Altura del teclado (0 si está cerrado). */
+export function useKeyboardHeight() {
+  const [height, setHeight] = useState(0);
   useEffect(() => {
-    const show = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      () => setVisible(true),
+    const show = Keyboard.addListener(SHOW, (e) =>
+      setHeight(e?.endCoordinates?.height || 0),
     );
-    const hide = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => setVisible(false),
-    );
+    const hide = Keyboard.addListener(HIDE, () => setHeight(0));
     return () => {
       show.remove();
       hide.remove();
     };
   }, []);
-  return visible;
+  return height;
+}
+
+/** ¿Está abierto el teclado? */
+export function useKeyboardVisible() {
+  return useKeyboardHeight() > 0;
 }
 
 /**
  * Desplaza el ScrollView para que el campo enfocado quede visible sobre el teclado.
- * Espera un momento a que el teclado termine de abrirse y de reducir el área visible.
+ * `delay` deja que el teclado termine de abrirse y de reducir el área visible.
  */
-export function scrollIntoView(scrollRef, node, offset = 110) {
+export function scrollIntoView(scrollRef, node, delay = 120, offset = 110) {
   if (Platform.OS === "web" || !scrollRef?.current || !node) return;
   setTimeout(() => {
     const sv = scrollRef.current;
@@ -36,5 +40,8 @@ export function scrollIntoView(scrollRef, node, offset = 110) {
       (_x, y) => sv.scrollTo({ y: Math.max(0, y - offset), animated: true }),
       () => {},
     );
-  }, 280);
+  }, delay);
 }
+
+/** Campo de texto que tiene el foco ahora mismo (si lo hay). */
+export const focusedInput = () => TextInput.State?.currentlyFocusedInput?.();
