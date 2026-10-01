@@ -122,7 +122,8 @@ export default function EntityDetailScreen({ navigation, route }) {
               {e.name}
             </Txt>
             <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
-              {(KIND_LABEL[e.kind] || "Otro") + " · " + ENT_CCY_LABEL[e.ccy]}
+              {(KIND_LABEL[e.kind] || "Otro") +
+                (fx.single ? "" : " · " + ENT_CCY_LABEL[e.ccy])}
             </Txt>
           </View>
         </View>

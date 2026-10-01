@@ -1,3 +1,5 @@
+import { profileFor } from "../config/countries";
+
 // Monedas: usd (base), bcv (bolívares, tasa BCV) y bin (USDT de Binance).
 // Tasas: `usd_to_ves` = VES por 1 USD; `binance_to_ves` = VES por 1 USDT.
 // Ej.: 1 USD = 850 VES y 1 USDT = 950 VES  →  850 VES = USD 1.00 = USDT 0.894.
@@ -13,10 +15,29 @@ export const CCY_LABEL = {
 export const CCY_PREFIX = { usd: "USD", bcv: "VES", bin: "USDT" };
 export const CCY_KEYS = ["usd", "bcv", "bin"];
 
+/* ---------- perfil de país activo ---------- */
+// Se asigna al iniciar sesión (AuthContext). Sin sesión: Venezuela.
+let ACTIVE = profileFor(null);
+export const setActiveProfile = (p) => {
+  ACTIVE = p || profileFor(null);
+};
+export const getActiveProfile = () => ACTIVE;
+
+/** Prefijo del monto: en modo single, el símbolo de la moneda del país. */
+export const ccyPrefix = (c) => (ACTIVE.single ? ACTIVE.symbol : CCY_PREFIX[c]);
+
+/** Monto en la moneda del país: "$ 1.234,56", "-$ 9,00" o "1.234,56 €". */
+export function formatLocal(v, p = ACTIVE) {
+  const n = grp(v, p.thousands, p.decimal, p.decimals);
+  const body = p.symbolAfter ? `${n} ${p.symbol}` : `${p.symbol} ${n}`;
+  return v < 0 && /[1-9]/.test(n) ? "-" + body : body;
+}
+
 /** Agrupa miles con `t` y decimales con `d`. */
 export const grp = (n, t, d, dec = 2) => {
   const parts = Math.abs(n).toFixed(dec).split(".");
-  return parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, t) + d + parts[1];
+  const int = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, t);
+  return dec > 0 ? int + d + parts[1] : int;
 };
 
 export const nTxt = (n, w) => `${n} ${n === 1 ? w : w + "s"}`;
@@ -26,12 +47,65 @@ export const compact = (n) =>
     ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(".0", "") + "k"
     : String(Math.round(n));
 
-export const parseNum = (v) =>
-  parseFloat(String(v ?? "").replace(",", ".")) || 0;
-export const fmtIn = (v, dec = 2) => v.toFixed(dec).replace(".", ",");
+/**
+ * Número escrito por el usuario. Venezuela: coma o punto decimal (como siempre).
+ * Otros países: acepta "1.234,56" o "1,234.56" según el país, y también el punto o la coma
+ * sueltos como decimal ("12,5", "12.5"); "1.234" cuenta como miles si ese es el separador del país.
+ */
+export const parseNum = (v) => {
+  const raw = String(v ?? "")
+    .trim()
+    .replace(/\s/g, "");
+  if (!ACTIVE.single) return parseFloat(raw.replace(",", ".")) || 0;
+  if (!raw) return 0;
+  const hasDot = raw.includes(".");
+  const hasComma = raw.includes(",");
+  let s = raw;
+  if (hasDot && hasComma) {
+    const dec = raw.lastIndexOf(".") > raw.lastIndexOf(",") ? "." : ",";
+    const th = dec === "." ? "," : ".";
+    s = raw.split(th).join("").replace(dec, ".");
+  } else if (hasDot || hasComma) {
+    const sep = hasDot ? "." : ",";
+    const parts = raw.split(sep);
+    if (parts.length > 2) s = parts.join("");
+    else if (sep === ACTIVE.thousands && parts[1].length === 3)
+      s = parts.join("");
+    else s = parts.join(".");
+  }
+  return parseFloat(s) || 0;
+};
+
+/** Número redondeado a `d` decimales y sin ceros sobrantes, para precargar un campo ("12,5"). */
+export const fmtEdit = (n, d = 4) =>
+  String(Math.round(n * 10 ** d) / 10 ** d).replace(
+    ".",
+    ACTIVE.single ? ACTIVE.decimal : ",",
+  );
+
+/** Número para mostrar dentro de un campo de texto (con el decimal del país). */
+export const fmtIn = (v, dec) => {
+  const d = dec ?? (ACTIVE.single ? ACTIVE.decimals : 2);
+  return v.toFixed(d).replace(".", ACTIVE.single ? ACTIVE.decimal : ",");
+};
 
 /** Utilidades de conversión ligadas a las tasas vigentes. */
-export function makeFx(rates) {
+export function makeFx(rates, profile = ACTIVE) {
+  // Una sola moneda: sin tasas ni equivalencias. La clave interna "usd" es la moneda base.
+  if (profile?.single) {
+    return {
+      single: true,
+      rate: 0,
+      rateB: 0,
+      FACT: { usd: 1, bcv: 0, bin: 0 },
+      ready: (c) => c === "usd",
+      toUsd: (_c, a) => a,
+      fromUsd: (_c, u) => u,
+      money: (_c, v) => formatLocal(v, profile),
+      rateTxt: () => "",
+      rateShort: () => "",
+    };
+  }
   const rate = Number(rates?.usd_to_ves) || 0;
   const rateB = Number(rates?.binance_to_ves) || 0;
   // FACT = unidades de cada moneda por 1 USD (USDT: rate / rateB, p. ej. 850/950 = 0.894)
@@ -67,6 +141,7 @@ export function makeFx(rates) {
         ? "Tasa " + grp(c === "bin" ? rateB : rate, ".", ",")
         : "Sin tasa";
   return {
+    single: false,
     rate,
     rateB,
     FACT,
@@ -126,7 +201,13 @@ export const fullDate = (str) => {
 };
 
 /** Oculta el número de un monto conservando la moneda: "USD 1,387.80" → "USD ••••••". */
-export const maskMoney = (text) => String(text).split(" ")[0] + " ••••••";
+export const maskMoney = (text) => {
+  if (ACTIVE.single)
+    return ACTIVE.symbolAfter
+      ? "•••••• " + ACTIVE.symbol
+      : ACTIVE.symbol + " ••••••";
+  return String(text).split(" ")[0] + " ••••••";
+};
 
 /** Últimos 30 días (hoy y los 29 anteriores): rango por defecto de los historiales. */
 export const last30Range = () => ({

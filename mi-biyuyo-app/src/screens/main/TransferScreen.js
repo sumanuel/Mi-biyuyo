@@ -16,15 +16,17 @@ import {
   Button,
   Field,
   Empty,
+  OnlyMulti,
 } from "../../components/ui";
 import DateField from "../../components/DateField";
 import {
   CCY_KEYS,
   CCY_LABEL,
-  CCY_PREFIX,
   CCY_TO_API,
   parseNum,
   todayStr,
+  ccyPrefix,
+  fmtIn,
 } from "../../utils/money";
 import { useFocusChain } from "../../hooks/useFocusChain";
 
@@ -146,20 +148,22 @@ export default function TransferScreen({ navigation, route }) {
         </ChipRow>
       </View>
 
-      <View style={{ gap: 8 }}>
-        <Txt style={{ fontSize: 14, fontWeight: "700" }}>
-          Moneda del registro
-        </Txt>
-        <CcyOptions
-          tint={tint}
-          options={CCY_KEYS.map((k) => ({
-            label: CCY_LABEL[k],
-            sub: fx.rateShort(k),
-            active: k === ccy,
-            onPress: () => setCcy(k),
-          }))}
-        />
-      </View>
+      <OnlyMulti>
+        <View style={{ gap: 8 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            Moneda del registro
+          </Txt>
+          <CcyOptions
+            tint={tint}
+            options={CCY_KEYS.map((k) => ({
+              label: CCY_LABEL[k],
+              sub: fx.rateShort(k),
+              active: k === ccy,
+              onPress: () => setCcy(k),
+            }))}
+          />
+        </View>
+      </OnlyMulti>
 
       <Card style={{ gap: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -170,13 +174,13 @@ export default function TransferScreen({ navigation, route }) {
               color: colors.textSecondary,
             }}
           >
-            {CCY_PREFIX[ccy]}
+            {ccyPrefix(ccy)}
           </Txt>
           <Input
             value={amount}
             onChangeText={setAmount}
             keyboardType="decimal-pad"
-            placeholder="0,00"
+            placeholder={fmtIn(0)}
             accessibilityLabel="Monto a transferir"
             {...chain(0)}
             style={{
@@ -212,7 +216,9 @@ export default function TransferScreen({ navigation, route }) {
             </Txt>
           </View>
         ) : null}
-        <View style={{ height: 1, backgroundColor: colors.divider }} />
+        <OnlyMulti>
+          <View style={{ height: 1, backgroundColor: colors.divider }} />
+        </OnlyMulti>
         <ConvRows title="EQUIVALENCIAS" rows={rows} tint={tint} />
       </Card>
 
@@ -223,11 +229,11 @@ export default function TransferScreen({ navigation, route }) {
 
       <Field
         label="Comisión"
-        hint={`(opcional, en ${CCY_PREFIX[ccy]})`}
+        hint={`(opcional, en ${ccyPrefix(ccy)})`}
         value={fee}
         onChangeText={setFee}
         keyboardType="decimal-pad"
-        placeholder="0,00"
+        placeholder={fmtIn(0)}
         {...chain(1, { last: true })}
       />
 

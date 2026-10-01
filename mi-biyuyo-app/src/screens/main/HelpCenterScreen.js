@@ -1,11 +1,17 @@
 import React, { useState } from "react";
 import { TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useProfile } from "../../contexts/AuthContext";
 import { Screen, Header, Txt, Card, Icon } from "../../components/ui";
+
+// Párrafos y temas con `only` solo se ven en ese modo: "multi" (Venezuela) o "single" (una moneda)
+const MULTI = (text) => ({ text, only: "multi" });
+const SINGLE = (text) => ({ text, only: "single" });
 
 const TOPICS = [
   {
     title: "Tasas de cambio (BCV y Binance)",
+    only: "multi",
     body: [
       "El dólar (USD) es la moneda base. Mi Biyuyo necesita dos tasas: BCV (bolívares por 1 USD) y Binance P2P (bolívares por 1 USDT). Con ellas convierte todo entre USD, VES y USDT.",
       "Ve a Ajustes > Tasas de cambio. Puedes escribirlas a mano o tocar «Obtener tasas en línea» para traerlas.",
@@ -17,7 +23,12 @@ const TOPICS = [
     title: "Entidades y saldos",
     body: [
       "Una entidad es el lugar donde está tu dinero: efectivo, un banco, una billetera digital, etc. Se crean en Entidades > Nueva entidad.",
-      "Elige su moneda (USD, VES o USDT) y su saldo inicial. El saldo inicial se registra como el primer movimiento de la entidad.",
+      MULTI(
+        "Elige su moneda (USD, VES o USDT) y su saldo inicial. El saldo inicial se registra como el primer movimiento de la entidad.",
+      ),
+      SINGLE(
+        "Escribe su saldo inicial. El saldo inicial se registra como el primer movimiento de la entidad.",
+      ),
       "«Sumar a Mi saldo» decide si el saldo de esa entidad cuenta en tu saldo total. Si lo desmarcas, la entidad sigue funcionando pero no suma.",
       "Con «Transferir» mueves dinero entre entidades, con comisión opcional. También puedes definir una alerta de saldo bajo.",
     ],
@@ -25,8 +36,15 @@ const TOPICS = [
   {
     title: "Registrar ingresos y gastos",
     body: [
-      "Toca Registrar (+) y elige la categoría. Escribe el monto, elige la moneda del registro, la fecha y la entidad de donde sale o entra el dinero.",
-      "Abajo verás el equivalente en las tres monedas con la tasa del día. Esa tasa queda guardada con el movimiento.",
+      MULTI(
+        "Toca Registrar (+) y elige la categoría. Escribe el monto, elige la moneda del registro, la fecha y la entidad de donde sale o entra el dinero.",
+      ),
+      SINGLE(
+        "Toca Registrar (+) y elige la categoría. Escribe el monto, la fecha y la entidad de donde sale o entra el dinero.",
+      ),
+      MULTI(
+        "Abajo verás el equivalente en las tres monedas con la tasa del día. Esa tasa queda guardada con el movimiento.",
+      ),
       "Puedes adjuntar un recibo con foto o archivo.",
     ],
   },
@@ -65,8 +83,16 @@ const TOPICS = [
   {
     title: "Editar o eliminar un movimiento",
     body: [
-      "Abre un movimiento y toca «Editar movimiento». Se conservan las tasas del día en que lo registraste.",
-      "En una deuda que ya tiene abonos no se puede cambiar la moneda ni bajar el monto por debajo de lo abonado.",
+      MULTI(
+        "Abre un movimiento y toca «Editar movimiento». Se conservan las tasas del día en que lo registraste.",
+      ),
+      SINGLE("Abre un movimiento y toca «Editar movimiento»."),
+      MULTI(
+        "En una deuda que ya tiene abonos no se puede cambiar la moneda ni bajar el monto por debajo de lo abonado.",
+      ),
+      SINGLE(
+        "En una deuda que ya tiene abonos no se puede bajar el monto por debajo de lo abonado.",
+      ),
       "Al eliminar un movimiento, los saldos de las entidades se recalculan.",
     ],
   },
@@ -80,6 +106,7 @@ const TOPICS = [
   },
   {
     title: "¿Por qué Mi saldo cambia si cambian las tasas?",
+    only: "multi",
     body: [
       "Los movimientos conservan la tasa del día en que los registraste, pero Mi saldo, tus entidades en VES o USDT y lo que está pendiente por cobrar o pagar se valoran con la tasa de hoy. Por eso pueden cambiar cuando se actualizan las tasas.",
     ],
@@ -95,7 +122,10 @@ const TOPICS = [
 /** Centro de ayuda: temas desplegables. */
 export default function HelpCenterScreen({ navigation }) {
   const { colors } = useTheme();
+  const { single } = useProfile();
   const [open, setOpen] = useState(0);
+  const mode = single ? "single" : "multi";
+  const topics = TOPICS.filter((t) => !t.only || t.only === mode);
 
   return (
     <Screen data={false} contentStyle={{ gap: 10, paddingTop: 16 }}>
@@ -103,7 +133,7 @@ export default function HelpCenterScreen({ navigation }) {
       <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
         Toca un tema para ver cómo funciona.
       </Txt>
-      {TOPICS.map((t, i) => {
+      {topics.map((t, i) => {
         const isOpen = open === i;
         return (
           <Card key={t.title} pad={0}>
@@ -139,18 +169,21 @@ export default function HelpCenterScreen({ navigation }) {
               <View
                 style={{ gap: 10, paddingHorizontal: 16, paddingBottom: 14 }}
               >
-                {t.body.map((p) => (
-                  <Txt
-                    key={p}
-                    style={{
-                      fontSize: 13,
-                      lineHeight: 19,
-                      color: colors.textSecondary,
-                    }}
-                  >
-                    {p}
-                  </Txt>
-                ))}
+                {t.body
+                  .filter((p) => typeof p === "string" || p.only === mode)
+                  .map((p) => (typeof p === "string" ? p : p.text))
+                  .map((p) => (
+                    <Txt
+                      key={p}
+                      style={{
+                        fontSize: 13,
+                        lineHeight: 19,
+                        color: colors.textSecondary,
+                      }}
+                    >
+                      {p}
+                    </Txt>
+                  ))}
               </View>
             ) : null}
           </Card>

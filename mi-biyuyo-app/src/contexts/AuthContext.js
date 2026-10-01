@@ -4,9 +4,12 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as authService from "../services/api/authService";
+import { profileFor } from "../config/countries";
+import { setActiveProfile } from "../utils/money";
 
 const TOKEN_KEY = "@mb_token";
 const USER_KEY = "@mb_user";
@@ -19,6 +22,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   // true solo si la sesión venía guardada (no tras iniciar sesión con contraseña)
   const [restored, setRestored] = useState(false);
+
+  // Perfil del país del usuario (moneda, formato y modo). Sin sesión: Venezuela.
+  const profile = useMemo(() => profileFor(user), [user]);
+  setActiveProfile(profile);
 
   useEffect(() => {
     (async () => {
@@ -56,7 +63,8 @@ export function AuthProvider({ children }) {
 
   // Crea la cuenta: todavía no hay sesión, primero se verifica el correo con un código
   const register = useCallback(
-    (name, email, password) => authService.register(name, email, password),
+    (name, email, password, country) =>
+      authService.register(name, email, password, country),
     [],
   );
 
@@ -91,6 +99,7 @@ export function AuthProvider({ children }) {
       value={{
         token,
         user,
+        profile,
         loading,
         restored,
         login,
@@ -106,3 +115,6 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
+
+/** Perfil del país del usuario: { country, single, symbol, decimals, ... }. */
+export const useProfile = () => useContext(AuthContext).profile;

@@ -126,7 +126,8 @@ export default function EntitiesScreen({ navigation }) {
                   numberOfLines={1}
                   style={{ fontSize: 12, color: colors.textSecondary }}
                 >
-                  {ENT_CCY_LABEL[e.ccy] + " · " + ptSummary(e)}
+                  {(model.fx.single ? "" : ENT_CCY_LABEL[e.ccy] + " · ") +
+                    ptSummary(e)}
                 </Txt>
               </View>
               <View style={{ alignItems: "flex-end", gap: 3, maxWidth: "40%" }}>

@@ -63,7 +63,10 @@ export function GuideProvider({ children }) {
   const steps = useMemo(() => {
     const { fx } = model;
     return [
-      { key: "rates", done: fx.ready("bcv") && fx.ready("bin") },
+      // Las tasas solo existen en Venezuela
+      ...(fx.single
+        ? []
+        : [{ key: "rates", done: fx.ready("bcv") && fx.ready("bin") }]),
       { key: "entities", done: model.ents.length > 0 },
       { key: "moves", done: model.moves.length > 0 },
       {
@@ -76,7 +79,9 @@ export function GuideProvider({ children }) {
 
   const doneCount = steps.filter((s) => s.done).length;
   // Quien ya tiene tasas, entidades, movimientos y detalle conoce la app: no se le insiste
-  const basicsDone = steps.slice(0, 4).every((s) => s.done);
+  const basicsDone = steps
+    .filter((s) => s.key !== "stats")
+    .every((s) => s.done);
   const ready = loaded && model.ready;
 
   const value = {

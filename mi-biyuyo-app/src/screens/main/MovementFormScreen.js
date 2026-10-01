@@ -20,12 +20,12 @@ import {
   Field,
   Icon,
   Empty,
+  OnlyMulti,
 } from "../../components/ui";
 import { META, dayRateTxt, isDebtType } from "../../utils/ledger";
 import {
   CCY_KEYS,
   CCY_LABEL,
-  CCY_PREFIX,
   CCY_TO_API,
   grp,
   nTxt,
@@ -33,6 +33,9 @@ import {
   todayStr,
   addDays,
   fullDate,
+  ccyPrefix,
+  fmtIn,
+  fmtEdit,
 } from "../../utils/money";
 import { takePhoto, pickFile } from "../../utils/receipt";
 import DateField from "../../components/DateField";
@@ -92,8 +95,7 @@ export default function MovementFormScreen({ navigation, route }) {
       : fx.fromUsd(k, usd);
   const readyF = (k) => (editing ? origF(k) > 0 || fx.ready(k) : fx.ready(k));
   // Sin perder decimales (USDT guarda hasta 4): guardar sin cambios no altera el monto
-  const nat = (n) =>
-    n > 0 ? String(Math.round(n * 10000) / 10000).replace(".", ",") : "";
+  const nat = (n) => (n > 0 ? fmtEdit(n, 4) : "");
   const lockCcy =
     !!editing && isDebtType(editing.type) && editing.pays.length > 0;
   const paidNat = lockCcy ? model.paidNative(editing) : 0;
@@ -393,47 +395,49 @@ export default function MovementFormScreen({ navigation, route }) {
         </ChipRow>
       ) : null}
 
-      <View style={{ gap: 8 }}>
-        <Txt style={{ fontSize: 14, fontWeight: "700" }}>
-          Moneda del registro
+      <OnlyMulti>
+        <View style={{ gap: 8 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            Moneda del registro
+          </Txt>
+          <CcyOptions
+            tint={tint}
+            options={CCY_KEYS.map((k) => ({
+              label: CCY_LABEL[k],
+              sub:
+                editing && origF(k) > 0
+                  ? dayRateTxt(editing.val, k) || fx.rateShort(k)
+                  : fx.rateShort(k),
+              active: k === ccy,
+              onPress: () => {
+                if (!lockCcy) setCcy(k);
+              },
+            }))}
+          />
+          {lockCcy ? (
+            <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+              Esta deuda ya tiene abonos: no se puede cambiar su moneda.
+            </Txt>
+          ) : null}
+          {editing ? (
+            <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+              Se conservan las tasas del {fullDate(editing.date)}, día en que se
+              registró.
+            </Txt>
+          ) : null}
+          {rateMissing ? (
+            <Txt style={{ fontSize: 12, color: colors.danger.fg }}>
+              Configura la tasa de esta moneda en Ajustes para poder registrar.
+            </Txt>
+          ) : null}
+        </View>
+      </OnlyMulti>
+      {belowPaid ? (
+        <Txt style={{ fontSize: 12, color: colors.danger.fg }}>
+          El monto no puede ser menor a lo ya abonado ({fx.money(ccy, paidNat)}
+          ).
         </Txt>
-        <CcyOptions
-          tint={tint}
-          options={CCY_KEYS.map((k) => ({
-            label: CCY_LABEL[k],
-            sub:
-              editing && origF(k) > 0
-                ? dayRateTxt(editing.val, k) || fx.rateShort(k)
-                : fx.rateShort(k),
-            active: k === ccy,
-            onPress: () => {
-              if (!lockCcy) setCcy(k);
-            },
-          }))}
-        />
-        {lockCcy ? (
-          <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
-            Esta deuda ya tiene abonos: no se puede cambiar su moneda.
-          </Txt>
-        ) : null}
-        {belowPaid ? (
-          <Txt style={{ fontSize: 12, color: colors.danger.fg }}>
-            El monto no puede ser menor a lo ya abonado (
-            {fx.money(ccy, paidNat)}).
-          </Txt>
-        ) : null}
-        {editing ? (
-          <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
-            Se conservan las tasas del {fullDate(editing.date)}, día en que se
-            registró.
-          </Txt>
-        ) : null}
-        {rateMissing ? (
-          <Txt style={{ fontSize: 12, color: colors.danger.fg }}>
-            Configura la tasa de esta moneda en Ajustes para poder registrar.
-          </Txt>
-        ) : null}
-      </View>
+      ) : null}
 
       <Card style={{ gap: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -444,13 +448,13 @@ export default function MovementFormScreen({ navigation, route }) {
               color: colors.textSecondary,
             }}
           >
-            {CCY_PREFIX[ccy]}
+            {ccyPrefix(ccy)}
           </Txt>
           <Input
             value={amount}
             onChangeText={setAmount}
             keyboardType="decimal-pad"
-            placeholder="0,00"
+            placeholder={fmtIn(0)}
             accessibilityLabel="Monto"
             {...chain(0)}
             style={{
@@ -464,7 +468,9 @@ export default function MovementFormScreen({ navigation, route }) {
             }}
           />
         </View>
-        <View style={{ height: 1, backgroundColor: colors.divider }} />
+        <OnlyMulti>
+          <View style={{ height: 1, backgroundColor: colors.divider }} />
+        </OnlyMulti>
         <ConvRows title="EQUIVALENCIAS" rows={convRows} tint={tint} />
       </Card>
 
@@ -612,7 +618,7 @@ export default function MovementFormScreen({ navigation, route }) {
                           )
                         }
                         keyboardType="decimal-pad"
-                        placeholder="0,00"
+                        placeholder={fmtIn(0)}
                         accessibilityLabel={`Monto de ${it.name}`}
                         {...chain(10 + idx, { last: idx === items.length - 1 })}
                         style={{
