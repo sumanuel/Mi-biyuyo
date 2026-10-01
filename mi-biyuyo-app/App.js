@@ -55,6 +55,9 @@ import OnboardingScreen, {
 } from "./src/screens/auth/OnboardingScreen";
 import BiometricLockScreen from "./src/screens/auth/BiometricLockScreen";
 import { getBiometricLockEnabled } from "./src/services/biometricAuthService";
+import { GuideProvider } from "./src/contexts/GuideContext";
+import GettingStartedScreen from "./src/screens/main/GettingStartedScreen";
+import HelpCenterScreen from "./src/screens/main/HelpCenterScreen";
 import AboutScreen from "./src/screens/main/AboutScreen";
 import ProfileScreen from "./src/screens/main/ProfileScreen";
 import RateNotificationsScreen from "./src/screens/main/RateNotificationsScreen";
@@ -231,61 +234,74 @@ function AppNavigator() {
       {token ? (
         <ExchangeRateProvider>
           <DataProvider>
-            <RateNotificationsProvider>
-              <View style={{ flex: 1 }}>
-                <Stack.Navigator screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="MainTabs" component={MainTabs} />
-                  <Stack.Screen
-                    name="MovementForm"
-                    component={MovementFormScreen}
-                  />
-                  <Stack.Screen
-                    name="MovementSaved"
-                    component={MovementSavedScreen}
-                  />
-                  <Stack.Screen
-                    name="MovementDetail"
-                    component={MovementDetailScreen}
-                  />
-                  <Stack.Screen
-                    name="DebtDetail"
-                    component={DebtDetailScreen}
-                  />
-                  <Stack.Screen name="Pay" component={PayScreen} />
-                  <Stack.Screen
-                    name="EntityDetail"
-                    component={EntityDetailScreen}
-                  />
-                  <Stack.Screen
-                    name="EntityForm"
-                    component={EntityFormScreen}
-                  />
-                  <Stack.Screen
-                    name="EntityMovements"
-                    component={EntityMovementsScreen}
-                  />
-                  <Stack.Screen name="Items" component={ItemsScreen} />
-                  <Stack.Screen name="ItemDates" component={ItemDatesScreen} />
-                  <Stack.Screen name="Transfer" component={TransferScreen} />
-                  <Stack.Screen
-                    name="ExchangeRate"
-                    component={ExchangeRateScreen}
-                  />
-                  <Stack.Screen name="Profile" component={ProfileScreen} />
-                  <Stack.Screen name="About" component={AboutScreen} />
-                  <Stack.Screen
-                    name="Onboarding"
-                    component={OnboardingReplay}
-                  />
-                  <Stack.Screen
-                    name="RateNotifications"
-                    component={RateNotificationsScreen}
-                  />
-                </Stack.Navigator>
-                <Toast />
-                <DailyRateWatcher />
-              </View>
-            </RateNotificationsProvider>
+            <GuideProvider>
+              <RateNotificationsProvider>
+                <View style={{ flex: 1 }}>
+                  <Stack.Navigator screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="MainTabs" component={MainTabs} />
+                    <Stack.Screen
+                      name="MovementForm"
+                      component={MovementFormScreen}
+                    />
+                    <Stack.Screen
+                      name="MovementSaved"
+                      component={MovementSavedScreen}
+                    />
+                    <Stack.Screen
+                      name="MovementDetail"
+                      component={MovementDetailScreen}
+                    />
+                    <Stack.Screen
+                      name="DebtDetail"
+                      component={DebtDetailScreen}
+                    />
+                    <Stack.Screen name="Pay" component={PayScreen} />
+                    <Stack.Screen
+                      name="EntityDetail"
+                      component={EntityDetailScreen}
+                    />
+                    <Stack.Screen
+                      name="EntityForm"
+                      component={EntityFormScreen}
+                    />
+                    <Stack.Screen
+                      name="EntityMovements"
+                      component={EntityMovementsScreen}
+                    />
+                    <Stack.Screen name="Items" component={ItemsScreen} />
+                    <Stack.Screen
+                      name="ItemDates"
+                      component={ItemDatesScreen}
+                    />
+                    <Stack.Screen name="Transfer" component={TransferScreen} />
+                    <Stack.Screen
+                      name="ExchangeRate"
+                      component={ExchangeRateScreen}
+                    />
+                    <Stack.Screen name="Profile" component={ProfileScreen} />
+                    <Stack.Screen name="About" component={AboutScreen} />
+                    <Stack.Screen
+                      name="GettingStarted"
+                      component={GettingStartedScreen}
+                    />
+                    <Stack.Screen
+                      name="HelpCenter"
+                      component={HelpCenterScreen}
+                    />
+                    <Stack.Screen
+                      name="Onboarding"
+                      component={OnboardingReplay}
+                    />
+                    <Stack.Screen
+                      name="RateNotifications"
+                      component={RateNotificationsScreen}
+                    />
+                  </Stack.Navigator>
+                  <Toast />
+                  <DailyRateWatcher />
+                </View>
+              </RateNotificationsProvider>
+            </GuideProvider>
           </DataProvider>
         </ExchangeRateProvider>
       ) : (
