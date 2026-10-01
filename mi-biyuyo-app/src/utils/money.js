@@ -43,12 +43,16 @@ export function makeFx(rates) {
   const ready = (c) => FACT[c] > 0;
   const toUsd = (c, a) => (FACT[c] > 0 ? a / FACT[c] : 0);
   const fromUsd = (c, u) => u * FACT[c];
-  const money = (c, v) =>
-    c === "bcv"
-      ? "VES " + grp(v, ".", ",")
-      : c === "bin"
-        ? "USDT " + grp(v, ",", ".", 3) // USDT con 3 decimales (p. ej. 0.894)
-        : "USD " + grp(v, ",", ".");
+  // Los negativos llevan "-" delante ("-USD 9.05"); grp trabaja con el valor absoluto
+  const money = (c, v) => {
+    const body =
+      c === "bcv"
+        ? "VES " + grp(v, ".", ",")
+        : c === "bin"
+          ? "USDT " + grp(v, ",", ".", 3) // USDT con 3 decimales (p. ej. 0.894)
+          : "USD " + grp(v, ",", ".");
+    return v < 0 && /[1-9]/.test(body) ? "-" + body : body;
+  };
   // Tasa en bolívares de cada moneda (1 USD = X VES; 1 USDT = Y VES)
   const rateShort = (c) =>
     c === "usd"
