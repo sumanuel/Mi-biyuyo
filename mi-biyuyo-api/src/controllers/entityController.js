@@ -1,5 +1,6 @@
 const pool = require("../config/database");
 const { toUsd } = require("../utils/currencyConverter");
+const { getUserCtx } = require("../utils/userContext");
 
 const KINDS = ["efectivo", "banco", "digital", "otro"];
 const PTYPES = ["none", "pm", "acct", "email", "id"];
@@ -8,7 +9,7 @@ const cols = `id, name, kind, currency, initial_usd::float AS initial_usd, initi
               payment_type, payment_data, alert_usd::float AS alert_usd,
               include_in_balance, created_at`;
 
-function clean(body) {
+function clean(body, mode) {
   const name = String(body.name || "").trim();
   if (!name) {
     const err = new Error("El nombre es requerido");
@@ -16,7 +17,13 @@ function clean(body) {
     throw err;
   }
   const kind = KINDS.includes(body.kind) ? body.kind : "otro";
-  const currency = ["usd", "usdt"].includes(body.currency) ? body.currency : "ves";
+  // En modo single la única moneda es la base (alias "usd"); en multi: usd, usdt o ves
+  const currency =
+    mode === "single"
+      ? "usd"
+      : ["usd", "usdt"].includes(body.currency)
+        ? body.currency
+        : "ves";
   const paymentType = PTYPES.includes(body.payment_type)
     ? body.payment_type
     : "none";
@@ -54,17 +61,14 @@ exports.list = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const d = clean(req.body);
+    const ctx = await getUserCtx(req.user.id);
+    const d = clean(req.body, ctx.mode);
     let initialUsd = d.initialAmount;
     if (d.currency !== "usd" && d.initialAmount > 0) {
-      const { rows: r } = await pool.query(
-        `SELECT usd_to_ves, binance_to_ves FROM exchange_rates WHERE user_id = $1`,
-        [req.user.id],
-      );
       initialUsd = toUsd(
         d.initialAmount,
         d.currency === "usdt" ? "BINANCE" : "VES",
-        r[0] || {},
+        ctx.rates,
       );
     }
     const { rows } = await pool.query(
@@ -92,7 +96,8 @@ exports.create = async (req, res, next) => {
 // El saldo inicial solo se define al crear; al editar no se modifica.
 exports.update = async (req, res, next) => {
   try {
-    const d = clean(req.body);
+    const ctx = await getUserCtx(req.user.id);
+    const d = clean(req.body, ctx.mode);
     const { rows } = await pool.query(
       `UPDATE entities SET name=$1, kind=$2, currency=$3, payment_type=$4, payment_data=$5, alert_usd=$6, include_in_balance=$7
        WHERE id=$8 AND user_id=$9 RETURNING ${cols}`,

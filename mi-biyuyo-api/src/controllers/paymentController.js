@@ -1,13 +1,6 @@
 const pool = require("../config/database");
-const { convertToAll, factorOf } = require("../utils/currencyConverter");
-
-async function getUserRates(userId) {
-  const { rows } = await pool.query(
-    `SELECT usd_to_ves, binance_to_ves FROM exchange_rates WHERE user_id = $1`,
-    [userId],
-  );
-  return rows[0] || { usd_to_ves: 0, binance_to_ves: 0 };
-}
+const { convertFor, factorOf } = require("../utils/currencyConverter");
+const { getUserCtx } = require("../utils/userContext");
 
 exports.list = async (req, res, next) => {
   try {
@@ -63,11 +56,13 @@ exports.create = async (req, res, next) => {
         return res.status(404).json({ error: "Entidad no encontrada" });
     }
 
-    const rates = await getUserRates(req.user.id);
-    const converted = convertToAll(amount, currency, rates);
-    const col = { USD: "amount_usd", VES: "amount_ves", BINANCE: "amount_binance" }[
-      txRows[0].currency
-    ];
+    const ctx = await getUserCtx(req.user.id);
+    const converted = convertFor(amount, currency, ctx);
+    const col = {
+      USD: "amount_usd",
+      VES: "amount_ves",
+      BINANCE: "amount_binance",
+    }[txRows[0].currency];
     const pending = parseFloat(txRows[0].amount) - parseFloat(txRows[0].paid);
     const payNative = converted[col];
     const tol = txRows[0].currency === "BINANCE" ? 0.005 : 0.01;
@@ -90,7 +85,7 @@ exports.create = async (req, res, next) => {
         date || new Date().toISOString().slice(0, 10),
         notes || null,
         entity_id || null,
-        factorOf(currency, rates),
+        ctx.mode === "single" ? 1 : factorOf(currency, ctx.rates),
       ],
     );
 

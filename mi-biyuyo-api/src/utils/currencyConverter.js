@@ -50,4 +50,37 @@ function convertToAll(amount, currency, rates) {
   };
 }
 
-module.exports = { convertToAll, toUsd, factorOf };
+/**
+ * Conversión según el modo del usuario (ctx = { mode, rates }).
+ * En modo "single" no hay tasas: el monto está en la moneda base y solo se acepta "USD"
+ * (alias interno de la moneda base).
+ */
+function checkSingle(currency) {
+  if (currency !== "USD") {
+    const err = new Error("En tu país solo se usa tu moneda local");
+    err.status = 422;
+    throw err;
+  }
+}
+
+function toUsdFor(amount, currency, ctx) {
+  if (ctx.mode === "single") {
+    checkSingle(currency);
+    return round4(parseFloat(amount));
+  }
+  return toUsd(amount, currency, ctx.rates);
+}
+
+function convertFor(amount, currency, ctx) {
+  if (ctx.mode === "single") {
+    checkSingle(currency);
+    return {
+      amount_usd: round4(parseFloat(amount)),
+      amount_ves: 0,
+      amount_binance: 0,
+    };
+  }
+  return convertToAll(amount, currency, ctx.rates);
+}
+
+module.exports = { convertToAll, toUsd, factorOf, toUsdFor, convertFor };

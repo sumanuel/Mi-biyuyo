@@ -289,6 +289,17 @@ async function migrate() {
       )
     `);
 
+    // ── v10: país y modo del usuario (los existentes quedan como Venezuela / multi) ──
+    await client.query(
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS country VARCHAR(2) NOT NULL DEFAULT 'VE'`,
+    );
+    await client.query(
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS mode VARCHAR(10) NOT NULL DEFAULT 'multi'`,
+    );
+    await client.query(
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS base_currency VARCHAR(3) NOT NULL DEFAULT 'USD'`,
+    );
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {

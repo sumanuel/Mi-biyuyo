@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const pool = require("../config/database");
 const { body } = require("express-validator");
 const { sendMail, mailConfigured } = require("../utils/mailer");
+const { DEFAULT_COUNTRY, profileOf } = require("../config/countries");
 
 const SALT_ROUNDS = 12;
 
@@ -103,6 +104,9 @@ const issueVerificationCode = (user) => issueCode(user, "verify");
 exports.register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
+    // Sin país (apps anteriores) se asume Venezuela
+    const profile = profileOf(req.body.country || DEFAULT_COUNTRY);
+    if (!profile) return res.status(422).json({ error: "País no disponible" });
     const { rows } = await pool.query("SELECT id FROM users WHERE email = $1", [
       email.toLowerCase(),
     ]);
@@ -121,16 +125,25 @@ exports.register = async (req, res, next) => {
     const avatarColor = colors[Math.floor(Math.random() * colors.length)];
 
     const { rows: userRows } = await pool.query(
-      `INSERT INTO users (name, email, password_hash, avatar_color, email_verified) VALUES ($1, $2, $3, $4, false) RETURNING id, name, email`,
-      [name.trim(), email.toLowerCase(), hash, avatarColor],
+      `INSERT INTO users (name, email, password_hash, avatar_color, email_verified, country, mode, base_currency) VALUES ($1, $2, $3, $4, false, $5, $6, $7) RETURNING id, name, email`,
+      [
+        name.trim(),
+        email.toLowerCase(),
+        hash,
+        avatarColor,
+        profile.country,
+        profile.mode,
+        profile.currency,
+      ],
     );
     const user = userRows[0];
 
-    // Create default exchange rates for new user
-    await pool.query(
-      `INSERT INTO exchange_rates (user_id, usd_to_ves, binance_to_ves, source) VALUES ($1, 0, 0, 'manual')`,
-      [user.id],
-    );
+    // Solo Venezuela (modo multi) usa tasas de cambio
+    if (profile.mode === "multi")
+      await pool.query(
+        `INSERT INTO exchange_rates (user_id, usd_to_ves, binance_to_ves, source) VALUES ($1, 0, 0, 'manual')`,
+        [user.id],
+      );
 
     const { devCode } = await issueVerificationCode(user);
     res.status(201).json({
@@ -147,7 +160,7 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const { rows } = await pool.query(
-      `SELECT id, name, email, password_hash, avatar_color, theme_preference, email_verified FROM users WHERE email = $1`,
+      `SELECT id, name, email, password_hash, avatar_color, theme_preference, email_verified, country, mode, base_currency FROM users WHERE email = $1`,
       [email.toLowerCase()],
     );
     if (!rows.length)
@@ -185,7 +198,7 @@ exports.verifyEmail = async (req, res, next) => {
   try {
     const { email, code } = req.body;
     const { rows: users } = await pool.query(
-      `SELECT id, name, email, avatar_color, theme_preference, email_verified FROM users WHERE email = $1`,
+      `SELECT id, name, email, avatar_color, theme_preference, email_verified, country, mode, base_currency FROM users WHERE email = $1`,
       [email.toLowerCase()],
     );
     const invalid = httpError(400, "Código incorrecto o vencido");
@@ -248,7 +261,7 @@ exports.resendCode = async (req, res, next) => {
 exports.me = async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, email, avatar_color, theme_preference, created_at FROM users WHERE id = $1`,
+      `SELECT id, name, email, avatar_color, theme_preference, country, mode, base_currency, created_at FROM users WHERE id = $1`,
       [req.user.id],
     );
     if (!rows.length)
@@ -264,7 +277,7 @@ exports.updateProfile = async (req, res, next) => {
     const { name, theme_preference } = req.body;
     const { rows } = await pool.query(
       `UPDATE users SET name = COALESCE($1, name), theme_preference = COALESCE($2, theme_preference), updated_at = NOW()
-       WHERE id = $3 RETURNING id, name, email, avatar_color, theme_preference`,
+       WHERE id = $3 RETURNING id, name, email, avatar_color, theme_preference, country, mode, base_currency`,
       [name || null, theme_preference || null, req.user.id],
     );
     res.json(rows[0]);
@@ -354,6 +367,7 @@ exports.validateRegister = [
   body("password")
     .isLength({ min: 6 })
     .withMessage("La contraseña debe tener al menos 6 caracteres"),
+  body("country").optional().isString().isLength({ min: 2, max: 2 }),
 ];
 
 exports.validateLogin = [
