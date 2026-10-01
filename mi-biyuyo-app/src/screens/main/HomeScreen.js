@@ -30,6 +30,7 @@ import {
 } from "../../utils/ledger";
 import { addDays, grp, maskMoney, nTxt, todayStr } from "../../utils/money";
 import { useRateNotifications } from "../../contexts/RateNotificationsContext";
+import { useGuide } from "../../contexts/GuideContext";
 
 const MAX_ENTITIES = 2;
 const MAX_MOVEMENTS = 20;
@@ -40,6 +41,7 @@ export default function HomeScreen({ navigation }) {
   const { model, dv, threshold, showToast, hideBalance, toggleHideBalance } =
     useData();
   const { unread } = useRateNotifications();
+  const guide = useGuide();
   const shown = (text) => (hideBalance ? maskMoney(text) : text);
   const { fx } = model;
 
@@ -157,45 +159,140 @@ export default function HomeScreen({ navigation }) {
           </Txt>
           <H1 style={{ fontSize: 24 }}>{user?.name || "Mi Biyuyo"}</H1>
         </View>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("RateNotifications")}
-          accessibilityLabel="Notificaciones"
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: colors.surface,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon name="bell" size={20} color={colors.text} stroke={2} />
-          {unread > 0 ? (
-            <View
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("GettingStarted")}
+            accessibilityLabel="Ayuda"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon name="help" size={20} color={colors.text} stroke={2} />
+            {guide.showDot ? (
+              <View
+                style={{
+                  position: "absolute",
+                  top: -3,
+                  right: -3,
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: colors.accent,
+                  borderWidth: 2,
+                  borderColor: colors.page,
+                }}
+              />
+            ) : null}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("RateNotifications")}
+            accessibilityLabel="Notificaciones"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon name="bell" size={20} color={colors.text} stroke={2} />
+            {unread > 0 ? (
+              <View
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  minWidth: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  paddingHorizontal: 4,
+                  backgroundColor: colors.gasto.strong,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Txt
+                  style={{ fontSize: 10, fontWeight: "800", color: "#ffffff" }}
+                >
+                  {unread > 9 ? "9+" : unread}
+                </Txt>
+              </View>
+            ) : null}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {guide.showCard ? (
+        <Card style={{ gap: 10, borderColor: colors.accent, borderWidth: 1.5 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Tile icon="shield" soft={colors.chip} fg={colors.accent} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt style={{ fontSize: 15, fontWeight: "800" }}>
+                Empieza aquí
+              </Txt>
+              <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+                {guide.doneCount} de {guide.total} pasos listos
+              </Txt>
+            </View>
+          </View>
+          <Txt
+            style={{
+              fontSize: 13,
+              lineHeight: 18,
+              color: colors.textSecondary,
+            }}
+          >
+            Para sacarle provecho a Mi Biyuyo, primero registra las tasas BCV y
+            Binance y crea tus entidades con su saldo. Toca la guía y te
+            llevamos paso a paso.
+          </Txt>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("GettingStarted")}
+              activeOpacity={0.85}
               style={{
-                position: "absolute",
-                top: -4,
-                right: -4,
-                minWidth: 18,
-                height: 18,
-                borderRadius: 9,
-                paddingHorizontal: 4,
-                backgroundColor: colors.gasto.strong,
+                flex: 1,
+                minHeight: 44,
+                borderRadius: 12,
+                backgroundColor: colors.accent,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
               <Txt
-                style={{ fontSize: 10, fontWeight: "800", color: "#ffffff" }}
+                style={{ color: "#ffffff", fontSize: 14, fontWeight: "800" }}
               >
-                {unread > 9 ? "9+" : unread}
+                Ver guía
               </Txt>
-            </View>
-          ) : null}
-        </TouchableOpacity>
-      </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={guide.dismiss}
+              activeOpacity={0.85}
+              style={{
+                minHeight: 44,
+                paddingHorizontal: 18,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Txt style={{ fontSize: 14, fontWeight: "700" }}>Ahora no</Txt>
+            </TouchableOpacity>
+          </View>
+        </Card>
+      ) : null}
 
       <View
         style={{

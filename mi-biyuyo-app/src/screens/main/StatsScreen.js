@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, TouchableOpacity } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useData } from "../../contexts/DataContext";
+import { useGuide } from "../../contexts/GuideContext";
 import {
   Screen,
   Txt,
@@ -42,6 +43,11 @@ export default function StatsScreen({ navigation }) {
   const [from, setFrom] = useState(monthStart);
   const [to, setTo] = useState(monthEnd);
   const [sel, setSel] = useState(null);
+  const { markStatsVisited } = useGuide();
+  useEffect(() => {
+    markStatsVisited(); // paso 5 de la guía de primeros pasos
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const list = model.moves.filter((m) => m.date >= from && m.date <= to);
   const days = daysBetween(from, to) + 1;
