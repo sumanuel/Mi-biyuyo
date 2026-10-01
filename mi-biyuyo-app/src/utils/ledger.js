@@ -9,7 +9,9 @@ import {
   grp,
   daysAgo,
   daysUntil,
+  getActiveProfile,
 } from "./money";
+import { methodsFor } from "../config/paymentMethods";
 
 export const TYPE_FROM_DB = {
   income: "ingreso",
@@ -88,22 +90,8 @@ export const KIND_ICON = {
   digital: "globe",
   otro: "card",
 };
-export const KIND_PT = {
-  efectivo: "none",
-  banco: "pm",
-  digital: "email",
-  otro: "none",
-};
-export const PT = {
-  pm: { label: "Pago Móvil", f: ["Banco", "Teléfono", "Cédula"] },
-  acct: {
-    label: "Cuenta bancaria",
-    f: ["N.º de cuenta", "Titular", "Cédula o RIF"],
-  },
-  email: { label: "Correo", f: ["Correo electrónico", "Titular"] },
-  id: { label: "ID de usuario", f: ["ID o usuario", "Plataforma"] },
-  none: { label: "Sin datos", f: [] },
-};
+/** Métodos de pago del país del usuario (ver config/paymentMethods.js). */
+export const payMethods = () => methodsFor(getActiveProfile().country);
 
 export const isDebtType = (t) => t === "cobrar" || t === "pagar";
 

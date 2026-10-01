@@ -13,13 +13,12 @@ import {
   Button,
   EyeButton,
 } from "../../components/ui";
-import { KIND_ICON, PT, balanceNote } from "../../utils/ledger";
+import { KIND_ICON, payMethods, balanceNote } from "../../utils/ledger";
+import { paymentSummary } from "../../config/paymentMethods";
 import { ENT_CCY_LABEL, maskMoney } from "../../utils/money";
 
 export function ptSummary(e) {
-  const v = (e.pd || []).filter(Boolean);
-  if (e.pt === "none" || !v.length || !PT[e.pt]) return "Sin datos de pago";
-  return PT[e.pt].label + " · " + (e.pt === "pm" ? e.pd[1] || v[0] : v[0]);
+  return paymentSummary(payMethods(), e.pt, e.pd);
 }
 
 export default function EntitiesScreen({ navigation }) {
