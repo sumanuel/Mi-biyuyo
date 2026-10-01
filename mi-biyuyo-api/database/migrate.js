@@ -279,6 +279,16 @@ async function migrate() {
       `ALTER TABLE email_verification_codes ADD COLUMN IF NOT EXISTS purpose VARCHAR(20) NOT NULL DEFAULT 'verify'`,
     );
 
+    // ── v9: orden de las categorías elegido por cada usuario ──
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS category_order (
+        user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+        position    INTEGER NOT NULL,
+        PRIMARY KEY (user_id, category_id)
+      )
+    `);
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {

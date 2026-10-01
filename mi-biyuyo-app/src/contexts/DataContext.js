@@ -12,6 +12,7 @@ import { useAuth } from "./AuthContext";
 import { useExchangeRate } from "./ExchangeRateContext";
 import * as ledgerService from "../services/api/ledgerService";
 import * as transactionService from "../services/api/transactionService";
+import * as categoryService from "../services/api/categoryService";
 import { buildModel } from "../utils/ledger";
 
 const THRESHOLD_KEY = "@mb_threshold";
@@ -118,6 +119,8 @@ export function DataProvider({ children }) {
         run(() => transactionService.createTransaction(token, body)),
       updateMovement: (id, body) =>
         run(() => transactionService.updateTransaction(token, id, body)),
+      reorderCategories: (ids) =>
+        run(() => categoryService.reorderCategories(token, ids)),
       deleteMovement: (id) =>
         run(() => transactionService.deleteTransaction(token, id)),
       addPayment: (id, body) =>

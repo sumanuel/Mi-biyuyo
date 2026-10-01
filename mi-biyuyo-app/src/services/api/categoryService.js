@@ -19,3 +19,10 @@ export const deleteCategory = async (token, id) => {
   const { data } = await createAuthClient(token).delete(`/categories/${id}`);
   return data;
 };
+
+export const reorderCategories = async (token, ids) => {
+  const { data } = await createAuthClient(token).put("/categories/order", {
+    ids,
+  });
+  return data;
+};
