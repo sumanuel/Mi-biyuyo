@@ -108,7 +108,7 @@ export default function MovementFormScreen({ navigation, route }) {
             : "",
       }))
     : [];
-  const [ccy, setCcy] = useState(editing ? editing.ccy : "usd");
+  const [ccy, setCcy] = useState(editing ? editing.ccy : "ves");
   const [amount, setAmount] = useState(editing ? nat(editing.amount) : "");
   const [desc, setDesc] = useState(editing?.hasDesc ? editing.title : "");
   const [person, setPerson] = useState(editing?.person || "");

@@ -131,6 +131,8 @@ export function DataProvider({ children }) {
         run(() => ledgerService.createEntity(token, body)),
       updateEntity: (id, body) =>
         run(() => ledgerService.updateEntity(token, id, body)),
+      reorderEntities: (ids) =>
+        run(() => ledgerService.reorderEntities(token, ids)),
       deleteEntity: (id) => run(() => ledgerService.deleteEntity(token, id)),
       createTransfer: (body) =>
         run(() => ledgerService.createTransfer(token, body)),

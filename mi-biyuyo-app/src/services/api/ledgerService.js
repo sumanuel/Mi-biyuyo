@@ -36,3 +36,10 @@ export const deleteTransfer = async (token, id) => {
   const { data } = await createAuthClient(token).delete(`/transfers/${id}`);
   return data;
 };
+
+export const reorderEntities = async (token, ids) => {
+  const { data } = await createAuthClient(token).put("/entities/order", {
+    ids,
+  });
+  return data;
+};

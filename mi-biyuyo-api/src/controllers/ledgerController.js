@@ -21,7 +21,7 @@ exports.get = async (req, res, next) => {
                 payment_type, payment_data, alert_usd::float AS alert_usd,
                 include_in_balance, to_char(created_at,'YYYY-MM-DD') AS created,
                 (EXTRACT(EPOCH FROM created_at) * 1000)::float AS ts
-         FROM entities WHERE user_id = $1 ORDER BY id`,
+         FROM entities WHERE user_id = $1 ORDER BY COALESCE(sort_order, 1000000), id`,
         [uid],
       ),
       pool.query(

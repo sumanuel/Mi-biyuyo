@@ -289,6 +289,11 @@ async function migrate() {
       )
     `);
 
+    // ── orden de las entidades elegido por cada usuario (NULL = al final, por id) ──
+    await client.query(
+      `ALTER TABLE entities ADD COLUMN IF NOT EXISTS sort_order INTEGER`,
+    );
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {
