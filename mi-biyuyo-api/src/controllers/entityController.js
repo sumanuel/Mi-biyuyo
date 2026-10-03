@@ -40,10 +40,36 @@ function clean(body) {
   };
 }
 
+// Guarda el orden que el usuario eligió para sus entidades (lista de ids, de la primera a la última).
+exports.reorder = async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const ids = [...new Set((req.body.ids || []).map(Number))].filter((n) =>
+      Number.isInteger(n),
+    );
+    if (!ids.length || ids.length > 300)
+      return res.status(422).json({ error: "Lista de entidades inválida" });
+    await client.query("BEGIN");
+    await client.query(
+      `UPDATE entities e SET sort_order = x.pos
+       FROM unnest($2::int[], $3::int[]) AS x(id, pos)
+       WHERE e.id = x.id AND e.user_id = $1`,
+      [req.user.id, ids, ids.map((_, i) => i)],
+    );
+    await client.query("COMMIT");
+    res.json({ message: "Orden guardado", count: ids.length });
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+};
+
 exports.list = async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      `SELECT ${cols} FROM entities WHERE user_id = $1 ORDER BY id`,
+      `SELECT ${cols} FROM entities WHERE user_id = $1 ORDER BY COALESCE(sort_order, 1000000), id`,
       [req.user.id],
     );
     res.json(rows);

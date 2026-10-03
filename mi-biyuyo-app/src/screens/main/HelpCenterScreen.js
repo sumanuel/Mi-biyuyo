@@ -20,6 +20,7 @@ const TOPICS = [
       "Elige su moneda (USD, VES o USDT) y su saldo inicial. El saldo inicial se registra como el primer movimiento de la entidad.",
       "«Sumar a Mi saldo» decide si el saldo de esa entidad cuenta en tu saldo total. Si lo desmarcas, la entidad sigue funcionando pero no suma.",
       "Con «Transferir» mueves dinero entre entidades, con comisión opcional. También puedes definir una alerta de saldo bajo.",
+      "Para ordenar tus entidades, mantén presionada una, arrástrala al lugar que prefieras y suéltala. El orden se guarda en tu cuenta.",
     ],
   },
   {

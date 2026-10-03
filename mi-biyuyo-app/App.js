@@ -206,18 +206,6 @@ function AppNavigator() {
     );
   }
 
-  if (token && isLocked) {
-    return (
-      <>
-        <StatusBar style={isDark ? "light" : "dark"} />
-        <BiometricLockScreen
-          onUnlock={() => setIsLocked(false)}
-          onSignOut={logout}
-        />
-      </>
-    );
-  }
-
   // El fondo de la ventana sigue el tema (evita franjas blancas bajo la barra de navegación)
   const navTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
@@ -228,93 +216,108 @@ function AppNavigator() {
     },
   };
 
+  // La pantalla de huella se dibuja ENCIMA de la app (no en su lugar): así el formulario o la
+  // pantalla en la que estabas se conservan intactos al desbloquear.
   return (
-    <NavigationContainer theme={navTheme}>
-      <StatusBar style={isDark ? "light" : "dark"} />
-      {token ? (
-        <ExchangeRateProvider>
-          <DataProvider>
-            <GuideProvider>
-              <RateNotificationsProvider>
-                <View style={{ flex: 1 }}>
-                  <Stack.Navigator screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name="MainTabs" component={MainTabs} />
-                    <Stack.Screen
-                      name="MovementForm"
-                      component={MovementFormScreen}
-                    />
-                    <Stack.Screen
-                      name="MovementSaved"
-                      component={MovementSavedScreen}
-                    />
-                    <Stack.Screen
-                      name="MovementDetail"
-                      component={MovementDetailScreen}
-                    />
-                    <Stack.Screen
-                      name="DebtDetail"
-                      component={DebtDetailScreen}
-                    />
-                    <Stack.Screen name="Pay" component={PayScreen} />
-                    <Stack.Screen
-                      name="EntityDetail"
-                      component={EntityDetailScreen}
-                    />
-                    <Stack.Screen
-                      name="EntityForm"
-                      component={EntityFormScreen}
-                    />
-                    <Stack.Screen
-                      name="EntityMovements"
-                      component={EntityMovementsScreen}
-                    />
-                    <Stack.Screen name="Items" component={ItemsScreen} />
-                    <Stack.Screen
-                      name="ItemDates"
-                      component={ItemDatesScreen}
-                    />
-                    <Stack.Screen name="Transfer" component={TransferScreen} />
-                    <Stack.Screen
-                      name="ExchangeRate"
-                      component={ExchangeRateScreen}
-                    />
-                    <Stack.Screen name="Profile" component={ProfileScreen} />
-                    <Stack.Screen name="About" component={AboutScreen} />
-                    <Stack.Screen
-                      name="GettingStarted"
-                      component={GettingStartedScreen}
-                    />
-                    <Stack.Screen
-                      name="HelpCenter"
-                      component={HelpCenterScreen}
-                    />
-                    <Stack.Screen
-                      name="Onboarding"
-                      component={OnboardingReplay}
-                    />
-                    <Stack.Screen
-                      name="RateNotifications"
-                      component={RateNotificationsScreen}
-                    />
-                  </Stack.Navigator>
-                  <Toast />
-                  <DailyRateWatcher />
-                </View>
-              </RateNotificationsProvider>
-            </GuideProvider>
-          </DataProvider>
-        </ExchangeRateProvider>
-      ) : (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
-          <Stack.Screen
-            name="ForgotPassword"
-            component={ForgotPasswordScreen}
+    <View style={{ flex: 1 }}>
+      <NavigationContainer theme={navTheme}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        {token ? (
+          <ExchangeRateProvider>
+            <DataProvider>
+              <GuideProvider>
+                <RateNotificationsProvider>
+                  <View style={{ flex: 1 }}>
+                    <Stack.Navigator screenOptions={{ headerShown: false }}>
+                      <Stack.Screen name="MainTabs" component={MainTabs} />
+                      <Stack.Screen
+                        name="MovementForm"
+                        component={MovementFormScreen}
+                      />
+                      <Stack.Screen
+                        name="MovementSaved"
+                        component={MovementSavedScreen}
+                      />
+                      <Stack.Screen
+                        name="MovementDetail"
+                        component={MovementDetailScreen}
+                      />
+                      <Stack.Screen
+                        name="DebtDetail"
+                        component={DebtDetailScreen}
+                      />
+                      <Stack.Screen name="Pay" component={PayScreen} />
+                      <Stack.Screen
+                        name="EntityDetail"
+                        component={EntityDetailScreen}
+                      />
+                      <Stack.Screen
+                        name="EntityForm"
+                        component={EntityFormScreen}
+                      />
+                      <Stack.Screen
+                        name="EntityMovements"
+                        component={EntityMovementsScreen}
+                      />
+                      <Stack.Screen name="Items" component={ItemsScreen} />
+                      <Stack.Screen
+                        name="ItemDates"
+                        component={ItemDatesScreen}
+                      />
+                      <Stack.Screen
+                        name="Transfer"
+                        component={TransferScreen}
+                      />
+                      <Stack.Screen
+                        name="ExchangeRate"
+                        component={ExchangeRateScreen}
+                      />
+                      <Stack.Screen name="Profile" component={ProfileScreen} />
+                      <Stack.Screen name="About" component={AboutScreen} />
+                      <Stack.Screen
+                        name="GettingStarted"
+                        component={GettingStartedScreen}
+                      />
+                      <Stack.Screen
+                        name="HelpCenter"
+                        component={HelpCenterScreen}
+                      />
+                      <Stack.Screen
+                        name="Onboarding"
+                        component={OnboardingReplay}
+                      />
+                      <Stack.Screen
+                        name="RateNotifications"
+                        component={RateNotificationsScreen}
+                      />
+                    </Stack.Navigator>
+                    <Toast />
+                    <DailyRateWatcher />
+                  </View>
+                </RateNotificationsProvider>
+              </GuideProvider>
+            </DataProvider>
+          </ExchangeRateProvider>
+        ) : (
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen
+              name="ForgotPassword"
+              component={ForgotPasswordScreen}
+            />
+          </Stack.Navigator>
+        )}
+      </NavigationContainer>
+      {token && isLocked ? (
+        <View style={StyleSheet.absoluteFill}>
+          <BiometricLockScreen
+            onUnlock={() => setIsLocked(false)}
+            onSignOut={logout}
           />
-        </Stack.Navigator>
-      )}
-    </NavigationContainer>
+        </View>
+      ) : null}
+    </View>
   );
 }
 

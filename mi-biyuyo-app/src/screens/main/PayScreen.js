@@ -38,7 +38,7 @@ export default function PayScreen({ navigation, route }) {
   const { fx } = model;
   const debt = model.moveById[route.params?.id];
 
-  const [ccy, setCcy] = useState("usd");
+  const [ccy, setCcy] = useState("ves");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(todayStr());
   const [entId, setEntId] = useState(null);

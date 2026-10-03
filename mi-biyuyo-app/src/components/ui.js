@@ -99,6 +99,9 @@ export function Screen({
   data = true,
   pull = false,
   keyboard = "handled",
+  scrollEnabled = true,
+  onScroll,
+  innerRef,
 }) {
   const { colors } = useTheme();
   const { model, loading, error, refresh } = useData();
@@ -169,7 +172,13 @@ export function Screen({
         >
           {usesScroll ? (
             <ScrollView
-              ref={scrollRef}
+              ref={(r) => {
+                scrollRef.current = r;
+                if (innerRef) innerRef.current = r;
+              }}
+              scrollEnabled={scrollEnabled}
+              onScroll={onScroll}
+              scrollEventThrottle={onScroll ? 16 : undefined}
               style={{ flex: 1, minHeight: 0 }}
               contentContainerStyle={[
                 {
