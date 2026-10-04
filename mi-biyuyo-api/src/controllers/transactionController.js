@@ -1,6 +1,9 @@
 const pool = require("../config/database");
 const { convertToAll, toUsd } = require("../utils/currencyConverter");
 
+// Tipos de categoría que son deudas (por cobrar = loan_given, por pagar = debt)
+const DEBT_TYPES = ["loan_given", "debt"];
+
 async function getUserRates(userId) {
   const { rows } = await pool.query(
     `SELECT usd_to_ves, binance_to_ves FROM exchange_rates WHERE user_id = $1`,
@@ -127,6 +130,20 @@ async function replaceItems(client, transactionId, items, currency, rates) {
   }
 }
 
+// Cuotas (solo por cobrar / por pagar): 2 a 24 cuotas cada 7, 15 o 30 días. Sin cuotas = null.
+const INSTALLMENT_DAYS = [7, 15, 30];
+function cleanInstallments(count, days, isDebt) {
+  const n = parseInt(count);
+  if (!isDebt || !(n >= 2)) return { installments: null, installment_days: null };
+  const d = parseInt(days);
+  if (n > 24 || !INSTALLMENT_DAYS.includes(d)) {
+    const err = new Error("Cuotas inválidas: de 2 a 24, cada 7, 15 o 30 días");
+    err.status = 422;
+    throw err;
+  }
+  return { installments: n, installment_days: d };
+}
+
 exports.create = async (req, res, next) => {
   const client = await pool.connect();
   try {
@@ -141,6 +158,8 @@ exports.create = async (req, res, next) => {
       entity_id,
       cash,
       due_date,
+      installments,
+      installment_days,
       items,
       receipt_name,
       receipt_data,
@@ -154,13 +173,24 @@ exports.create = async (req, res, next) => {
     const converted = convertToAll(amount, currency, rates);
     await assertEntity(req.user.id, entity_id);
 
+    // ¿La categoría es de por cobrar / por pagar?
+    let isDebtCat = false;
+    if (category_id) {
+      const { rows: cat } = await client.query(
+        `SELECT type FROM categories WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)`,
+        [category_id, req.user.id],
+      );
+      isDebtCat = cat.length > 0 && DEBT_TYPES.includes(cat[0].type);
+    }
+    const inst = cleanInstallments(installments, installment_days, isDebtCat);
+
     await client.query("BEGIN");
     const { rows } = await client.query(
       `INSERT INTO transactions
          (user_id, category_id, amount, currency, amount_usd, amount_ves, amount_binance,
           description, date, counterpart_name, notes, entity_id, cash, due_date,
-          receipt_name, receipt_data)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+          receipt_name, receipt_data, installments, installment_days)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
       [
         req.user.id,
         category_id || null,
@@ -178,6 +208,8 @@ exports.create = async (req, res, next) => {
         due_date || null,
         receipt_name || null,
         receipt_data || null,
+        inst.installments,
+        inst.installment_days,
       ],
     );
     await replaceItems(client, rows[0].id, items, currency, rates);
@@ -247,8 +279,7 @@ exports.update = async (req, res, next) => {
       categoryId = cat[0].id;
     }
 
-    const isDebt =
-      cur.category_type === "cobrar" || cur.category_type === "pagar";
+    const isDebt = DEBT_TYPES.includes(cur.category_type);
     const amount = has("amount")
       ? parseFloat(b.amount)
       : parseFloat(cur.amount);
@@ -287,6 +318,12 @@ exports.update = async (req, res, next) => {
       ? await assertEntity(req.user.id, b.entity_id)
       : cur.entity_id;
     const value = (k, fallback) => (has(k) ? b[k] || null : fallback);
+    const inst = has("installments")
+      ? cleanInstallments(b.installments, b.installment_days, isDebt)
+      : {
+          installments: cur.installments,
+          installment_days: cur.installment_days,
+        };
     const status = isDebt
       ? parseFloat(amount) - paid <= tol
         ? "paid"
@@ -300,8 +337,9 @@ exports.update = async (req, res, next) => {
          amount_usd = $4, amount_ves = $5, amount_binance = $6,
          description = $7, date = $8, counterpart_name = $9, notes = $10,
          entity_id = $11, cash = $12, due_date = $13, status = $14,
-         receipt_name = $15, receipt_data = $16, updated_at = NOW()
-       WHERE id = $17 RETURNING *`,
+         receipt_name = $15, receipt_data = $16, installments = $17,
+         installment_days = $18, updated_at = NOW()
+       WHERE id = $19 RETURNING *`,
       [
         categoryId,
         amount,
@@ -319,6 +357,8 @@ exports.update = async (req, res, next) => {
         status,
         has("receipt_name") ? b.receipt_name || null : cur.receipt_name,
         has("receipt_data") ? b.receipt_data || null : cur.receipt_data,
+        inst.installments,
+        inst.installment_days,
         id,
       ],
     );

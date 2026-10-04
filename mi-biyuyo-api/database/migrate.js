@@ -294,6 +294,14 @@ async function migrate() {
       `ALTER TABLE entities ADD COLUMN IF NOT EXISTS sort_order INTEGER`,
     );
 
+    // ── cuotas en por cobrar / por pagar: nº de cuotas y cada cuántos días (NULL = sin cuotas).
+    //    due_date pasa a ser la fecha de la primera cuota ──
+    await client.query(`
+      ALTER TABLE transactions
+        ADD COLUMN IF NOT EXISTS installments     INTEGER,
+        ADD COLUMN IF NOT EXISTS installment_days INTEGER
+    `);
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {
