@@ -38,7 +38,7 @@ export default function TransferScreen({ navigation, route }) {
 
   const [fromId, setFromId] = useState(route.params?.from || model.ents[0]?.id);
   const [toId, setToId] = useState(null);
-  const [ccy, setCcy] = useState("ves");
+  const [ccy, setCcy] = useState("bcv");
   const [amount, setAmount] = useState("");
   const [fee, setFee] = useState("");
   const [date, setDate] = useState(todayStr());
