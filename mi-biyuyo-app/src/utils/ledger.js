@@ -9,6 +9,7 @@ import {
   grp,
   daysAgo,
   daysUntil,
+  addDays,
 } from "./money";
 
 export const TYPE_FROM_DB = {
@@ -197,6 +198,10 @@ export function buildModel(raw, ratesOverride) {
       cash: t.cash !== false,
       dueIn,
       dueDate: t.due_date || null,
+      // Cuotas: nº de cuotas, cada cuántos días y fecha de la primera (dueDate pasa a ser la próxima sin pagar)
+      inst: t.installments || 0,
+      instDays: t.installment_days || 0,
+      dueBase: t.due_date || null,
       notes: t.notes || null,
       receipt: t.receipt_name || null,
       hasReceipt: !!t.has_receipt,
@@ -253,6 +258,39 @@ export function buildModel(raw, ratesOverride) {
     return t > 0 ? (m.usd * native) / t : 0; // sin tasa: proporción del valor guardado
   };
   const totalOf = (m) => curUsd(m, totalNative(m));
+
+  // Calendario de cuotas: el monto se reparte en partes iguales (la última absorbe el redondeo)
+  // y los abonos las van cubriendo en orden. El vencimiento de la deuda pasa a ser el de la
+  // próxima cuota sin pagar (así listas, alertas y «vencida» funcionan igual que sin cuotas).
+  moves.forEach((m) => {
+    if (!m.inst || !m.dueBase) return;
+    const dec = m.ccy === "bin" ? 1000 : 100;
+    const total = totalNative(m);
+    const each = Math.floor((total / m.inst) * dec) / dec;
+    let left = paidNative(m);
+    m.sched = Array.from({ length: m.inst }, (_, i) => {
+      const amt =
+        i === m.inst - 1
+          ? Math.round((total - each * (m.inst - 1)) * dec) / dec
+          : each;
+      const cover = Math.min(amt, Math.max(0, left));
+      left -= amt;
+      const done = cover >= amt - tolOf(m);
+      const due = addDays(m.dueBase, i * m.instDays);
+      return {
+        n: i + 1,
+        due,
+        amt,
+        paid: cover,
+        done,
+        partial: !done && cover > tolOf(m),
+        dueIn: daysUntil(due),
+      };
+    });
+    m.nextInst = m.sched.find((c) => !c.done) || null;
+    m.dueDate = m.nextInst ? m.nextInst.due : null;
+    m.dueIn = m.nextInst ? m.nextInst.dueIn : null;
+  });
   const pendOf = (m) => curUsd(m, pendNative(m));
   const paidOf = (m) => Math.max(0, totalOf(m) - pendOf(m));
 
@@ -355,9 +393,10 @@ export function buildModel(raw, ratesOverride) {
 
   const dueText = (m) => {
     if (m.dueIn === null || m.dueIn === undefined) return "Sin fecha";
-    if (m.dueIn < 0) return "Vencida hace " + nTxt(-m.dueIn, "día");
-    if (m.dueIn === 0) return "Vence hoy";
-    return "Vence en " + nTxt(m.dueIn, "día");
+    const cuota = m.nextInst ? `Cuota ${m.nextInst.n}/${m.inst} · ` : "";
+    if (m.dueIn < 0) return cuota + "Vencida hace " + nTxt(-m.dueIn, "día");
+    if (m.dueIn === 0) return cuota + "Vence hoy";
+    return cuota + "Vence en " + nTxt(m.dueIn, "día");
   };
 
   return {

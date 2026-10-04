@@ -43,7 +43,13 @@ const DUE_OPTS = [
   { l: "15 días", v: 15 },
   { l: "30 días", v: 30 },
   { l: "Sin fecha", v: null },
+  { l: "Elegir fecha", v: "custom" },
 ];
+const DUE_NONE = 3;
+const DUE_CUSTOM = 4;
+// Pagos en cuotas: cantidad de cuotas ofrecidas y cada cuántos días vence cada una
+const INST_OPTS = [0, 3, 6, 9, 12];
+const INST_DAYS = 15;
 const SUG_GASTO = [
   "Queso",
   "Jamón",
@@ -116,8 +122,12 @@ export default function MovementFormScreen({ navigation, route }) {
   const [entId, setEntId] = useState(editing ? editing.ent : null);
   // -1 = conservar el vencimiento actual (solo al editar)
   const [dueIdx, setDueIdx] = useState(
-    editing ? (editing.dueDate ? -1 : 3) : 2,
+    editing ? (editing.dueBase ? -1 : DUE_NONE) : 2,
   );
+  const [dueCustom, setDueCustom] = useState(
+    editing?.dueBase || addDays(editing ? editing.date : todayStr(), 30),
+  );
+  const [inst, setInst] = useState(editing?.inst || 0);
   const [cashPagar, setCashPagar] = useState(editing ? editing.cash : false);
   const [items, setItems] = useState(initItems);
   const [itemsOpen, setItemsOpen] = useState(initItems.length > 0);
@@ -178,8 +188,22 @@ export default function MovementFormScreen({ navigation, route }) {
     }
   }
 
+  // Vencimiento (con cuotas, es la fecha de la primera cuota)
+  const dueDateOf = () => {
+    if (!isDebt) return null;
+    if (dueIdx === -1) return editing.dueBase;
+    if (dueIdx === DUE_CUSTOM) return dueCustom;
+    const v = DUE_OPTS[dueIdx].v;
+    return v !== null ? addDays(date, v) : null;
+  };
+  const firstDue = dueDateOf();
+  const dueBad = isDebt && dueIdx === DUE_CUSTOM && dueCustom < date;
+  const lastDue =
+    inst && firstDue ? addDays(firstDue, INST_DAYS * (inst - 1)) : null;
+
   const canSave =
     amtNum > 0 &&
+    !dueBad &&
     !itemsInvalid &&
     !rateMissing &&
     !belowPaid &&
@@ -214,7 +238,6 @@ export default function MovementFormScreen({ navigation, route }) {
     if (!canSave) return;
     setBusy(true);
     try {
-      const v = dueIdx >= 0 ? DUE_OPTS[dueIdx].v : null;
       const body = {
         category_id: cat.id,
         amount: amtNum,
@@ -224,13 +247,9 @@ export default function MovementFormScreen({ navigation, route }) {
         counterpart_name: isDebt ? person.trim() || null : null,
         entity_id: needsEnt ? entSel : null,
         cash: isDebt ? cash : true,
-        due_date: !isDebt
-          ? null
-          : dueIdx === -1
-            ? editing.dueDate
-            : v !== null
-              ? addDays(date, v)
-              : null,
+        due_date: dueDateOf(),
+        installments: isDebt && inst ? inst : null,
+        installment_days: isDebt && inst ? INST_DAYS : null,
         items: showItems
           ? items.map((it) => ({
               name: it.name,
@@ -863,26 +882,87 @@ export default function MovementFormScreen({ navigation, route }) {
 
       {isDebt ? (
         <View style={{ gap: 8 }}>
-          <Txt style={{ fontSize: 14, fontWeight: "700" }}>Vencimiento</Txt>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>Pago en cuotas</Txt>
           <ChipRow>
-            {editing?.dueDate ? (
+            {INST_OPTS.map((n) => (
               <Chip
-                label={fullDate(editing.dueDate)}
+                key={n}
+                label={n === 0 ? "Sin cuotas" : `${n} cuotas`}
+                active={n === inst}
+                color={tint.strong}
+                onPress={() => {
+                  setInst(n);
+                  // Con cuotas la primera suele vencer en 15 días y siempre lleva fecha
+                  if (
+                    n > 0 &&
+                    (dueIdx === DUE_NONE || (!editing && dueIdx === 2))
+                  )
+                    setDueIdx(1);
+                }}
+              />
+            ))}
+          </ChipRow>
+          {inst ? (
+            <Txt
+              style={{
+                fontSize: 12,
+                color: colors.textSecondary,
+                lineHeight: 17,
+              }}
+            >
+              {amtNum > 0
+                ? `${inst} cuotas de ${fx.money(ccy, amtNum / inst)}, una cada ${INST_DAYS} días.`
+                : `${inst} cuotas, una cada ${INST_DAYS} días.`}
+              {firstDue && lastDue
+                ? ` Primera: ${fullDate(firstDue)} · Última: ${fullDate(lastDue)}.`
+                : ""}
+            </Txt>
+          ) : null}
+        </View>
+      ) : null}
+
+      {isDebt ? (
+        <View style={{ gap: 8 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            {inst ? "Primera cuota" : "Vencimiento"}
+          </Txt>
+          <ChipRow>
+            {editing?.dueBase ? (
+              <Chip
+                label={fullDate(editing.dueBase)}
                 active={dueIdx === -1}
                 color={tint.strong}
                 onPress={() => setDueIdx(-1)}
               />
             ) : null}
-            {DUE_OPTS.map((o, i) => (
-              <Chip
-                key={o.l}
-                label={o.l}
-                active={i === dueIdx}
-                color={tint.strong}
-                onPress={() => setDueIdx(i)}
-              />
-            ))}
+            {DUE_OPTS.map((o, i) =>
+              inst && i === DUE_NONE ? null : (
+                <Chip
+                  key={o.l}
+                  label={o.l}
+                  active={i === dueIdx}
+                  color={tint.strong}
+                  onPress={() => setDueIdx(i)}
+                />
+              ),
+            )}
           </ChipRow>
+          {dueIdx === DUE_CUSTOM ? (
+            <>
+              <DateField
+                value={dueCustom}
+                onChange={setDueCustom}
+                min={date}
+                max={addDays(todayStr(), 3650)}
+                tint={tint}
+              />
+              {dueBad ? (
+                <Txt style={{ fontSize: 12, color: colors.danger.fg }}>
+                  La fecha no puede ser anterior a la del movimiento.
+                </Txt>
+              ) : null}
+            </>
+          ) : null}
         </View>
       ) : null}
     </Screen>

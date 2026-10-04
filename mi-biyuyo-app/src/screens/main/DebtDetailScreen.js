@@ -17,7 +17,7 @@ import {
   Empty,
 } from "../../components/ui";
 import { debtStatus } from "../../utils/ledger";
-import { CCY_KEYS, CCY_LABEL, dlabel, grp } from "../../utils/money";
+import { CCY_KEYS, CCY_LABEL, dlabel, fullDate, grp } from "../../utils/money";
 
 export default function DebtDetailScreen({ navigation, route }) {
   const { colors } = useTheme();
@@ -182,6 +182,63 @@ export default function DebtDetailScreen({ navigation, route }) {
       <Card pad={14}>
         <ConvRows title="SALDO PENDIENTE EN LAS 3 MONEDAS" rows={rows} />
       </Card>
+
+      {debt.sched ? (
+        <View style={{ gap: 10 }}>
+          <Txt style={{ fontSize: 15, fontWeight: "700" }}>
+            Cuotas · una cada {debt.instDays} días
+          </Txt>
+          <Card pad={0} style={{ paddingVertical: 4, paddingHorizontal: 14 }}>
+            {debt.sched.map((c, i) => {
+              const tone = c.done
+                ? "ok"
+                : c.dueIn < 0
+                  ? "danger"
+                  : c.dueIn <= 7
+                    ? "warn"
+                    : "neutral";
+              const label = c.done
+                ? "Pagada"
+                : c.partial
+                  ? "Parcial · falta " +
+                    fx.money(debt.ccy, Math.max(0, c.amt - c.paid))
+                  : c.dueIn < 0
+                    ? "Vencida"
+                    : c.dueIn === 0
+                      ? "Vence hoy"
+                      : "Pendiente";
+              return (
+                <View
+                  key={c.n}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                    paddingVertical: 12,
+                    borderBottomWidth: i === debt.sched.length - 1 ? 0 : 1,
+                    borderBottomColor: colors.divider,
+                  }}
+                >
+                  <View style={{ flex: 1, gap: 3 }}>
+                    <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+                      Cuota {c.n} de {debt.inst}
+                    </Txt>
+                    <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+                      {fullDate(c.due)}
+                    </Txt>
+                  </View>
+                  <View style={{ alignItems: "flex-end", gap: 4 }}>
+                    <Txt style={{ fontSize: 14, fontWeight: "800" }}>
+                      {fx.money(debt.ccy, c.amt)}
+                    </Txt>
+                    <TonePill label={label} toneName={tone} />
+                  </View>
+                </View>
+              );
+            })}
+          </Card>
+        </View>
+      ) : null}
 
       <View style={{ gap: 10 }}>
         <Txt style={{ fontSize: 15, fontWeight: "700" }}>
