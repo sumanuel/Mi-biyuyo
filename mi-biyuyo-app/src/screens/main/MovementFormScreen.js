@@ -128,6 +128,7 @@ export default function MovementFormScreen({ navigation, route }) {
     editing?.dueBase || addDays(editing ? editing.date : todayStr(), 30),
   );
   const [inst, setInst] = useState(editing?.inst || 0);
+  const [rec, setRec] = useState(!!editing?.recurring);
   const [cashPagar, setCashPagar] = useState(editing ? editing.cash : false);
   const [items, setItems] = useState(initItems);
   const [itemsOpen, setItemsOpen] = useState(initItems.length > 0);
@@ -248,6 +249,7 @@ export default function MovementFormScreen({ navigation, route }) {
         entity_id: needsEnt ? entSel : null,
         cash: isDebt ? cash : true,
         due_date: dueDateOf(),
+        recurring: isDebt && rec,
         installments: isDebt && inst ? inst : null,
         installment_days: isDebt && inst ? INST_DAYS : null,
         items: showItems
@@ -936,7 +938,7 @@ export default function MovementFormScreen({ navigation, route }) {
               />
             ) : null}
             {DUE_OPTS.map((o, i) =>
-              inst && i === DUE_NONE ? null : (
+              (inst || rec) && i === DUE_NONE ? null : (
                 <Chip
                   key={o.l}
                   label={o.l}
@@ -963,6 +965,43 @@ export default function MovementFormScreen({ navigation, route }) {
               ) : null}
             </>
           ) : null}
+        </View>
+      ) : null}
+      {isDebt ? (
+        <View style={{ gap: 8 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            Repetir cada mes
+          </Txt>
+          <ChipRow>
+            {[
+              [false, "No"],
+              [true, "Sí, cada mes"],
+            ].map(([v, l]) => (
+              <Chip
+                key={l}
+                label={l}
+                active={rec === v}
+                color={tint.strong}
+                onPress={() => {
+                  setRec(v);
+                  // Repetir necesita una fecha de vencimiento
+                  if (v && dueIdx === DUE_NONE) setDueIdx(2);
+                }}
+              />
+            ))}
+          </ChipRow>
+          <Txt
+            style={{
+              fontSize: 12,
+              color: colors.textSecondary,
+              lineHeight: 17,
+            }}
+          >
+            {rec
+              ? "Cuando la saldes se crea sola la del mes siguiente, con el mismo monto y el vencimiento un mes después. La nueva no mueve dinero de tus entidades: el dinero se registra al " +
+                (type === "pagar" ? "pagar." : "cobrar.")
+              : "Útil para internet, colegio, suscripciones o un alquiler que cobras cada mes."}
+          </Txt>
         </View>
       ) : null}
     </Screen>

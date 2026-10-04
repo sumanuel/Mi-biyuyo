@@ -1,4 +1,5 @@
 const pool = require("../config/database");
+const { spawnNextRecurrence } = require("../utils/recurrence");
 const { convertToAll, factorOf } = require("../utils/currencyConverter");
 
 async function getUserRates(userId) {
@@ -94,14 +95,17 @@ exports.create = async (req, res, next) => {
       ],
     );
 
+    let next = null;
     if (pending - payNative <= tol) {
       await pool.query(
         `UPDATE transactions SET status = 'paid', updated_at = NOW() WHERE id = $1`,
         [transactionId],
       );
+      // Deuda recurrente saldada: se crea la del mes siguiente
+      next = await spawnNextRecurrence(pool, req.user.id, transactionId);
     }
 
-    res.status(201).json(rows[0]);
+    res.status(201).json(next ? { ...rows[0], next_recurrence: next } : rows[0]);
   } catch (err) {
     next(err);
   }

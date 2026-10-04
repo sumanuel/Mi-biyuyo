@@ -302,6 +302,16 @@ async function migrate() {
         ADD COLUMN IF NOT EXISTS installment_days INTEGER
     `);
 
+    // ── deudas recurrentes: al saldarse se crea la del mes siguiente (recurrence_source = la que la originó) ──
+    await client.query(`
+      ALTER TABLE transactions
+        ADD COLUMN IF NOT EXISTS recurring         BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS recurrence_source INTEGER REFERENCES transactions(id) ON DELETE SET NULL
+    `);
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_transactions_recurrence ON transactions(recurrence_source)`,
+    );
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {

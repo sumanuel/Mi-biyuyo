@@ -1,4 +1,5 @@
 const pool = require("../config/database");
+const { spawnNextRecurrence } = require("../utils/recurrence");
 const { convertToAll, toUsd } = require("../utils/currencyConverter");
 
 // Tipos de categoría que son deudas (por cobrar = loan_given, por pagar = debt)
@@ -160,6 +161,7 @@ exports.create = async (req, res, next) => {
       due_date,
       installments,
       installment_days,
+      recurring,
       items,
       receipt_name,
       receipt_data,
@@ -189,8 +191,8 @@ exports.create = async (req, res, next) => {
       `INSERT INTO transactions
          (user_id, category_id, amount, currency, amount_usd, amount_ves, amount_binance,
           description, date, counterpart_name, notes, entity_id, cash, due_date,
-          receipt_name, receipt_data, installments, installment_days)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
+          receipt_name, receipt_data, installments, installment_days, recurring)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
       [
         req.user.id,
         category_id || null,
@@ -210,6 +212,7 @@ exports.create = async (req, res, next) => {
         receipt_data || null,
         inst.installments,
         inst.installment_days,
+        isDebtCat && recurring === true,
       ],
     );
     await replaceItems(client, rows[0].id, items, currency, rates);
@@ -338,8 +341,8 @@ exports.update = async (req, res, next) => {
          description = $7, date = $8, counterpart_name = $9, notes = $10,
          entity_id = $11, cash = $12, due_date = $13, status = $14,
          receipt_name = $15, receipt_data = $16, installments = $17,
-         installment_days = $18, updated_at = NOW()
-       WHERE id = $19 RETURNING *`,
+         installment_days = $18, recurring = $19, updated_at = NOW()
+       WHERE id = $20 RETURNING *`,
       [
         categoryId,
         amount,
@@ -359,12 +362,18 @@ exports.update = async (req, res, next) => {
         has("receipt_data") ? b.receipt_data || null : cur.receipt_data,
         inst.installments,
         inst.installment_days,
+        isDebt && (has("recurring") ? b.recurring === true : cur.recurring),
         id,
       ],
     );
     if (has("items")) await replaceItems(client, id, b.items, currency, rates);
+    // Si al editar la deuda quedó saldada y es recurrente, se crea la del mes siguiente
+    const next =
+      isDebt && status === "paid" && cur.status !== "paid"
+        ? await spawnNextRecurrence(client, req.user.id, id)
+        : null;
     await client.query("COMMIT");
-    res.json(rows[0]);
+    res.json(next ? { ...rows[0], next_recurrence: next } : rows[0]);
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
     next(err);
