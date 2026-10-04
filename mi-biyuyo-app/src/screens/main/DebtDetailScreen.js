@@ -175,6 +175,11 @@ export default function DebtDetailScreen({ navigation, route }) {
             Total {dv(model.totalOf(debt))}
           </Txt>
         </View>
+        {debt.recurring ? (
+          <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+            Se repite cada mes: al saldarla se crea la del mes siguiente.
+          </Txt>
+        ) : null}
       </Card>
 
       <DispTabs height={40} />

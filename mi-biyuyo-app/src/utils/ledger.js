@@ -202,6 +202,7 @@ export function buildModel(raw, ratesOverride) {
       inst: t.installments || 0,
       instDays: t.installment_days || 0,
       dueBase: t.due_date || null,
+      recurring: !!t.recurring, // se repite cada mes: al saldarse se crea la siguiente
       notes: t.notes || null,
       receipt: t.receipt_name || null,
       hasReceipt: !!t.has_receipt,
