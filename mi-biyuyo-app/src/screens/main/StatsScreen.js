@@ -170,9 +170,24 @@ export default function StatsScreen({ navigation }) {
     </View>
   );
 
-  const bars = (rows, tint, barColor, withIcon = true) =>
+  const bars = (rows, tint, barColor, withIcon = true, type = null) =>
     rows.map((r) => (
-      <View key={r.key ?? r.id} style={{ gap: 6 }}>
+      <TouchableOpacity
+        key={r.key ?? r.id}
+        activeOpacity={type ? 0.8 : 1}
+        disabled={!type}
+        onPress={() =>
+          go(navigation, "CategoryMoves", {
+            catId: r.key,
+            type,
+            name: r.name,
+            from,
+            to,
+          })
+        }
+        accessibilityLabel={type ? `Ver movimientos de ${r.name}` : undefined}
+        style={{ gap: 6 }}
+      >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           {withIcon ? (
             <Tile
@@ -215,7 +230,7 @@ export default function StatsScreen({ navigation }) {
           pct={r.w}
           color={r.neg ? colors.danger.fg : barColor}
         />
-      </View>
+      </TouchableOpacity>
     ));
 
   const title = (t) => (
@@ -478,8 +493,9 @@ export default function StatsScreen({ navigation }) {
           }}
         >
           {insight}
+          {topExp.length ? " Toca una categoría para ver sus movimientos." : ""}
         </Txt>
-        {bars(topExp, colors.gasto, colors.chartExpense)}
+        {bars(topExp, colors.gasto, colors.chartExpense, true, "gasto")}
       </Card>
 
       <Card style={{ gap: 14 }}>
@@ -489,7 +505,7 @@ export default function StatsScreen({ navigation }) {
             Aún no hay ingresos en este período.
           </Txt>
         ) : null}
-        {bars(topInc, colors.cobrar, colors.chartIncome)}
+        {bars(topInc, colors.cobrar, colors.chartIncome, true, "ingreso")}
       </Card>
 
       <Card style={{ gap: 12 }}>
