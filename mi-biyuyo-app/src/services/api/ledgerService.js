@@ -43,3 +43,18 @@ export const reorderEntities = async (token, ids) => {
   });
   return data;
 };
+
+export const createPlanned = async (token, body) => {
+  const { data } = await createAuthClient(token).post("/planned", body);
+  return data;
+};
+
+export const updatePlanned = async (token, id, body) => {
+  const { data } = await createAuthClient(token).put(`/planned/${id}`, body);
+  return data;
+};
+
+export const deletePlanned = async (token, id) => {
+  const { data } = await createAuthClient(token).delete(`/planned/${id}`);
+  return data;
+};

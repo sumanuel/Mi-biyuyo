@@ -1,10 +1,11 @@
 const pool = require("../config/database");
+const { SELECT: PLANNED_SELECT } = require("./plannedController");
 
 // Devuelve todo lo necesario para calcular saldos, deudas y estadísticas en el cliente.
 exports.get = async (req, res, next) => {
   try {
     const uid = req.user.id;
-    const [cats, ents, txs, trs, rates] = await Promise.all([
+    const [cats, ents, txs, trs, rates, planned] = await Promise.all([
       pool.query(
         `SELECT c.id, c.code, c.name, c.type, c.icon, c.color, c.active
          FROM categories c
@@ -29,7 +30,7 @@ exports.get = async (req, res, next) => {
                 t.amount_usd::float AS amount_usd, t.amount_ves::float AS amount_ves,
                 t.amount_binance::float AS amount_binance, to_char(t.date,'YYYY-MM-DD') AS date,
                 to_char(t.due_date,'YYYY-MM-DD') AS due_date, t.counterpart_name, t.notes,
-                t.entity_id, t.cash, t.status, t.receipt_name,
+                t.entity_id, t.cash, t.status, t.receipt_name, t.installments, t.installment_days, t.recurring,
                 (EXTRACT(EPOCH FROM t.created_at) * 1000)::float AS ts,
                 (t.receipt_data IS NOT NULL) AS has_receipt,
                 COALESCE((SELECT json_agg(json_build_object(
@@ -60,12 +61,18 @@ exports.get = async (req, res, next) => {
          FROM exchange_rates WHERE user_id = $1`,
         [uid],
       ),
+      pool.query(
+        `${PLANNED_SELECT} WHERE p.user_id = $1
+         ORDER BY p.planned_date NULLS LAST, p.created_at DESC`,
+        [uid],
+      ),
     ]);
     res.json({
       categories: cats.rows,
       entities: ents.rows,
       transactions: txs.rows,
       transfers: trs.rows,
+      planned: planned.rows,
       rates: rates.rows[0] || { usd_to_ves: 0, binance_to_ves: 0 },
     });
   } catch (err) {

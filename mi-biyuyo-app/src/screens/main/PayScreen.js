@@ -23,6 +23,7 @@ import {
   CCY_PREFIX,
   CCY_TO_API,
   fmtIn,
+  fullDate,
   grp,
   parseNum,
   todayStr,
@@ -74,7 +75,7 @@ export default function PayScreen({ navigation, route }) {
     if (!canPay) return;
     setBusy(true);
     try {
-      await actions.addPayment(debt.id, {
+      const res = await actions.addPayment(debt.id, {
         amount: num,
         currency: CCY_TO_API[ccy],
         date,
@@ -82,7 +83,10 @@ export default function PayScreen({ navigation, route }) {
         notes: model.entName(entSel),
       });
       showToast(
-        `${isCobro ? "Cobro" : "Pago"} registrado: ${fx.money(ccy, num)}. Saldo ${fx.money("usd", after)}`,
+        `${isCobro ? "Cobro" : "Pago"} registrado: ${fx.money(ccy, num)}. Saldo ${fx.money("usd", after)}` +
+          (res?.next_recurrence
+            ? `. Se creó la del mes siguiente (vence ${fullDate(res.next_recurrence.due_date)}).`
+            : ""),
       );
       navigation.goBack();
     } catch (err) {
