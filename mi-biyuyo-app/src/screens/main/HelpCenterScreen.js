@@ -32,6 +32,14 @@ const TOPICS = [
     ],
   },
   {
+    title: "Gastos planificados",
+    body: [
+      "¿Vas a ir al súper en unos días y ya tienes tu lista? Entra a Registrar > Gastos, toca «Gastos planificados» y crea uno: ponle el nombre que quieras (por ejemplo, «Compra del súper»), la categoría, una fecha prevista si quieres y los ítems, cada uno con monto opcional.",
+      "Cuando llegue el momento, toca «Registrar»: se abre el formulario de gasto ya relleno con el monto estimado y los ítems. Ajusta lo que haga falta (por ejemplo, los precios reales) y guarda.",
+      "Un plan no afecta tu saldo hasta que lo registras, y se conserva para volver a usarlo cuantas veces quieras. Puedes tener todos los que necesites; para cambiarlo o borrarlo, tócalo en la lista.",
+    ],
+  },
+  {
     title: "Ordenar tus categorías",
     body: [
       "En Registrar puedes poner las categorías en el orden que prefieras, para tener a mano las que más usas.",
@@ -46,7 +54,6 @@ const TOPICS = [
       "Escribe la persona y el vencimiento (7, 15, 30 días o sin fecha). En Por pagar, «¿Recibiste el dinero?» es Sí si fue un préstamo que entró a una entidad, y No para servicios, cuotas o compras a crédito.",
       "Para cobrar o pagar de a poco, abre la deuda y toca «Registrar cobro» o «Registrar pago». Cuando se salda pasa a la pestaña Canceladas.",
       "Además de 7, 15 o 30 días, puedes elegir una fecha de vencimiento en el calendario («Elegir fecha»).",
-      "¿Es algo mensual (internet, colegio, suscripciones, un alquiler)? Activa «Repetir cada mes»: cuando saldes esa deuda, la app crea sola la del mes siguiente con el mismo monto y el vencimiento un mes después. La nueva queda pendiente y no mueve dinero de tus entidades; el dinero se registra al pagar o cobrar. Para dejar de repetirla, edita la deuda y elige «No».",
       "Si el comercio cobra en cuotas, elige 3, 6, 9 o 12 cuotas: se reparte el monto en partes iguales, una cada 15 días desde la fecha de la primera cuota. En el detalle de la deuda ves cada cuota; tus pagos las van cubriendo en orden y el vencimiento que se muestra es el de la próxima cuota.",
     ],
   },

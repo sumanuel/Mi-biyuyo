@@ -1,10 +1,11 @@
 const pool = require("../config/database");
+const { SELECT: PLANNED_SELECT } = require("./plannedController");
 
 // Devuelve todo lo necesario para calcular saldos, deudas y estadísticas en el cliente.
 exports.get = async (req, res, next) => {
   try {
     const uid = req.user.id;
-    const [cats, ents, txs, trs, rates] = await Promise.all([
+    const [cats, ents, txs, trs, rates, planned] = await Promise.all([
       pool.query(
         `SELECT c.id, c.code, c.name, c.type, c.icon, c.color, c.active
          FROM categories c
@@ -60,12 +61,18 @@ exports.get = async (req, res, next) => {
          FROM exchange_rates WHERE user_id = $1`,
         [uid],
       ),
+      pool.query(
+        `${PLANNED_SELECT} WHERE p.user_id = $1
+         ORDER BY p.planned_date NULLS LAST, p.created_at DESC`,
+        [uid],
+      ),
     ]);
     res.json({
       categories: cats.rows,
       entities: ents.rows,
       transactions: txs.rows,
       transfers: trs.rows,
+      planned: planned.rows,
       rates: rates.rows[0] || { usd_to_ves: 0, binance_to_ves: 0 },
     });
   } catch (err) {

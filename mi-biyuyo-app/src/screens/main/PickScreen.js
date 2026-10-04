@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useData } from "../../contexts/DataContext";
-import { Screen, Txt, H1, Tile } from "../../components/ui";
+import { Screen, Txt, H1, Tile, Icon } from "../../components/ui";
+import { nTxt } from "../../utils/money";
 import { META, TYPES } from "../../utils/ledger";
 
 const GAP = 10;
@@ -273,6 +274,42 @@ export default function PickScreen({ navigation, route }) {
             gusto.
           </Txt>
         </View>
+        {type === "gasto" ? (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate("Planned")}
+            accessibilityLabel="Gastos planificados"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              minHeight: 48,
+              paddingHorizontal: 14,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+            }}
+          >
+            <Icon name="calendar" size={20} color={t.fg} stroke={2} />
+            <View style={{ flex: 1 }}>
+              <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+                Gastos planificados
+              </Txt>
+              <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+                {model.planned.length
+                  ? nTxt(model.planned.length, "plan") + " guardados"
+                  : "Prepara tu lista de compras con anticipación"}
+              </Txt>
+            </View>
+            <Icon
+              name="chevronRight"
+              size={18}
+              color={colors.textSecondary}
+              stroke={2}
+            />
+          </TouchableOpacity>
+        ) : null}
       </View>
       <ScrollView
         ref={scrollRef}
