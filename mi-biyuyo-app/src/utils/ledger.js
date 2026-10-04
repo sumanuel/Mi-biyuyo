@@ -228,6 +228,27 @@ export function buildModel(raw, ratesOverride) {
   const moveById = {};
   moves.forEach((m) => (moveById[m.id] = m));
 
+  // Gastos planificados: listas reutilizables (no son movimientos, no afectan saldos)
+  const planned = (empty ? [] : raw.planned || []).map((p) => {
+    const items = (p.items || []).map((i) => ({
+      id: i.id,
+      name: i.name,
+      amt: i.amount || 0,
+    }));
+    const sum = items.reduce((a, i) => a + i.amt, 0);
+    return {
+      id: p.id,
+      name: p.name,
+      catId: p.category_id,
+      date: p.planned_date || null,
+      dueIn: p.planned_date ? daysUntil(p.planned_date) : null,
+      ccy: CCY_FROM_API[p.currency] || "usd",
+      amount: p.amount || 0,
+      est: p.amount > 0 ? p.amount : sum, // estimado: el monto indicado o la suma de los ítems
+      items,
+    };
+  });
+
   const transfers = (empty ? [] : raw.transfers || []).map((t) => ({
     id: t.id,
     date: t.date,
@@ -407,6 +428,7 @@ export function buildModel(raw, ratesOverride) {
     catById,
     moves,
     moveById,
+    planned,
     ents,
     entById,
     entName,

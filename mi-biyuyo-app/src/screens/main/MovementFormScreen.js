@@ -27,6 +27,7 @@ import {
   CCY_LABEL,
   CCY_PREFIX,
   CCY_TO_API,
+  fmtIn,
   grp,
   nTxt,
   parseNum,
@@ -45,6 +46,8 @@ const DUE_OPTS = [
   { l: "Sin fecha", v: null },
   { l: "Elegir fecha", v: "custom" },
 ];
+// La API ya soporta deudas recurrentes; la opción está oculta en el formulario por ahora
+const SHOW_RECURRING = false;
 const DUE_NONE = 3;
 const DUE_CUSTOM = 4;
 // Pagos en cuotas: cantidad de cuotas ofrecidas y cada cuántos días vence cada una
@@ -72,6 +75,8 @@ export default function MovementFormScreen({ navigation, route }) {
 
   // Edición: parte de un movimiento existente y conserva las tasas del día en que se registró
   const editing = model.moveById[route.params?.editId] || null;
+  // Gasto planificado que se está registrando: precarga moneda, monto, descripción e ítems
+  const plan = !editing ? route.params?.plan || null : null;
   const [catId, setCatId] = useState(
     editing ? editing.cat.id : route.params?.catId,
   );
@@ -104,19 +109,38 @@ export default function MovementFormScreen({ navigation, route }) {
     !!editing && isDebtType(editing.type) && editing.pays.length > 0;
   const paidNat = lockCcy ? model.paidNative(editing) : 0;
 
-  const initItems = editing
-    ? editing.items.map((it, i) => ({
-        id: "e" + i,
+  const planItems = plan
+    ? plan.items.map((it, i) => ({
+        id: "p" + i,
         name: it.name,
-        amt:
-          it.usd > 0 && origOk
-            ? nat(it.usd * (editing.amount / editing.usd))
-            : "",
+        amt: it.amt > 0 ? fmtIn(it.amt, plan.ccy === "bin" ? 3 : 2) : "",
       }))
     : [];
-  const [ccy, setCcy] = useState(editing ? editing.ccy : "bcv");
-  const [amount, setAmount] = useState(editing ? nat(editing.amount) : "");
-  const [desc, setDesc] = useState(editing?.hasDesc ? editing.title : "");
+  const initItems = plan
+    ? planItems
+    : editing
+      ? editing.items.map((it, i) => ({
+          id: "e" + i,
+          name: it.name,
+          amt:
+            it.usd > 0 && origOk
+              ? nat(it.usd * (editing.amount / editing.usd))
+              : "",
+        }))
+      : [];
+  const [ccy, setCcy] = useState(
+    editing ? editing.ccy : plan ? plan.ccy : "bcv",
+  );
+  const [amount, setAmount] = useState(
+    editing
+      ? nat(editing.amount)
+      : plan && plan.est > 0
+        ? fmtIn(plan.est, plan.ccy === "bin" ? 3 : 2)
+        : "",
+  );
+  const [desc, setDesc] = useState(
+    editing?.hasDesc ? editing.title : plan ? plan.name : "",
+  );
   const [person, setPerson] = useState(editing?.person || "");
   const [date, setDate] = useState(editing ? editing.date : todayStr());
   const [entId, setEntId] = useState(editing ? editing.ent : null);
@@ -133,7 +157,12 @@ export default function MovementFormScreen({ navigation, route }) {
   const [items, setItems] = useState(initItems);
   const [itemsOpen, setItemsOpen] = useState(initItems.length > 0);
   const [iName, setIName] = useState("");
-  const [itemsAmt, setItemsAmt] = useState(initItems.some((i) => i.amt));
+  // Desde un plan: el monto por ítem se activa solo si todos los ítems lo tienen (si no, no bloquea el guardado)
+  const [itemsAmt, setItemsAmt] = useState(
+    plan
+      ? initItems.length > 0 && initItems.every((i) => i.amt)
+      : initItems.some((i) => i.amt),
+  );
   const [receipt, setReceipt] = useState(
     editing?.receipt ? { name: editing.receipt, existing: true } : null,
   );
@@ -967,7 +996,8 @@ export default function MovementFormScreen({ navigation, route }) {
           ) : null}
         </View>
       ) : null}
-      {isDebt ? (
+      {/* Repetición mensual oculta por ahora (por cobrar y por pagar). Para mostrarla de nuevo: SHOW_RECURRING = true */}
+      {SHOW_RECURRING && isDebt ? (
         <View style={{ gap: 8 }}>
           <Txt style={{ fontSize: 14, fontWeight: "700" }}>
             Repetir cada mes

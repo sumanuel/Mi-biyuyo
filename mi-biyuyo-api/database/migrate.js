@@ -312,6 +312,37 @@ async function migrate() {
       `CREATE INDEX IF NOT EXISTS idx_transactions_recurrence ON transactions(recurrence_source)`,
     );
 
+    // ── gastos planificados: plantillas reutilizables con ítems (no afectan saldos hasta registrarlas) ──
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS planned_expenses (
+        id           SERIAL PRIMARY KEY,
+        user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name         VARCHAR(120) NOT NULL,
+        category_id  INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+        planned_date DATE,
+        amount       DECIMAL(15,2),
+        currency     VARCHAR(10),
+        notes        TEXT,
+        created_at   TIMESTAMPTZ DEFAULT NOW(),
+        updated_at   TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS planned_expense_items (
+        id       SERIAL PRIMARY KEY,
+        plan_id  INTEGER NOT NULL REFERENCES planned_expenses(id) ON DELETE CASCADE,
+        name     VARCHAR(100) NOT NULL,
+        amount   DECIMAL(15,2),
+        position INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_planned_user ON planned_expenses(user_id)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_planned_items_plan ON planned_expense_items(plan_id)`,
+    );
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {
