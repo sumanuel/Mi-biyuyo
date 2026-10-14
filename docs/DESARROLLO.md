@@ -41,3 +41,18 @@ npm run migrate:prod   # PRODUCCIÓN (usa .env.production): solo cuando todo est
 1. Cada cambio nuevo sale de `develop` en su propia rama (`git checkout develop && git checkout -b mi-cambio`).
 2. Se prueba en local (API + BD locales) y se fusiona a `develop`.
 3. Cuando `develop` está listo para publicar: migración en producción → fusionar a `main` → desplegar la API → generar la app.
+
+## Correo (códigos de verificación y recuperación)
+
+La API envía los códigos por SMTP. Variables (en el `.env` del servidor): `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_SECURE`, `EMAIL_USER`, `EMAIL_PASS` y `EMAIL_FROM`. También acepta los nombres `SMTP_*` (los de la API de T-SAFV). Los cambios del `.env` solo se leen al **reiniciar** la aplicación. Las contraseñas con espacios o los valores con `<>` deben ir entre comillas o sin espacios.
+
+Para comprobar el correo del servidor sin enviar nada: `GET /health?mail=check` responde, por ejemplo, `{"mail":{"configured":true,"smtp":"ok"}}`.
+
+| `smtp` | Significado |
+|---|---|
+| `ok` | Conexión y acceso a Gmail correctos |
+| `NOT_CONFIGURED` | Faltan variables (el campo `missing` dice cuáles) |
+| `EAUTH` | Usuario o contraseña de aplicación rechazados |
+| `ETIMEDOUT` / `ECONNREFUSED` | El servidor no llega al SMTP (puerto bloqueado o red) |
+
+Al arrancar, la API también escribe en el log `Correo: configurado …` o `Correo: NO configurado …`, y cada fallo de envío queda como `[Correo] Error enviando código …` (con el correo enmascarado).

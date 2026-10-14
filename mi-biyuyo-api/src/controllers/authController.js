@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const pool = require("../config/database");
 const { body } = require("express-validator");
-const { sendMail, mailConfigured } = require("../utils/mailer");
+const { sendMail, mailConfigured, maskEmail } = require("../utils/mailer");
 
 const SALT_ROUNDS = 12;
 
@@ -92,7 +92,12 @@ async function issueCode(user, purpose) {
              <p>Vence en ${CODE_MINUTES} minutos. ${m.outro}</p>`,
     });
   } catch (mailErr) {
-    console.error("Error enviando código:", mailErr.message);
+    console.error(
+      `[Correo] Error enviando código (${purpose}) a ${maskEmail(user.email)}:`,
+      mailErr.code || "",
+      mailErr.responseCode || "",
+      mailErr.message,
+    );
   }
   const showDev = !mailConfigured() && process.env.NODE_ENV !== "production";
   return { devCode: showDev ? code : undefined };
