@@ -72,6 +72,11 @@ export default function DateField({
   for (let i = 0; i < lead; i++) cells.push(null);
   for (let d = 1; d <= total; d++)
     cells.push(toDateStr(new Date(view.y, view.m, d)));
+  while (cells.length % 7) cells.push(null);
+  // Una fila por semana, con 7 celdas de ancho flex: con porcentajes (100/7 %) y flexWrap, Android
+  // redondea cada celda hacia arriba y caben solo 6 por fila, lo que corre todos los días de la semana.
+  const weeks = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
 
   const disabled = (s) => s > maxD || (min && s < min);
   const nextOff = toDateStr(new Date(view.y, view.m + 1, 1)) > maxD;
@@ -182,7 +187,7 @@ export default function DateField({
                 <Txt
                   key={i}
                   style={{
-                    width: `${100 / 7}%`,
+                    flex: 1,
                     textAlign: "center",
                     fontSize: 12,
                     fontWeight: "700",
@@ -193,53 +198,49 @@ export default function DateField({
                 </Txt>
               ))}
             </View>
-            <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-              {cells.map((s, i) => {
-                if (!s)
-                  return (
-                    <View
-                      key={i}
-                      style={{ width: `${100 / 7}%`, height: 44 }}
-                    />
-                  );
-                const off = disabled(s);
-                const on = s === value;
-                return (
-                  <View
-                    key={i}
-                    style={{ width: `${100 / 7}%`, height: 44, padding: 2 }}
-                  >
-                    <TouchableOpacity
-                      disabled={off}
-                      onPress={() => pick(s)}
-                      accessibilityLabel={fullDate(s)}
-                      style={{
-                        flex: 1,
-                        borderRadius: 999,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: on ? accent : "transparent",
-                        borderWidth: s === today && !on ? 1 : 0,
-                        borderColor: accent,
-                      }}
-                    >
-                      <Txt
-                        style={{
-                          fontSize: 14,
-                          fontWeight: on ? "800" : "600",
-                          color: on
-                            ? "#ffffff"
-                            : off
-                              ? colors.disabled
-                              : colors.text,
-                        }}
-                      >
-                        {parseDate(s).getDate()}
-                      </Txt>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
+            <View>
+              {weeks.map((week, wi) => (
+                <View key={wi} style={{ flexDirection: "row" }}>
+                  {week.map((s, i) => {
+                    if (!s)
+                      return <View key={i} style={{ flex: 1, height: 44 }} />;
+                    const off = disabled(s);
+                    const on = s === value;
+                    return (
+                      <View key={i} style={{ flex: 1, height: 44, padding: 2 }}>
+                        <TouchableOpacity
+                          disabled={off}
+                          onPress={() => pick(s)}
+                          accessibilityLabel={fullDate(s)}
+                          style={{
+                            flex: 1,
+                            borderRadius: 999,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: on ? accent : "transparent",
+                            borderWidth: s === today && !on ? 1 : 0,
+                            borderColor: accent,
+                          }}
+                        >
+                          <Txt
+                            style={{
+                              fontSize: 14,
+                              fontWeight: on ? "800" : "600",
+                              color: on
+                                ? "#ffffff"
+                                : off
+                                  ? colors.disabled
+                                  : colors.text,
+                            }}
+                          >
+                            {parseDate(s).getDate()}
+                          </Txt>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
             </View>
             <View
               style={{ flexDirection: "row", justifyContent: "space-between" }}
