@@ -343,6 +343,15 @@ async function migrate() {
       `CREATE INDEX IF NOT EXISTS idx_planned_items_plan ON planned_expense_items(plan_id)`,
     );
 
+    // ── categorías ocultas por usuario: no salen en «Nuevo movimiento» (la categoría y sus movimientos siguen) ──
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS category_hidden (
+        user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+        PRIMARY KEY (user_id, category_id)
+      )
+    `);
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {

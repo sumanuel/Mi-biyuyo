@@ -38,7 +38,9 @@ export default function PlannedFormScreen({ navigation, route }) {
   const t = colors.gasto;
 
   const editing = model.planned.find((p) => p.id === route.params?.id) || null;
-  const cats = model.cats.filter((c) => c.type === "gasto" && c.active);
+  const cats = model.cats.filter(
+    (c) => c.type === "gasto" && c.active && (!c.hidden || c.id === editing?.catId),
+  );
 
   const [name, setName] = useState(editing?.name || "");
   const [catId, setCatId] = useState(editing?.catId || cats[0]?.id || null);

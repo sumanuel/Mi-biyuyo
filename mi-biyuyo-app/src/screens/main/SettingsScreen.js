@@ -201,6 +201,11 @@ export default function SettingsScreen({ navigation }) {
           onPress={() => navigation.navigate("Profile")}
         />
         <Row
+          label="Mis categorías"
+          sub="Crea, edita y elige cuáles ver al registrar"
+          onPress={() => navigation.navigate("Categories")}
+        />
+        <Row
           label="Tasas de cambio"
           sub="BCV y Binance P2P, manual o en línea"
           onPress={() => navigation.navigate("ExchangeRate")}

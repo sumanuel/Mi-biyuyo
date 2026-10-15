@@ -48,6 +48,8 @@ import ItemDatesScreen from "./src/screens/main/ItemDatesScreen";
 import CategoryMovesScreen from "./src/screens/main/CategoryMovesScreen";
 import PlannedScreen from "./src/screens/main/PlannedScreen";
 import PlannedFormScreen from "./src/screens/main/PlannedFormScreen";
+import CategoriesScreen from "./src/screens/main/CategoriesScreen";
+import CategoryFormScreen from "./src/screens/main/CategoryFormScreen";
 import EntityMovementsScreen from "./src/screens/main/EntityMovementsScreen";
 import TransferScreen from "./src/screens/main/TransferScreen";
 import ExchangeRateScreen from "./src/screens/main/ExchangeRateScreen";
@@ -275,6 +277,14 @@ function AppNavigator() {
                       <Stack.Screen
                         name="PlannedForm"
                         component={PlannedFormScreen}
+                      />
+                      <Stack.Screen
+                        name="Categories"
+                        component={CategoriesScreen}
+                      />
+                      <Stack.Screen
+                        name="CategoryForm"
+                        component={CategoryFormScreen}
                       />
                       <Stack.Screen
                         name="Transfer"
