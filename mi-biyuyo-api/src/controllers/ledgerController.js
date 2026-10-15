@@ -7,9 +7,12 @@ exports.get = async (req, res, next) => {
     const uid = req.user.id;
     const [cats, ents, txs, trs, rates, planned] = await Promise.all([
       pool.query(
-        `SELECT c.id, c.code, c.name, c.type, c.icon, c.color, c.active
+        `SELECT c.id, c.code, c.name, c.type, c.icon, c.color, c.active,
+                (c.user_id IS NOT NULL) AS own,
+                (h.category_id IS NOT NULL) AS hidden
          FROM categories c
          LEFT JOIN category_order o ON o.category_id = c.id AND o.user_id = $1
+         LEFT JOIN category_hidden h ON h.category_id = c.id AND h.user_id = $1
          WHERE (c.user_id IS NULL OR c.user_id = $1)
            AND ((c.active = TRUE AND (c.code IS NOT NULL OR c.user_id = $1))
                 OR c.id IN (SELECT category_id FROM transactions WHERE user_id = $1))

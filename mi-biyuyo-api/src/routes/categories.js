@@ -6,6 +6,7 @@ router.use(authGuard);
 router.get("/", ctrl.list);
 router.post("/", ctrl.create);
 router.put("/order", ctrl.reorder);
+router.put("/:id/visibility", ctrl.setVisibility);
 router.put("/:id", ctrl.update);
 router.delete("/:id", ctrl.remove);
 

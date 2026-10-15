@@ -129,6 +129,8 @@ export function buildModel(raw, ratesOverride) {
     type: TYPE_FROM_DB[c.type] || "gasto",
     icon: c.icon,
     active: c.active !== false,
+    own: !!c.own, // categoría creada por el usuario (editable y eliminable)
+    hidden: !!c.hidden, // oculta en «Nuevo movimiento»; en el resto de la app se muestra si tiene movimientos
   }));
   const catById = {};
   cats.forEach((c) => (catById[c.id] = c));

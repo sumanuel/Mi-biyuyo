@@ -40,6 +40,15 @@ const TOPICS = [
     ],
   },
   {
+    title: "Mis categorías",
+    body: [
+      "Ve a Ajustes > Perfil > Mis categorías. Ahí ves las categorías de cada tipo (ingresos, gastos, por cobrar y por pagar): las tuyas y las predeterminadas.",
+      "Toca «Nueva categoría» para crear una: ponle un nombre, elige el tipo y un icono. Las que creas son solo tuyas: puedes editarlas (nombre e icono) o eliminarlas tocándolas en la lista.",
+      "Si la categoría que eliminas tiene movimientos, la app te pide a cuál otra categoría del mismo tipo quieres pasarlos, y los mueve antes de eliminarla.",
+      "El interruptor de cada categoría decide si aparece al registrar un movimiento. Es solo para ver lo que realmente usas: una categoría oculta con movimientos se sigue mostrando en el historial, las estadísticas y los detalles. Las predeterminadas no se pueden editar ni eliminar, pero sí ocultar.",
+    ],
+  },
+  {
     title: "Ordenar tus categorías",
     body: [
       "En Registrar puedes poner las categorías en el orden que prefieras, para tener a mano las que más usas.",

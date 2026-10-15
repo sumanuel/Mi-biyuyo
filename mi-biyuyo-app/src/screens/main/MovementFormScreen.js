@@ -427,7 +427,10 @@ export default function MovementFormScreen({ navigation, route }) {
       {editing && catOpen ? (
         <ChipRow>
           {model.cats
-            .filter((c) => c.type === type && c.active)
+            .filter(
+              (c) =>
+                c.type === type && c.active && (!c.hidden || c.id === cat.id),
+            )
             .map((c) => (
               <Chip
                 key={c.id}
