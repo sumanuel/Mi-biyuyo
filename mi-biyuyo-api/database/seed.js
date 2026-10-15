@@ -10,6 +10,7 @@ const CATS = [
   ["i-negocio", "income", "Negocio", "store"],
   ["i-alquiler", "income", "Alquiler", "home"],
   ["i-inversion", "income", "Inversiones", "trend"],
+  ["i-cripto", "income", "Venta de criptos", "swap"],
   ["i-remesa", "income", "Remesa", "globe"],
   ["i-reembolso", "income", "Reembolso", "undo"],
   ["i-regalo", "income", "Regalo recibido", "bono"],
@@ -75,6 +76,13 @@ async function seed() {
         [code, name, type, icon, i + 1],
       );
       added += rowCount;
+      // El orden de las categorías por defecto sale de su posición en CATS: así una categoría
+      // nueva en medio de la lista queda donde corresponde y las demás conservan su orden relativo.
+      await client.query(
+        `UPDATE categories SET sort_order = $2
+         WHERE code = $1 AND user_id IS NULL AND sort_order IS DISTINCT FROM $2`,
+        [code, i + 1],
+      );
     }
 
     await client.query("COMMIT");
