@@ -49,7 +49,9 @@ export default function PickScreen({ navigation, route }) {
 
   const meta = META[type];
   const t = colors[type];
-  const cats = model.cats.filter((c) => c.type === type && c.active);
+  const cats = model.cats.filter(
+    (c) => c.type === type && c.active && !c.hidden,
+  );
 
   // Orden local mientras se arrastra y hasta que llegue el guardado del servidor
   const [order, setOrder] = useState(null);

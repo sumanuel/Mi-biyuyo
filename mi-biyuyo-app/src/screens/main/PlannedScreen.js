@@ -42,7 +42,7 @@ export default function PlannedScreen({ navigation }) {
   const register = (p) => {
     const cat =
       model.catById[p.catId] ||
-      model.cats.find((c) => c.type === "gasto" && c.active);
+      model.cats.find((c) => c.type === "gasto" && c.active && !c.hidden);
     if (!cat) return;
     navigation.navigate("MovementForm", { catId: cat.id, plan: p });
   };

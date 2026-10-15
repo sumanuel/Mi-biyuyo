@@ -119,6 +119,14 @@ export function DataProvider({ children }) {
         run(() => transactionService.createTransaction(token, body)),
       updateMovement: (id, body) =>
         run(() => transactionService.updateTransaction(token, id, body)),
+      createCategory: (body) =>
+        run(() => categoryService.createCategory(token, body)),
+      updateCategory: (id, body) =>
+        run(() => categoryService.updateCategory(token, id, body)),
+      deleteCategory: (id, reassignTo) =>
+        run(() => categoryService.deleteCategory(token, id, reassignTo)),
+      setCategoryHidden: (id, hidden) =>
+        run(() => categoryService.setCategoryHidden(token, id, hidden)),
       reorderCategories: (ids) =>
         run(() => categoryService.reorderCategories(token, ids)),
       deleteMovement: (id) =>
