@@ -14,6 +14,7 @@ import {
 } from "../../components/ui";
 import DateRangeFilter from "../../components/DateRangeFilter";
 import { itemAgg } from "../../utils/ledger";
+import { itemKey } from "../../utils/text";
 import { endOfMonth, fullDate, nTxt, startOfMonth } from "../../utils/money";
 import { go } from "../../navigation/helpers";
 
@@ -29,7 +30,7 @@ export default function ItemsScreen({ navigation, route }) {
   const [q, setQ] = useState("");
 
   const list = model.moves.filter((m) => m.date >= from && m.date <= to);
-  const qn = q.trim().toLowerCase();
+  const qn = itemKey(q); // sin tildes, mayúsculas ni plural: «jamones» encuentra «Jamón»
   const items = itemAgg(list, disp).filter((x) => !qn || x.key.includes(qn));
   const max = items.length && items[0].amt > 0 ? items[0].amt : 1;
 

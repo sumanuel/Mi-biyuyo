@@ -35,6 +35,7 @@ import {
   addDays,
   fullDate,
 } from "../../utils/money";
+import { itemKey } from "../../utils/text";
 import { takePhoto, pickFile } from "../../utils/receipt";
 import DateField from "../../components/DateField";
 import { useFocusChain } from "../../hooks/useFocusChain";
@@ -250,9 +251,7 @@ export default function MovementFormScreen({ navigation, route }) {
     setIName("");
   };
   const sugg = (type === "pagar" ? SUG_PAGAR : SUG_GASTO)
-    .filter(
-      (n) => !items.some((it) => it.name.toLowerCase() === n.toLowerCase()),
-    )
+    .filter((n) => !items.some((it) => itemKey(it.name) === itemKey(n)))
     .slice(0, 6);
 
   const attach = async (fn) => {

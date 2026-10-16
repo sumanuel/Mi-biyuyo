@@ -19,6 +19,7 @@ import {
 import DateRangeFilter from "../../components/DateRangeFilter";
 import { META, debtStatus } from "../../utils/ledger";
 import { endOfMonth, fullDate, nTxt, startOfMonth } from "../../utils/money";
+import { textHas } from "../../utils/text";
 import { go } from "../../navigation/helpers";
 
 const PAGE = 25;
@@ -41,18 +42,10 @@ export default function DebtsScreen({ navigation, type: tab }) {
     (m.pays || []).reduce((a, p) => (p.date > a ? p.date : a), m.date);
   const ofType = model.moves.filter((m) => m.type === tab);
   const pendAll = ofType.filter((m) => !isDone(m));
-  const qn = q.trim().toLowerCase();
   const doneRows = ofType
     .filter(isDone)
     .filter((m) => doneDate(m) >= from && doneDate(m) <= to)
-    .filter(
-      (m) =>
-        !qn ||
-        [m.person || "", m.title, m.cat.name]
-          .join(" ")
-          .toLowerCase()
-          .includes(qn),
-    )
+    .filter((m) => textHas([m.person || "", m.title, m.cat.name].join(" "), q))
     .sort((a, b) => (doneDate(a) < doneDate(b) ? 1 : -1));
   const all = done ? doneRows : pendAll;
   const total = all.reduce((a, m) => a + model.totalOf(m), 0);
