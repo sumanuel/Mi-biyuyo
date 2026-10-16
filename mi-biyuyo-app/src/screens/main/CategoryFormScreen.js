@@ -16,7 +16,7 @@ import {
 } from "../../components/ui";
 import { useFocusChain } from "../../hooks/useFocusChain";
 import { confirm } from "../../utils/confirm";
-import { META, TYPES, TYPE_TO_DB } from "../../utils/ledger";
+import { META, TYPE_TO_DB } from "../../utils/ledger";
 import { nTxt } from "../../utils/money";
 
 // Iconos que se pueden elegir para una categoría (claves del catálogo de la app)
@@ -68,9 +68,7 @@ export default function CategoryFormScreen({ navigation, route }) {
   const editing = model.catById[route.params?.id]?.own
     ? model.catById[route.params.id]
     : null;
-  const [type, setType] = useState(
-    editing ? editing.type : route.params?.type || "gasto",
-  );
+  const type = editing ? editing.type : route.params?.type || "gasto";
   const [name, setName] = useState(editing?.name || "");
   const [icon, setIcon] = useState(editing?.icon || "more");
   const [visible, setVisible] = useState(editing ? !editing.hidden : true);
@@ -183,23 +181,25 @@ export default function CategoryFormScreen({ navigation, route }) {
 
       <View style={{ gap: 8 }}>
         <Txt style={{ fontSize: 14, fontWeight: "700" }}>Tipo</Txt>
-        {editing ? (
-          <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
-            {META[type].plural} (el tipo no se puede cambiar).
+        {/* El tipo viene de la pestaña desde la que se pulsó «Nueva categoría» y no se cambia aquí */}
+        <View
+          style={{
+            alignSelf: "flex-start",
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: 999,
+            backgroundColor: t.soft,
+          }}
+        >
+          <Txt style={{ fontSize: 14, fontWeight: "800", color: t.fg }}>
+            {META[type].plural}
           </Txt>
-        ) : (
-          <ChipRow>
-            {TYPES.map((k) => (
-              <Chip
-                key={k}
-                label={META[k].plural}
-                active={k === type}
-                color={colors[k].strong}
-                onPress={() => setType(k)}
-              />
-            ))}
-          </ChipRow>
-        )}
+        </View>
+        <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+          {editing
+            ? "El tipo no se puede cambiar."
+            : "Se crea en el tipo que tenías abierto en «Mis categorías»."}
+        </Txt>
       </View>
 
       <View style={{ gap: 8 }}>
