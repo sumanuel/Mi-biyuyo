@@ -39,8 +39,31 @@ export default function PayScreen({ navigation, route }) {
   const { fx } = model;
   const debt = model.moveById[route.params?.id];
 
+  // Deuda en cuotas: lo que falta de cada cuota pendiente, en la moneda de la deuda
+  const pendingInst = debt?.sched
+    ? debt.sched
+        .filter((c) => !c.done)
+        .map((c) => ({
+          n: c.n,
+          left: Math.max(0, c.amt - c.paid),
+          partial: c.partial,
+        }))
+    : [];
+  // Monto de las próximas k cuotas pendientes, expresado en la moneda c del registro
+  // (si es la moneda de la deuda, exacto; si no, convertido con la tasa de hoy)
+  const instAmount = (k, c) => {
+    const native = pendingInst.slice(0, k).reduce((a, x) => a + x.left, 0);
+    if (c === debt.ccy) return native;
+    return fx.fromUsd(c, model.usdOfNative(debt, native));
+  };
+  const decOf = (c) => (c === "bin" ? 3 : 2);
+  const canPrefill = pendingInst.length > 0 && fx.ready("bcv");
+
   const [ccy, setCcy] = useState("bcv");
-  const [amount, setAmount] = useState("");
+  const [kSel, setKSel] = useState(canPrefill ? 1 : null); // cuotas que se van a pagar
+  const [amount, setAmount] = useState(
+    canPrefill ? fmtIn(instAmount(1, "bcv"), decOf("bcv")) : "",
+  );
   const [date, setDate] = useState(todayStr());
   const [entId, setEntId] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -161,10 +184,98 @@ export default function PayScreen({ navigation, route }) {
             label: CCY_LABEL[k],
             sub: fx.rateShort(k),
             active: k === ccy,
-            onPress: () => setCcy(k),
+            onPress: () => {
+              setCcy(k);
+              if (kSel && fx.ready(k))
+                setAmount(fmtIn(instAmount(kSel, k), decOf(k)));
+            },
           }))}
         />
       </View>
+
+      {pendingInst.length > 0 ? (
+        <View style={{ gap: 8 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>Cuotas a pagar</Txt>
+          {Array.from(
+            { length: Math.ceil(pendingInst.length / 3) },
+            (_, ri) => ri * 3,
+          ).map((from) => (
+            <View key={from} style={{ flexDirection: "row", gap: 8 }}>
+              {[0, 1, 2].map((j) => {
+                const k = from + j + 1;
+                if (k > pendingInst.length)
+                  return <View key={j} style={{ flex: 1 }} />;
+                const on = kSel === k;
+                return (
+                  <TouchableOpacity
+                    key={j}
+                    activeOpacity={0.85}
+                    disabled={rateMissing}
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={`Pagar ${k} ${k === 1 ? "cuota" : "cuotas"}`}
+                    onPress={() => {
+                      setKSel(k);
+                      setAmount(fmtIn(instAmount(k, ccy), decOf(ccy)));
+                    }}
+                    style={{
+                      flex: 1,
+                      minHeight: 60,
+                      borderRadius: 14,
+                      borderWidth: 1.5,
+                      borderColor: on ? tint.strong : colors.border,
+                      backgroundColor: on ? tint.soft : colors.surface,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 2,
+                      paddingHorizontal: 4,
+                    }}
+                  >
+                    <Txt style={{ fontSize: 13, fontWeight: "700" }}>
+                      {k === pendingInst.length && k > 1
+                        ? `Todas (${k})`
+                        : `${k} ${k === 1 ? "cuota" : "cuotas"}`}
+                    </Txt>
+                    <Txt
+                      numberOfLines={1}
+                      style={{ fontSize: 12, color: colors.textSecondary }}
+                    >
+                      {fx.ready(ccy)
+                        ? fx.money(ccy, instAmount(k, ccy))
+                        : "Sin tasa"}
+                    </Txt>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ))}
+          {kSel ? (
+            <Txt
+              style={{
+                fontSize: 12,
+                lineHeight: 17,
+                color: colors.textSecondary,
+              }}
+            >
+              {(() => {
+                const sel = pendingInst.slice(0, kSel);
+                const first = sel[0];
+                const last = sel[sel.length - 1];
+                const which =
+                  sel.length === 1
+                    ? `la cuota ${first.n}`
+                    : `las cuotas ${first.n} a ${last.n}`;
+                return (
+                  `Cubre ${which}` +
+                  (first.partial
+                    ? `; la cuota ${first.n} ya tenía un abono, se paga lo que falta`
+                    : "") +
+                  "."
+                );
+              })()}
+            </Txt>
+          ) : null}
+        </View>
+      ) : null}
 
       <Card style={{ gap: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -179,7 +290,10 @@ export default function PayScreen({ navigation, route }) {
           </Txt>
           <Input
             value={amount}
-            onChangeText={setAmount}
+            onChangeText={(v) => {
+              setAmount(v);
+              setKSel(null);
+            }}
             keyboardType="decimal-pad"
             placeholder="0,00"
             accessibilityLabel="Monto del abono"
@@ -199,15 +313,19 @@ export default function PayScreen({ navigation, route }) {
           {[
             [
               "Saldo total",
-              () =>
-                setAmount(fmtIn(fx.fromUsd(ccy, pend), ccy === "bin" ? 3 : 2)),
+              () => {
+                setKSel(null);
+                setAmount(fmtIn(fx.fromUsd(ccy, pend), ccy === "bin" ? 3 : 2));
+              },
             ],
             [
               "Mitad",
-              () =>
+              () => {
+                setKSel(null);
                 setAmount(
                   fmtIn(fx.fromUsd(ccy, pend / 2), ccy === "bin" ? 3 : 2),
-                ),
+                );
+              },
             ],
           ].map(([label, fn]) => (
             <TouchableOpacity
