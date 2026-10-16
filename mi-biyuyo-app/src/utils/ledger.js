@@ -11,6 +11,7 @@ import {
   daysUntil,
   addDays,
 } from "./money";
+import { itemKey } from "./text";
 
 export const TYPE_FROM_DB = {
   income: "ingreso",
@@ -681,6 +682,8 @@ export function pillOf(n, over) {
 
 /**
  * Ítems comprados (gastos) agrupados por nombre, del que más suma al que menos.
+ * El nombre se compara sin mayúsculas, tildes ni plural: «Jamón», «jamon» y «jamones» son el
+ * mismo ítem. Se muestra la forma que el usuario escribió más veces (si empatan, la más reciente).
  * Cada ítem lleva sus compras (`buys`) con fecha y monto en la moneda `disp`.
  */
 export function itemAgg(list, disp) {
@@ -689,14 +692,36 @@ export function itemAgg(list, disp) {
     .filter((m) => m.type === "gasto")
     .forEach((m) =>
       m.items.forEach((it) => {
-        const k = it.name.trim().toLowerCase();
+        const label = it.name.trim();
+        const k = itemKey(label);
         if (!agg[k])
-          agg[k] = { key: k, name: it.name.trim(), n: 0, amt: 0, buys: [] };
+          agg[k] = { key: k, name: label, n: 0, amt: 0, buys: [], forms: {} };
+        const g = agg[k];
         const amt = m.usd > 0 ? ((it.usd || 0) / m.usd) * m.val[disp] : 0;
-        agg[k].n += 1;
-        agg[k].amt += amt;
-        agg[k].buys.push({ m, amt });
+        g.n += 1;
+        g.amt += amt;
+        g.buys.push({ m, amt });
+        const f = g.forms[label] || (g.forms[label] = { n: 0, last: "" });
+        f.n += 1;
+        const when = `${m.date} ${String(m.ts || 0).padStart(15, "0")}`;
+        if (when > f.last) f.last = when;
       }),
     );
-  return Object.values(agg).sort((a, b) => b.amt - a.amt || b.n - a.n);
+  return Object.values(agg)
+    .map((g) => {
+      // Forma a mostrar: la más escrita; si empatan, la mejor escrita (con tilde y mayúscula
+      // inicial), luego la más corta (singular) y por último la más reciente
+      const care = (t) =>
+        (/[áéíóúüñÁÉÍÓÚÜÑ]/.test(t) ? 2 : 0) + (/^[A-ZÁÉÍÓÚÑ]/.test(t) ? 1 : 0);
+      const best = Object.entries(g.forms).sort(
+        (a, b) =>
+          b[1].n - a[1].n ||
+          care(b[0]) - care(a[0]) ||
+          a[0].length - b[0].length ||
+          (a[1].last < b[1].last ? 1 : -1),
+      )[0][0];
+      const { forms, ...rest } = g;
+      return { ...rest, name: best };
+    })
+    .sort((a, b) => b.amt - a.amt || b.n - a.n);
 }

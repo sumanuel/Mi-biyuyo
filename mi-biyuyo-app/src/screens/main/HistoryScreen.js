@@ -18,6 +18,7 @@ import {
 import DateRangeFilter from "../../components/DateRangeFilter";
 import { META, byRecent, feed } from "../../utils/ledger";
 import { fullDate, last30Range } from "../../utils/money";
+import { itemKey, textHas } from "../../utils/text";
 import { go } from "../../navigation/helpers";
 
 const FILTERS = [
@@ -55,14 +56,12 @@ export default function HistoryScreen({ navigation, route }) {
     setTo(p.to || last30Range().to);
   }, [route.params?.filter, route.params?.ts]);
 
-  const qn = q.trim().toLowerCase();
+  // La búsqueda ignora tildes y mayúsculas; los ítems además ignoran el plural («jamones» encuentra «Jamón»)
+  const qk = itemKey(q);
   const matchQ = (m) =>
-    !qn ||
-    [m.title, m.cat.name, m.person || ""]
-      .concat(m.items.map((i) => i.name))
-      .join(" ")
-      .toLowerCase()
-      .includes(qn);
+    !q.trim() ||
+    textHas([m.title, m.cat.name, m.person || ""].join(" "), q) ||
+    m.items.some((i) => textHas(i.name, q) || itemKey(i.name).includes(qk));
   const sorted = model.moves.slice().sort(byRecent);
   const fl = (
     filter === "all" ? sorted : sorted.filter((m) => m.type === filter)
@@ -79,7 +78,7 @@ export default function HistoryScreen({ navigation, route }) {
   const histVal =
     filter === "all" ? flInc - flExp : fl.reduce((a, m) => a + m.val[disp], 0);
   const money = (n) => model.fx.money(disp, n);
-  const all = feed(model, fl, filter === "all" && !qn, dv, { from, to });
+  const all = feed(model, fl, filter === "all" && !q.trim(), dv, { from, to });
   const rows = all.slice(0, limit);
 
   return (

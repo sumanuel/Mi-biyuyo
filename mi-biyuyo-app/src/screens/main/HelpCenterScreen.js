@@ -75,6 +75,7 @@ const TOPICS = [
       "En un gasto abre «Detalle de la compra» y agrega los ítems: pan, queso, vino… Es opcional, pero muy útil.",
       "Si activas «Asignar monto a cada ítem», cada uno lleva su monto (la suma no puede pasar del total).",
       "Con eso, en Estadísticas > Ítems más comprados ves qué compras más y en qué fechas compraste cada cosa.",
+      "No te preocupes por cómo escribes cada ítem: «Jamón», «jamon» y «jamones» cuentan como el mismo (se ignoran mayúsculas, tildes y el plural). Se muestra con la forma que más has usado. Las búsquedas del Historial funcionan igual.",
     ],
   },
   {

@@ -12,6 +12,7 @@ import {
 } from "../../components/ui";
 import { byRecent, itemAgg } from "../../utils/ledger";
 import { fullDate, nTxt } from "../../utils/money";
+import { itemKey } from "../../utils/text";
 import { go } from "../../navigation/helpers";
 
 /** Fechas en que se compró un ítem dentro del rango recibido. */
@@ -21,13 +22,7 @@ export default function ItemDatesScreen({ navigation, route }) {
   const { name, from, to } = route.params || {};
 
   const list = model.moves.filter((m) => m.date >= from && m.date <= to);
-  const item = itemAgg(list, disp).find(
-    (x) =>
-      x.key ===
-      String(name || "")
-        .trim()
-        .toLowerCase(),
-  );
+  const item = itemAgg(list, disp).find((x) => x.key === itemKey(name));
   const buys = item ? item.buys.slice().sort((a, b) => byRecent(a.m, b.m)) : [];
 
   return (
