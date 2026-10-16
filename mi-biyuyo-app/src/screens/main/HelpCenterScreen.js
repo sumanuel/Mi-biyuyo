@@ -66,6 +66,7 @@ const TOPICS = [
       "Para cobrar o pagar de a poco, abre la deuda y toca «Registrar cobro» o «Registrar pago». Cuando se salda pasa a la pestaña Canceladas.",
       "Además de 7, 15 o 30 días, puedes elegir una fecha de vencimiento en el calendario («Elegir fecha»).",
       "Si el comercio cobra en cuotas, elige 3, 6, 9 o 12 cuotas: se reparte el monto en partes iguales, una cada 15 días desde la fecha de la primera cuota. En el detalle de la deuda ves cada cuota; tus pagos las van cubriendo en orden y el vencimiento que se muestra es el de la próxima cuota.",
+      "Al registrar un pago de una deuda en cuotas, en «Cuotas a pagar» eliges cuántas pagar: 1 cuota, 2, 3… o todas. El monto se llena solo con lo que falta de esas cuotas (y se recalcula si cambias la moneda). Si ya habías abonado algo a la siguiente cuota, se paga lo que falta. También puedes escribir el monto que quieras, o usar «Saldo total» y «Mitad».",
     ],
   },
   {
