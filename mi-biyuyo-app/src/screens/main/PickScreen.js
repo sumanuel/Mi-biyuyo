@@ -374,6 +374,28 @@ export default function PickScreen({ navigation, route }) {
             </Animated.View>
           ) : null}
         </View>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate("CategoryForm", { type })}
+          accessibilityLabel={`Crear una categoría de ${meta.plural.toLowerCase()}`}
+          style={{
+            marginTop: 14,
+            minHeight: 52,
+            borderRadius: 16,
+            borderWidth: 1.5,
+            borderStyle: "dashed",
+            borderColor: t.strong,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          <Icon name="plus" size={18} color={t.strong} stroke={2.4} />
+          <Txt style={{ fontSize: 14, fontWeight: "700", color: t.strong }}>
+            Nueva categoría
+          </Txt>
+        </TouchableOpacity>
         {cats.length === 0 ? (
           <Txt style={{ color: colors.textSecondary, padding: 8 }}>
             No hay categorías para este tipo.

@@ -27,7 +27,9 @@ const TOPICS = [
     title: "Registrar ingresos y gastos",
     body: [
       "Toca Registrar (+) y elige la categoría. Escribe el monto, elige la moneda del registro, la fecha y la entidad de donde sale o entra el dinero.",
+      "La moneda del registro empieza en VES · BCV; si lo necesitas, cámbiala a USD o USDT antes de guardar.",
       "Abajo verás el equivalente en las tres monedas con la tasa del día. Esa tasa queda guardada con el movimiento.",
+      "¿No encuentras la categoría que necesitas? Al final de la lista de categorías está el botón «Nueva categoría»: crea una del tipo que tengas abierto (ingreso, gasto, por cobrar o por pagar) sin salir de Registrar.",
       "Puedes adjuntar un recibo con foto o archivo.",
     ],
   },
@@ -43,7 +45,7 @@ const TOPICS = [
     title: "Mis categorías",
     body: [
       "Ve a Ajustes > Perfil > Mis categorías. Ahí ves las categorías de cada tipo (ingresos, gastos, por cobrar y por pagar): las tuyas y las predeterminadas.",
-      "Toca «Nueva categoría» para crear una: ponle un nombre, elige el tipo y un icono. Las que creas son solo tuyas: puedes editarlas (nombre e icono) o eliminarlas tocándolas en la lista.",
+      "Toca «Nueva categoría» para crear una: se crea en el tipo que tengas abierto (la pestaña en la que estás), y solo le pones un nombre y eliges un icono. También puedes crearla desde Registrar, con el botón «Nueva categoría» del final de la lista. Las que creas son solo tuyas: puedes editarlas (nombre e icono) o eliminarlas tocándolas en la lista; el tipo no se puede cambiar.",
       "Si la categoría que eliminas tiene movimientos, la app te pide a cuál otra categoría del mismo tipo quieres pasarlos, y los mueve antes de eliminarla.",
       "El interruptor de cada categoría decide si aparece al registrar un movimiento. Es solo para ver lo que realmente usas: una categoría oculta con movimientos se sigue mostrando en el historial, las estadísticas y los detalles. Las predeterminadas no se pueden editar ni eliminar, pero sí ocultar.",
     ],
@@ -53,7 +55,7 @@ const TOPICS = [
     body: [
       "En Registrar puedes poner las categorías en el orden que prefieras, para tener a mano las que más usas.",
       "Mantén presionada una categoría un instante, arrástrala al lugar que quieras y suéltala. Las demás se acomodan solas, y si la lista es larga se desplaza cuando llegas al borde de la pantalla.",
-      "Cada tipo (gastos, ingresos, por cobrar y por pagar) tiene su propio orden. Se guarda en tu cuenta, así que lo conservas si cambias de teléfono.",
+      "Las categorías que ocultaste en «Mis categorías» no aparecen aquí. Cada tipo (gastos, ingresos, por cobrar y por pagar) tiene su propio orden. Se guarda en tu cuenta, así que lo conservas si cambias de teléfono.",
     ],
   },
   {
@@ -72,13 +74,13 @@ const TOPICS = [
       "En un gasto abre «Detalle de la compra» y agrega los ítems: pan, queso, vino… Es opcional, pero muy útil.",
       "Si activas «Asignar monto a cada ítem», cada uno lleva su monto (la suma no puede pasar del total).",
       "Con eso, en Estadísticas > Ítems más comprados ves qué compras más y en qué fechas compraste cada cosa.",
-      "En Estadísticas, toca una categoría de «Gastos por categoría» o «Ingresos por fuente» para ver todos sus movimientos del período y abrir cualquiera.",
     ],
   },
   {
     title: "Estadísticas e historial",
     body: [
       "En Estadísticas elige Este mes, Mes anterior, Últimos 3 meses o tus propias fechas Desde/Hasta. Verás ingresos, gastos, categorías con más gasto e ítems más comprados.",
+      "Toca una categoría de «Gastos por categoría» o «Ingresos por fuente» para ver todos sus movimientos del período; desde ahí puedes abrir cualquiera.",
       "«Situación actual» (distribución del saldo y deudas) siempre muestra cómo estás hoy, sin importar el período.",
       "En el Historial filtras por tipo y fechas, y buscas por ítem, categoría o persona.",
     ],
@@ -96,6 +98,7 @@ const TOPICS = [
     body: [
       "Al registrarte confirmas tu correo con un código de 6 dígitos.",
       "En Ajustes > Seguridad puedes activar el desbloqueo con huella o Face ID (si tu teléfono lo permite). Después podrás entrar con un toque desde el inicio de sesión.",
+      "Si sales a otra app (por ejemplo WhatsApp) en medio de un registro y vuelves, la app pide la huella, pero al desbloquear sigues en la misma pantalla y con lo que ya habías escrito.",
       "El ojito junto a Mi saldo oculta los montos cuando alguien mira tu pantalla.",
     ],
   },

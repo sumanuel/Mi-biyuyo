@@ -198,7 +198,7 @@ export default function CategoryFormScreen({ navigation, route }) {
         <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
           {editing
             ? "El tipo no se puede cambiar."
-            : "Se crea en el tipo que tenías abierto en «Mis categorías»."}
+            : "Se crea en el tipo de la lista desde la que pulsaste «Nueva categoría»."}
         </Txt>
       </View>
 
