@@ -26,6 +26,7 @@ const CATS = [
   ["g-transp", "expense", "Transporte", "bus"],
   ["g-ropa", "expense", "Ropa", "shirt"],
   ["g-ocio", "expense", "Ocio", "game"],
+  ["g-gustitos", "expense", "Gustitos", "bag"],
   ["g-pets", "expense", "Mascotas", "paw"],
   ["g-tech", "expense", "Tecnología", "phone"],
   ["g-care", "expense", "Cuidado personal", "scissors"],
