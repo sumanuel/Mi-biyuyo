@@ -44,7 +44,8 @@ exports.get = async (req, res, next) => {
                     'ts', (EXTRACT(EPOCH FROM p.created_at) * 1000)::float
                   ) ORDER BY p.date, p.id) FROM transaction_payments p WHERE p.transaction_id = t.id), '[]') AS payments,
                 COALESCE((SELECT json_agg(json_build_object(
-                    'id', i.id, 'name', i.name, 'amount_usd', i.amount_usd::float
+                    'id', i.id, 'name', i.name, 'amount_usd', i.amount_usd::float,
+                    'quantity', i.quantity::float
                   ) ORDER BY i.id) FROM transaction_items i WHERE i.transaction_id = t.id), '[]') AS items
          FROM transactions t WHERE t.user_id = $1
          ORDER BY t.date DESC, t.id DESC`,

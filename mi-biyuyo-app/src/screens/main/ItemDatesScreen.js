@@ -12,7 +12,7 @@ import {
 } from "../../components/ui";
 import { byRecent, itemAgg } from "../../utils/ledger";
 import { fullDate, nTxt } from "../../utils/money";
-import { itemKey } from "../../utils/text";
+import { itemKey, qtyText } from "../../utils/text";
 import { go } from "../../navigation/helpers";
 
 /** Fechas en que se compró un ítem dentro del rango recibido. */
@@ -35,11 +35,14 @@ export default function ItemDatesScreen({ navigation, route }) {
         </Txt>
         <Txt style={{ fontSize: 15, fontWeight: "700" }}>
           {nTxt(buys.length, "compra")}
+          {item && item.qty !== buys.length
+            ? " · Cantidad total: " + qtyText(item.qty)
+            : ""}
           {item && item.amt > 0 ? " · " + model.fx.money(disp, item.amt) : ""}
         </Txt>
       </Card>
       <View style={{ gap: 8 }}>
-        {buys.map(({ m, amt }) => (
+        {buys.map(({ m, amt, qty }) => (
           <TouchableOpacity
             key={m.id}
             activeOpacity={0.8}
@@ -64,7 +67,8 @@ export default function ItemDatesScreen({ navigation, route }) {
                 numberOfLines={1}
                 style={{ fontSize: 12, color: colors.textSecondary }}
               >
-                {m.title}
+                {(qty !== 1 ? "Cantidad " + qtyText(qty) + " · " : "") +
+                  m.title}
               </Txt>
             </View>
             <Txt style={{ fontSize: 14, fontWeight: "700" }}>

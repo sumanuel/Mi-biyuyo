@@ -352,6 +352,14 @@ async function migrate() {
       )
     `);
 
+    // ── cantidad de cada ítem (detalle de compras y gastos planificados); null = sin cantidad ──
+    await client.query(
+      `ALTER TABLE transaction_items ADD COLUMN IF NOT EXISTS quantity DECIMAL(12,3)`,
+    );
+    await client.query(
+      `ALTER TABLE planned_expense_items ADD COLUMN IF NOT EXISTS quantity DECIMAL(12,3)`,
+    );
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {

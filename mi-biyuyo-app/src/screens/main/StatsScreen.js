@@ -28,6 +28,7 @@ import {
 } from "../../utils/money";
 import DateRangeFilter from "../../components/DateRangeFilter";
 import { itemAgg } from "../../utils/ledger";
+import { qtyText } from "../../utils/text";
 import { go } from "../../navigation/helpers";
 
 const WD = ["D", "L", "M", "M", "J", "V", "S"];
@@ -125,7 +126,9 @@ export default function StatsScreen({ navigation }) {
   const itemsMore = aggArr.length > 3;
   const itemsTop = aggArr.slice(0, 3).map((x) => ({
     name: x.name,
-    meta: nTxt(x.n, "compra"),
+    meta:
+      nTxt(x.n, "compra") +
+      (x.qty !== x.n ? " · Cantidad total: " + qtyText(x.qty) : ""),
     val: x.amt > 0 ? dd(x.amt) : "Sin monto",
     w: x.amt > 0 ? Math.max(4, Math.round((x.amt / aggMax) * 100)) : 0,
   }));

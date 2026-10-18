@@ -36,7 +36,7 @@ const TOPICS = [
   {
     title: "Gastos planificados",
     body: [
-      "¿Vas a ir al súper en unos días y ya tienes tu lista? Entra a Registrar > Gastos, toca «Gastos planificados» y crea uno: ponle el nombre que quieras (por ejemplo, «Compra del súper»), la categoría, una fecha prevista si quieres y los ítems, cada uno con monto opcional.",
+      "¿Vas a ir al súper en unos días y ya tienes tu lista? Entra a Registrar > Gastos, toca «Gastos planificados» y crea uno: ponle el nombre que quieras (por ejemplo, «Compra del súper»), la categoría, una fecha prevista si quieres y los ítems, cada uno con cantidad y monto opcional.",
       "Cuando llegue el momento, toca «Registrar»: se abre el formulario de gasto ya relleno con el monto estimado y los ítems. Ajusta lo que haga falta (por ejemplo, los precios reales) y guarda.",
       "Un plan no afecta tu saldo hasta que lo registras, y se conserva para volver a usarlo cuantas veces quieras. Puedes tener todos los que necesites; para cambiarlo o borrarlo, tócalo en la lista.",
     ],
@@ -76,8 +76,9 @@ const TOPICS = [
     title: "Detalle de las compras",
     body: [
       "En un gasto abre «Detalle de la compra» y agrega los ítems: pan, queso, vino… Es opcional, pero muy útil.",
+      "Cada ítem tiene su casilla «Cantidad» (empieza en 1; puedes poner 2, 0,5, 1,25…). El monto del ítem sigue siendo el total de esa línea: si compraste 3 quesos por 15, pones cantidad 3 y monto 15.",
       "Si activas «Asignar monto a cada ítem», cada uno lleva su monto (la suma no puede pasar del total).",
-      "Con eso, en Estadísticas > Ítems más comprados ves qué compras más y en qué fechas compraste cada cosa.",
+      "Con eso, en Estadísticas > Ítems más comprados ves qué compras más y en qué fechas compraste cada cosa. Si usaste cantidades, también ves la cantidad total del período: por ejemplo, si compraste jamón 2, 3 y 1 vez, aparece «Cantidad total: 6». Al tocar el ítem ves cuánto compraste cada día.",
       "No te preocupes por cómo escribes cada ítem: «Jamón», «jamon» y «jamones» cuentan como el mismo (se ignoran mayúsculas, tildes y el plural). Se muestra con la forma que más has usado. Las búsquedas del Historial funcionan igual.",
     ],
   },
