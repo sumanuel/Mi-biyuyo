@@ -16,7 +16,7 @@ import {
   Button,
   Empty,
 } from "../../components/ui";
-import { debtStatus } from "../../utils/ledger";
+import { META, debtStatus } from "../../utils/ledger";
 import { CCY_KEYS, CCY_LABEL, dlabel, fullDate, grp } from "../../utils/money";
 import { confirm } from "../../utils/confirm";
 
@@ -42,6 +42,30 @@ export default function DebtDetailScreen({ navigation, route }) {
   const st = debtStatus(model, debt);
   const closed = pend <= 0.005;
 
+  // Datos de la deuda para verlos sin entrar a editar: quién, descripción, fechas y entidad
+  const info = [
+    debt.person && [
+      META[debt.type].personLabel.replace(/[¿?]/g, ""),
+      debt.person,
+    ],
+    debt.hasDesc && ["Descripción", debt.title],
+    ["Categoría", debt.cat.name],
+    [
+      "Registrada el",
+      fullDate(debt.date) +
+        (debt.ent && debt.cash !== false
+          ? " · " + model.entName(debt.ent)
+          : ""),
+    ],
+    !debt.sched &&
+      debt.dueDate && [
+        "Vence el",
+        fullDate(debt.dueDate) +
+          (debt.recurring ? " · se repite cada mes" : ""),
+      ],
+    debt.notes && ["Notas", debt.notes],
+  ].filter(Boolean);
+
   // Elimina la deuda con todos sus abonos. Los saldos de las entidades se calculan a partir de los
   // movimientos y abonos guardados, así que al borrarlos quedan como si la deuda nunca se hubiera registrado.
   const remove = async () => {
@@ -53,7 +77,9 @@ export default function DebtDetailScreen({ navigation, route }) {
           ? ` junto con ${n === 1 ? "su abono" : `sus ${n} abonos`} (${dv(paid)} ${isCobro ? "cobrados" : "pagados"}).`
           : ".") +
         "\n\nLos saldos de tus entidades se recalcularán como si esta deuda nunca se hubiera registrado" +
-        (n ? ": se revierte también el dinero que entró o salió con cada abono." : "."),
+        (n
+          ? ": se revierte también el dinero que entró o salió con cada abono."
+          : "."),
     );
     if (!ok) return;
     try {
@@ -210,6 +236,66 @@ export default function DebtDetailScreen({ navigation, route }) {
         ) : null}
       </Card>
 
+      <Card pad={14} style={{ gap: 2 }}>
+        <Txt
+          style={{
+            fontSize: 12,
+            fontWeight: "700",
+            letterSpacing: 0.5,
+            color: colors.textSecondary,
+            paddingBottom: 4,
+          }}
+        >
+          DATOS DE LA DEUDA
+        </Txt>
+        {info.map(([label, value], i) => (
+          <View
+            key={label}
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              gap: 16,
+              paddingVertical: 9,
+              borderTopWidth: i === 0 ? 0 : 1,
+              borderTopColor: colors.divider,
+            }}
+          >
+            <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
+              {label}
+            </Txt>
+            <Txt
+              style={{
+                flex: 1,
+                textAlign: "right",
+                fontSize: 14,
+                fontWeight: "600",
+              }}
+            >
+              {value}
+            </Txt>
+          </View>
+        ))}
+        {debt.items.length ? (
+          <View style={{ paddingTop: 6, gap: 4 }}>
+            <Txt
+              style={{
+                fontSize: 12,
+                fontWeight: "700",
+                letterSpacing: 0.5,
+                color: colors.textSecondary,
+              }}
+            >
+              DETALLE
+            </Txt>
+            {debt.items.map((x, i) => (
+              <Txt key={x.id ?? i} style={{ fontSize: 14 }}>
+                {"• " + x.name}
+              </Txt>
+            ))}
+          </View>
+        ) : null}
+      </Card>
+
       <DispTabs height={40} />
 
       <Card pad={14}>
@@ -345,7 +431,11 @@ export default function DebtDetailScreen({ navigation, route }) {
       <TouchableOpacity
         onPress={remove}
         accessibilityLabel="Eliminar deuda"
-        style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}
+        style={{
+          minHeight: 44,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
         <Txt
           style={{ color: colors.danger.fg, fontSize: 13, fontWeight: "700" }}
