@@ -78,7 +78,7 @@ const TOPICS = [
       "En un gasto abre «Detalle de la compra» y agrega los ítems: pan, queso, vino… Es opcional, pero muy útil.",
       "Cada ítem tiene su casilla «Cantidad» (empieza en 1; puedes poner 2, 0,5, 1,25…). El monto del ítem sigue siendo el total de esa línea: si compraste 3 quesos por 15, pones cantidad 3 y monto 15.",
       "Si activas «Asignar monto a cada ítem», cada uno lleva su monto (la suma no puede pasar del total).",
-      "Con eso, en Estadísticas > Ítems más comprados ves qué compras más y en qué fechas compraste cada cosa. Si usaste cantidades, también ves la cantidad total del período: por ejemplo, si compraste jamón 2, 3 y 1 vez, aparece «Cantidad total: 6». Al tocar el ítem ves cuánto compraste cada día.",
+      "Con eso, en Estadísticas > Ítems más comprados ves qué compras más y en qué fechas compraste cada cosa. También ves la cantidad total del período: por ejemplo, si compraste jamón 2, 3 y 1 vez, aparece «Cantidad total: 6». Los ítems sin cantidad (por ejemplo, los registrados antes de existir esta casilla) cuentan como 1. Al tocar el ítem ves la cantidad y el monto de cada compra, además del monto total y los promedios por compra y por unidad cuando hay montos asignados. Las compras de ese ítem que no tienen monto se estiman con el último precio por unidad que tenga (monto ÷ cantidad de su compra más reciente con monto) y aparecen marcadas como «Estimado»; si el ítem nunca tuvo monto, no se calcula nada.",
       "No te preocupes por cómo escribes cada ítem: «Jamón», «jamon» y «jamones» cuentan como el mismo (se ignoran mayúsculas, tildes y el plural). Se muestra con la forma que más has usado. Las búsquedas del Historial funcionan igual.",
     ],
   },
