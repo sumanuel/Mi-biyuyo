@@ -1,7 +1,7 @@
 import React from "react";
-import { View } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
-import { useData } from "../../contexts/DataContext";
+import { useData, errorMessage } from "../../contexts/DataContext";
 import {
   Screen,
   Footer,
@@ -18,10 +18,11 @@ import {
 } from "../../components/ui";
 import { debtStatus } from "../../utils/ledger";
 import { CCY_KEYS, CCY_LABEL, dlabel, fullDate, grp } from "../../utils/money";
+import { confirm } from "../../utils/confirm";
 
 export default function DebtDetailScreen({ navigation, route }) {
   const { colors } = useTheme();
-  const { model, dv } = useData();
+  const { model, dv, actions, showToast } = useData();
   const { fx } = model;
   const debt = model.moveById[route.params?.id];
 
@@ -40,6 +41,33 @@ export default function DebtDetailScreen({ navigation, route }) {
   const pend = model.pendOf(debt);
   const st = debtStatus(model, debt);
   const closed = pend <= 0.005;
+
+  // Elimina la deuda con todos sus abonos. Los saldos de las entidades se calculan a partir de los
+  // movimientos y abonos guardados, así que al borrarlos quedan como si la deuda nunca se hubiera registrado.
+  const remove = async () => {
+    const n = debt.pays.length;
+    const ok = await confirm(
+      isCobro ? "Eliminar cuenta por cobrar" : "Eliminar cuenta por pagar",
+      `Esta acción es irreversible.\n\nSe eliminará «${debt.title}»` +
+        (n
+          ? ` junto con ${n === 1 ? "su abono" : `sus ${n} abonos`} (${dv(paid)} ${isCobro ? "cobrados" : "pagados"}).`
+          : ".") +
+        "\n\nLos saldos de tus entidades se recalcularán como si esta deuda nunca se hubiera registrado" +
+        (n ? ": se revierte también el dinero que entró o salió con cada abono." : "."),
+    );
+    if (!ok) return;
+    try {
+      await actions.deleteMovement(debt.id);
+      showToast("Deuda eliminada");
+      // Si se llegó desde el detalle del movimiento, ese ya no existe: se vuelve dos pantallas atrás
+      const routes = navigation.getState().routes;
+      if (routes[routes.length - 2]?.name === "MovementDetail")
+        navigation.pop(2);
+      else navigation.goBack();
+    } catch (err) {
+      showToast(errorMessage(err));
+    }
+  };
 
   // Historial: del más reciente al más antiguo. Cada abono conserva su valor del día;
   // el saldo tras cada abono se calcula en la moneda de la deuda y se valúa con la tasa de hoy.
@@ -313,6 +341,18 @@ export default function DebtDetailScreen({ navigation, route }) {
         style={{ borderRadius: 14 }}
         onPress={() => navigation.navigate("MovementForm", { editId: debt.id })}
       />
+
+      <TouchableOpacity
+        onPress={remove}
+        accessibilityLabel="Eliminar deuda"
+        style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}
+      >
+        <Txt
+          style={{ color: colors.danger.fg, fontSize: 13, fontWeight: "700" }}
+        >
+          {isCobro ? "Eliminar cuenta por cobrar" : "Eliminar cuenta por pagar"}
+        </Txt>
+      </TouchableOpacity>
     </Screen>
   );
 }

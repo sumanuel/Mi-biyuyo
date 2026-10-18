@@ -83,7 +83,7 @@ export default function MovementDetailScreen({ navigation, route }) {
   const remove = async () => {
     const ok = await confirm(
       "Eliminar movimiento",
-      "Se eliminará junto con sus abonos y el saldo de las entidades se recalculará.",
+      "Esta acción es irreversible.\n\nSe eliminará junto con sus abonos y el saldo de las entidades se recalculará.",
     );
     if (!ok) return;
     try {
