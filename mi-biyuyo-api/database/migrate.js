@@ -352,13 +352,18 @@ async function migrate() {
       )
     `);
 
-    // ── cantidad de cada ítem (detalle de compras y gastos planificados); null = sin cantidad ──
+    // ── cantidad de cada ítem (detalle de compras y gastos planificados); por defecto 1 ──
     await client.query(
       `ALTER TABLE transaction_items ADD COLUMN IF NOT EXISTS quantity DECIMAL(12,3)`,
     );
     await client.query(
       `ALTER TABLE planned_expense_items ADD COLUMN IF NOT EXISTS quantity DECIMAL(12,3)`,
     );
+    // Los ítems sin cantidad (anteriores a esta función) pasan a cantidad 1, y los nuevos arrancan en 1
+    for (const tbl of ["transaction_items", "planned_expense_items"]) {
+      await client.query(`ALTER TABLE ${tbl} ALTER COLUMN quantity SET DEFAULT 1`);
+      await client.query(`UPDATE ${tbl} SET quantity = 1 WHERE quantity IS NULL`);
+    }
 
     await client.query("COMMIT");
     console.log("✅ Migración completada");
