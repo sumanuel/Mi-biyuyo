@@ -38,7 +38,7 @@ export const COLORS = {
     warn: { bg: "#fff5de", fg: "#8a5a00", border: "#f0d9a3" },
     danger: { bg: "#ffe9e6", fg: "#a8342a", border: "#e9a19a" },
     info: { bg: "#ebf3ff", fg: "#245fd1", border: "#c9dcf7" },
-    chartIncome: "#2a78d6",
+    chartIncome: "#1f7a59",
     chartExpense: "#eb6834",
     kind: {
       efectivo: { fg: "#0f5a3f", soft: "#e8f5ef" },
@@ -78,7 +78,7 @@ export const COLORS = {
     warn: { bg: "#3a2d10", fg: "#f0c56a", border: "#5a4519" },
     danger: { bg: "#3d1e1a", fg: "#f2a19a", border: "#6a2f28" },
     info: { bg: "#1a2842", fg: "#8fb2f7", border: "#2b3f66" },
-    chartIncome: "#4b93ea",
+    chartIncome: "#3fb287",
     chartExpense: "#f08050",
     kind: {
       efectivo: { fg: "#7fd6b3", soft: "#173a2b" },
