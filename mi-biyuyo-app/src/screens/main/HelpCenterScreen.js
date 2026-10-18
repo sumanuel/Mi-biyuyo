@@ -92,7 +92,8 @@ const TOPICS = [
     body: [
       "Abre un movimiento y toca «Editar movimiento». Se conservan las tasas del día en que lo registraste.",
       "En una deuda que ya tiene abonos no se puede cambiar la moneda ni bajar el monto por debajo de lo abonado.",
-      "Al eliminar un movimiento, los saldos de las entidades se recalculan.",
+      "Al eliminar un movimiento, los saldos de las entidades se recalculan. La app te avisa antes, porque eliminar es irreversible.",
+      "Para eliminar una cuenta por cobrar o por pagar, ábrela y toca «Eliminar cuenta por cobrar» (o «por pagar») al final del detalle. Se elimina junto con todos sus abonos, y los saldos de tus entidades quedan como si esa deuda nunca se hubiera registrado: se devuelve el dinero que salió o entró al registrarla y con cada abono.",
     ],
   },
   {
