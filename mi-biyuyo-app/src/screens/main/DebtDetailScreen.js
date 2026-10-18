@@ -95,6 +95,35 @@ export default function DebtDetailScreen({ navigation, route }) {
     }
   };
 
+  // Elimina un abono (por ejemplo, si se registró mal) para poder volver a registrarlo.
+  // Los saldos se calculan con los abonos guardados: al borrarlo, el dinero vuelve a la entidad
+  // y la deuda recupera ese saldo pendiente (si estaba saldada, vuelve a quedar activa).
+  const removePay = async (p) => {
+    const what = isCobro ? "cobro" : "pago";
+    const ok = await confirm(
+      "Eliminar " + what,
+      `Esta acción es irreversible.
+
+Se eliminará el ${what} de ${fx.money(p.ccy, p.val[p.ccy])} del ${fullDate(p.date)}.` +
+        `
+
+La deuda recupera ese saldo pendiente${closed ? " y vuelve a quedar activa" : ""}, y ` +
+        (p.ent
+          ? `el dinero ${isCobro ? "sale de" : "vuelve a"} ${model.entName(p.ent)}.`
+          : "no cambia ninguna entidad.") +
+        `
+
+Después podrás registrar el ${what} de nuevo.`,
+    );
+    if (!ok) return;
+    try {
+      await actions.deletePayment(debt.id, p.id);
+      showToast(isCobro ? "Cobro eliminado" : "Pago eliminado");
+    } catch (err) {
+      showToast(errorMessage(err));
+    }
+  };
+
   // Historial: del más reciente al más antiguo. Cada abono conserva su valor del día;
   // el saldo tras cada abono se calcula en la moneda de la deuda y se valúa con la tasa de hoy.
   let runNative = model.totalNative(debt);
@@ -103,13 +132,54 @@ export default function DebtDetailScreen({ navigation, route }) {
     .sort((a, b) =>
       a.date === b.date ? a.id - b.id : a.date < b.date ? -1 : 1,
     );
+  // Deuda en cuotas: qué cuotas cubre cada abono (los abonos las van cubriendo en orden)
+  const tol = debt.ccy === "bin" ? 0.005 : 0.01;
+  let cum = 0;
+  const instLabel = (p) => {
+    if (!debt.sched) return null;
+    const from = cum;
+    cum += p.val[debt.ccy];
+    let start = 0;
+    const full = [];
+    const completes = [];
+    const partial = [];
+    debt.sched.forEach((c) => {
+      const end = start + c.amt;
+      const overlap = Math.min(cum, end) - Math.max(from, start);
+      if (overlap > tol) {
+        if (cum >= end - tol)
+          (from <= start + tol ? full : completes).push(c.n);
+        else partial.push(c.n);
+      }
+      start = end;
+    });
+    const list = (ns) =>
+      ns.length > 2 && ns.every((n, i) => i === 0 || n === ns[i - 1] + 1)
+        ? `${ns[0]} a ${ns[ns.length - 1]}`
+        : ns.join(" y ");
+    const parts = [];
+    if (full.length)
+      parts.push(
+        `${full.length === 1 ? "Cuota" : "Cuotas"} ${list(full)} de ${debt.inst}`,
+      );
+    if (completes.length)
+      parts.push(
+        `completa la ${completes.length === 1 ? "cuota" : "cuotas"} ${list(completes)}`,
+      );
+    if (partial.length) parts.push(`abono a la cuota ${list(partial)}`);
+    const text = parts.join(" · ");
+    return text ? text.charAt(0).toUpperCase() + text.slice(1) : null;
+  };
   const timeline = pays
     .map((p) => {
+      const inst = instLabel(p);
       runNative = Math.max(0, runNative - p.val[debt.ccy]);
       const settled = runNative <= (debt.ccy === "bin" ? 0.005 : 0.01);
       const r = p.rate || fx.FACT[p.ccy];
       return {
         key: "p" + p.id,
+        pay: p,
+        inst,
         title: (isCobro ? "Cobro" : "Pago") + " · " + p.method,
         sub:
           dlabel(p.date) +
@@ -389,6 +459,17 @@ export default function DebtDetailScreen({ navigation, route }) {
                 <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
                   {e.sub}
                 </Txt>
+                {e.inst ? (
+                  <Txt
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "700",
+                      color: tint.fg,
+                    }}
+                  >
+                    {e.inst}
+                  </Txt>
+                ) : null}
               </View>
               <View style={{ alignItems: "flex-end", gap: 3 }}>
                 <Txt
@@ -413,6 +494,24 @@ export default function DebtDetailScreen({ navigation, route }) {
                   >
                     {e.rest}
                   </Txt>
+                ) : null}
+                {e.pay ? (
+                  <TouchableOpacity
+                    onPress={() => removePay(e.pay)}
+                    accessibilityLabel={`Eliminar ${isCobro ? "cobro" : "pago"} del ${fullDate(e.pay.date)}`}
+                    hitSlop={{ top: 8, bottom: 8, left: 12, right: 8 }}
+                    style={{ minHeight: 28, justifyContent: "center" }}
+                  >
+                    <Txt
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "700",
+                        color: colors.danger.fg,
+                      }}
+                    >
+                      Eliminar
+                    </Txt>
+                  </TouchableOpacity>
                 ) : null}
               </View>
             </View>
