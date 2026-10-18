@@ -505,7 +505,7 @@ export default function StatsScreen({ navigation }) {
             Aún no hay ingresos en este período.
           </Txt>
         ) : null}
-        {bars(topInc, colors.cobrar, colors.chartIncome, true, "ingreso")}
+        {bars(topInc, colors.ingreso, colors.chartIncome, true, "ingreso")}
       </Card>
 
       <Card style={{ gap: 12 }}>
