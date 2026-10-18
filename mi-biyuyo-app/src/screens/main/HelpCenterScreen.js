@@ -64,6 +64,7 @@ const TOPICS = [
       "Por cobrar es lo que te deben (por ejemplo, un préstamo que hiciste). Por pagar es lo que tú debes.",
       "Escribe la persona y el vencimiento (7, 15, 30 días o sin fecha). En Por pagar, «¿Recibiste el dinero?» es Sí si fue un préstamo que entró a una entidad, y No para servicios, cuotas o compras a crédito.",
       "Para cobrar o pagar de a poco, abre la deuda y toca «Registrar cobro» o «Registrar pago». Cuando se salda pasa a la pestaña Canceladas.",
+      "Toca una deuda de la lista (Pendientes o Canceladas) para ver su detalle sin editarla: «Datos de la deuda» muestra quién te debe o a quién le debes, la descripción, la categoría, la fecha de registro, el vencimiento y la entidad; más abajo, el saldo, las cuotas y el historial de abonos.",
       "Además de 7, 15 o 30 días, puedes elegir una fecha de vencimiento en el calendario («Elegir fecha»).",
       "Si el comercio cobra en cuotas, elige 3, 6, 9 o 12 cuotas: se reparte el monto en partes iguales, una cada 15 días desde la fecha de la primera cuota. En el detalle de la deuda ves cada cuota; tus pagos las van cubriendo en orden y el vencimiento que se muestra es el de la próxima cuota.",
       "Al registrar un pago de una deuda en cuotas, en «Cuotas a pagar» eliges cuántas pagar: 1 cuota, 2, 3… o todas. El monto se llena solo con lo que falta de esas cuotas (y se recalcula si cambias la moneda). Si ya habías abonado algo a la siguiente cuota, se paga lo que falta. También puedes escribir el monto que quieras, o usar «Saldo total» y «Mitad».",
