@@ -99,7 +99,7 @@ export default function ItemsScreen({ navigation, route }) {
                 </Txt>
                 <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
                   {nTxt(r.n, "compra")}
-                  {r.qty !== r.n ? " · Cantidad total: " + qtyText(r.qty) : ""}
+                  {" · Cantidad total: " + qtyText(r.qty)}
                 </Txt>
               </View>
               <Txt style={{ fontSize: 14, fontWeight: "700" }}>

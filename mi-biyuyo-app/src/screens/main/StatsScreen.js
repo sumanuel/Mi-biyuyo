@@ -126,9 +126,7 @@ export default function StatsScreen({ navigation }) {
   const itemsMore = aggArr.length > 3;
   const itemsTop = aggArr.slice(0, 3).map((x) => ({
     name: x.name,
-    meta:
-      nTxt(x.n, "compra") +
-      (x.qty !== x.n ? " · Cantidad total: " + qtyText(x.qty) : ""),
+    meta: nTxt(x.n, "compra") + " · Cantidad total: " + qtyText(x.qty),
     val: x.amt > 0 ? dd(x.amt) : "Sin monto",
     w: x.amt > 0 ? Math.max(4, Math.round((x.amt / aggMax) * 100)) : 0,
   }));
