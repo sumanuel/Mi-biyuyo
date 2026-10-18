@@ -17,6 +17,7 @@ import {
 import { META, dayRateTxt, isDebtType } from "../../utils/ledger";
 import { CCY_KEYS, CCY_LABEL, dlabel } from "../../utils/money";
 import { confirm } from "../../utils/confirm";
+import { qtyText } from "../../utils/text";
 
 export default function MovementDetailScreen({ navigation, route }) {
   const { colors } = useTheme();
@@ -179,7 +180,7 @@ export default function MovementDetailScreen({ navigation, route }) {
               }}
             >
               <Txt style={{ fontSize: 14, fontWeight: "600", flexShrink: 1 }}>
-                {x.name}
+                {x.name + (x.qty && x.qty !== 1 ? " × " + qtyText(x.qty) : "")}
               </Txt>
               <Txt
                 style={{

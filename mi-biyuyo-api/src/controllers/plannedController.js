@@ -1,4 +1,5 @@
 const pool = require("../config/database");
+const { cleanQuantity } = require("../utils/quantity");
 
 // Gastos planificados: plantillas reutilizables (nombre, categoría, fecha prevista opcional,
 // monto estimado opcional e ítems con monto opcional). No son movimientos: no afectan saldos
@@ -21,7 +22,7 @@ const num = (v) => {
 const SELECT = `
   SELECT p.id, p.name, p.category_id, to_char(p.planned_date, 'YYYY-MM-DD') AS planned_date,
          p.amount::float AS amount, p.currency, p.notes,
-         COALESCE((SELECT json_agg(json_build_object('id', i.id, 'name', i.name, 'amount', i.amount::float)
+         COALESCE((SELECT json_agg(json_build_object('id', i.id, 'name', i.name, 'amount', i.amount::float, 'quantity', i.quantity::float)
                                    ORDER BY i.position, i.id)
                    FROM planned_expense_items i WHERE i.plan_id = p.id), '[]') AS items
   FROM planned_expenses p`;
@@ -53,6 +54,7 @@ async function clean(client, userId, body) {
     .map((it) => ({
       name: String(it?.name || "").trim().slice(0, 100),
       amount: num(it?.amount),
+      quantity: cleanQuantity(it?.quantity),
     }))
     .filter((it) => it.name);
 
@@ -76,8 +78,8 @@ async function saveItems(client, planId, items) {
   await client.query(`DELETE FROM planned_expense_items WHERE plan_id = $1`, [planId]);
   for (let i = 0; i < items.length; i++) {
     await client.query(
-      `INSERT INTO planned_expense_items (plan_id, name, amount, position) VALUES ($1,$2,$3,$4)`,
-      [planId, items[i].name, items[i].amount, i],
+      `INSERT INTO planned_expense_items (plan_id, name, amount, quantity, position) VALUES ($1,$2,$3,$4,$5)`,
+      [planId, items[i].name, items[i].amount, items[i].quantity, i],
     );
   }
 }

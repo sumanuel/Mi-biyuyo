@@ -213,6 +213,7 @@ export function buildModel(raw, ratesOverride) {
         id: i.id,
         name: i.name,
         usd: i.amount_usd,
+        qty: i.quantity || null, // cantidad comprada (null = sin cantidad, cuenta como 1)
       })),
       pays: (t.payments || []).map((p) => ({
         id: p.id,
@@ -237,6 +238,7 @@ export function buildModel(raw, ratesOverride) {
       id: i.id,
       name: i.name,
       amt: i.amount || 0,
+      qty: i.quantity || null,
     }));
     const sum = items.reduce((a, i) => a + i.amt, 0);
     return {
@@ -684,7 +686,8 @@ export function pillOf(n, over) {
  * Ítems comprados (gastos) agrupados por nombre, del que más suma al que menos.
  * El nombre se compara sin mayúsculas, tildes ni plural: «Jamón», «jamon» y «jamones» son el
  * mismo ítem. Se muestra la forma que el usuario escribió más veces (si empatan, la más reciente).
- * Cada ítem lleva sus compras (`buys`) con fecha y monto en la moneda `disp`.
+ * Cada ítem lleva sus compras (`buys`) con fecha, monto en la moneda `disp` y cantidad, y la cantidad
+ * total (`qty`) de todas ellas.
  */
 export function itemAgg(list, disp) {
   const agg = {};
@@ -695,12 +698,22 @@ export function itemAgg(list, disp) {
         const label = it.name.trim();
         const k = itemKey(label);
         if (!agg[k])
-          agg[k] = { key: k, name: label, n: 0, amt: 0, buys: [], forms: {} };
+          agg[k] = {
+            key: k,
+            name: label,
+            n: 0,
+            amt: 0,
+            qty: 0,
+            buys: [],
+            forms: {},
+          };
         const g = agg[k];
         const amt = m.usd > 0 ? ((it.usd || 0) / m.usd) * m.val[disp] : 0;
+        const qty = it.qty || 1; // sin cantidad cuenta como 1
         g.n += 1;
         g.amt += amt;
-        g.buys.push({ m, amt });
+        g.qty += qty;
+        g.buys.push({ m, amt, qty });
         const f = g.forms[label] || (g.forms[label] = { n: 0, last: "" });
         f.n += 1;
         const when = `${m.date} ${String(m.ts || 0).padStart(15, "0")}`;

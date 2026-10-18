@@ -1,6 +1,7 @@
 const pool = require("../config/database");
 const { spawnNextRecurrence } = require("../utils/recurrence");
 const { convertToAll, toUsd } = require("../utils/currencyConverter");
+const { cleanQuantity } = require("../utils/quantity");
 
 // Tipos de categoría que son deudas (por cobrar = loan_given, por pagar = debt)
 const DEBT_TYPES = ["loan_given", "debt"];
@@ -125,8 +126,13 @@ async function replaceItems(client, transactionId, items, currency, rates) {
     if (!name) continue;
     const amt = parseFloat(it.amount);
     await client.query(
-      `INSERT INTO transaction_items (transaction_id, name, amount_usd) VALUES ($1,$2,$3)`,
-      [transactionId, name, amt > 0 ? toUsd(amt, currency, rates) : null],
+      `INSERT INTO transaction_items (transaction_id, name, amount_usd, quantity) VALUES ($1,$2,$3,$4)`,
+      [
+        transactionId,
+        name,
+        amt > 0 ? toUsd(amt, currency, rates) : null,
+        cleanQuantity(it.quantity),
+      ],
     );
   }
 }

@@ -41,3 +41,8 @@ export function textHas(haystack, query) {
   const q = plain(query);
   return !q || plain(haystack).includes(q);
 }
+
+/** Cantidad de un ítem como texto: 2 → «2», 1.5 → «1,5», 0.25 → «0,25» (hasta 3 decimales). */
+export function qtyText(n) {
+  return String(Math.round((Number(n) || 0) * 1000) / 1000).replace(".", ",");
+}

@@ -35,7 +35,7 @@ import {
   addDays,
   fullDate,
 } from "../../utils/money";
-import { itemKey } from "../../utils/text";
+import { itemKey, qtyText } from "../../utils/text";
 import { takePhoto, pickFile } from "../../utils/receipt";
 import DateField from "../../components/DateField";
 import { useFocusChain } from "../../hooks/useFocusChain";
@@ -114,6 +114,7 @@ export default function MovementFormScreen({ navigation, route }) {
     ? plan.items.map((it, i) => ({
         id: "p" + i,
         name: it.name,
+        qty: it.qty ? qtyText(it.qty) : "1",
         amt: it.amt > 0 ? fmtIn(it.amt, plan.ccy === "bin" ? 3 : 2) : "",
       }))
     : [];
@@ -123,6 +124,7 @@ export default function MovementFormScreen({ navigation, route }) {
       ? editing.items.map((it, i) => ({
           id: "e" + i,
           name: it.name,
+          qty: it.qty ? qtyText(it.qty) : "1",
           amt:
             it.usd > 0 && origOk
               ? nat(it.usd * (editing.amount / editing.usd))
@@ -246,7 +248,7 @@ export default function MovementFormScreen({ navigation, route }) {
     if (!n) return;
     setItems((prev) => [
       ...prev,
-      { id: `i${Date.now()}-${prev.length}`, name: n, amt: "" },
+      { id: `i${Date.now()}-${prev.length}`, name: n, qty: "1", amt: "" },
     ]);
     setIName("");
   };
@@ -283,6 +285,7 @@ export default function MovementFormScreen({ navigation, route }) {
         items: showItems
           ? items.map((it) => ({
               name: it.name,
+              quantity: parseNum(it.qty) > 0 ? parseNum(it.qty) : null,
               amount:
                 itemsAmt && parseNum(it.amt) > 0 ? parseNum(it.amt) : null,
             }))
@@ -635,6 +638,42 @@ export default function MovementFormScreen({ navigation, route }) {
                 ))}
               </ChipRow>
               <View>
+                {items.length ? (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <View style={{ flex: 1 }} />
+                    <Txt
+                      style={{
+                        width: 58,
+                        textAlign: "center",
+                        fontSize: 11,
+                        fontWeight: "700",
+                        color: colors.textSecondary,
+                      }}
+                    >
+                      Cantidad
+                    </Txt>
+                    {itemsAmt ? (
+                      <Txt
+                        style={{
+                          width: 92,
+                          textAlign: "center",
+                          fontSize: 11,
+                          fontWeight: "700",
+                          color: colors.textSecondary,
+                        }}
+                      >
+                        Monto
+                      </Txt>
+                    ) : null}
+                    <View style={{ width: 44 }} />
+                  </View>
+                ) : null}
                 {items.map((it, idx) => (
                   <View
                     key={it.id}
@@ -648,11 +687,39 @@ export default function MovementFormScreen({ navigation, route }) {
                     }}
                   >
                     <Txt
-                      numberOfLines={1}
+                      numberOfLines={2}
                       style={{ flex: 1, fontSize: 14, fontWeight: "600" }}
                     >
                       {it.name}
                     </Txt>
+                    <Input
+                      value={it.qty}
+                      onChangeText={(v) =>
+                        setItems((prev) =>
+                          prev.map((x) =>
+                            x.id === it.id ? { ...x, qty: v } : x,
+                          ),
+                        )
+                      }
+                      keyboardType="decimal-pad"
+                      placeholder="Cant."
+                      accessibilityLabel={`Cantidad de ${it.name}`}
+                      {...chain(10 + idx * 2, {
+                        last: !itemsAmt && idx === items.length - 1,
+                      })}
+                      style={{
+                        width: 58,
+                        minHeight: 40,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: 10,
+                        backgroundColor: colors.surface,
+                        paddingHorizontal: 6,
+                        textAlign: "center",
+                        fontSize: 14,
+                        fontWeight: "700",
+                      }}
+                    />
                     {itemsAmt ? (
                       <Input
                         value={it.amt}
@@ -666,7 +733,9 @@ export default function MovementFormScreen({ navigation, route }) {
                         keyboardType="decimal-pad"
                         placeholder="0,00"
                         accessibilityLabel={`Monto de ${it.name}`}
-                        {...chain(10 + idx, { last: idx === items.length - 1 })}
+                        {...chain(11 + idx * 2, {
+                          last: idx === items.length - 1,
+                        })}
                         style={{
                           width: 92,
                           minHeight: 40,

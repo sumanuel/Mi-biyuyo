@@ -17,6 +17,7 @@ import {
 import DateField from "../../components/DateField";
 import { useFocusChain } from "../../hooks/useFocusChain";
 import { confirm } from "../../utils/confirm";
+import { qtyText } from "../../utils/text";
 import {
   CCY_KEYS,
   CCY_LABEL,
@@ -39,7 +40,8 @@ export default function PlannedFormScreen({ navigation, route }) {
 
   const editing = model.planned.find((p) => p.id === route.params?.id) || null;
   const cats = model.cats.filter(
-    (c) => c.type === "gasto" && c.active && (!c.hidden || c.id === editing?.catId),
+    (c) =>
+      c.type === "gasto" && c.active && (!c.hidden || c.id === editing?.catId),
   );
 
   const [name, setName] = useState(editing?.name || "");
@@ -54,6 +56,7 @@ export default function PlannedFormScreen({ navigation, route }) {
     (editing?.items || []).map((i, k) => ({
       id: "e" + k,
       name: i.name,
+      qty: i.qty ? qtyText(i.qty) : "1",
       amt: fmt(i.amt, editing.ccy),
     })),
   );
@@ -65,7 +68,7 @@ export default function PlannedFormScreen({ navigation, route }) {
     if (!n) return;
     setItems((prev) => [
       ...prev,
-      { id: `i${Date.now()}-${prev.length}`, name: n, amt: "" },
+      { id: `i${Date.now()}-${prev.length}`, name: n, qty: "1", amt: "" },
     ]);
     setIName("");
   };
@@ -86,6 +89,7 @@ export default function PlannedFormScreen({ navigation, route }) {
         amount: parseNum(amount) > 0 ? parseNum(amount) : null,
         items: items.map((i) => ({
           name: i.name,
+          quantity: parseNum(i.qty) > 0 ? parseNum(i.qty) : null,
           amount: parseNum(i.amt) > 0 ? parseNum(i.amt) : null,
         })),
       };
@@ -256,6 +260,34 @@ export default function PlannedFormScreen({ navigation, route }) {
         </View>
         {items.length ? (
           <Card pad={0} style={{ paddingHorizontal: 12 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                paddingTop: 8,
+              }}
+            >
+              <View style={{ flex: 1 }} />
+              {[
+                ["Cantidad", 58],
+                ["Monto", 100],
+              ].map(([t, w]) => (
+                <Txt
+                  key={t}
+                  style={{
+                    width: w,
+                    textAlign: "center",
+                    fontSize: 11,
+                    fontWeight: "700",
+                    color: colors.textSecondary,
+                  }}
+                >
+                  {t}
+                </Txt>
+              ))}
+              <View style={{ width: 36 }} />
+            </View>
             {items.map((it, i) => (
               <View
                 key={it.id}
@@ -269,11 +301,29 @@ export default function PlannedFormScreen({ navigation, route }) {
                 }}
               >
                 <Txt
-                  numberOfLines={1}
+                  numberOfLines={2}
                   style={{ flex: 1, fontSize: 14, fontWeight: "600" }}
                 >
                   {it.name}
                 </Txt>
+                <Input
+                  value={it.qty}
+                  onChangeText={(v) =>
+                    setItems((prev) =>
+                      prev.map((x) => (x.id === it.id ? { ...x, qty: v } : x)),
+                    )
+                  }
+                  keyboardType="decimal-pad"
+                  placeholder="Cant."
+                  accessibilityLabel={`Cantidad de ${it.name}`}
+                  style={{
+                    ...field,
+                    width: 58,
+                    minHeight: 40,
+                    paddingHorizontal: 6,
+                    textAlign: "center",
+                  }}
+                />
                 <Input
                   value={it.amt}
                   onChangeText={(v) =>
