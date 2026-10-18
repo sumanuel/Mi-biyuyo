@@ -19,6 +19,7 @@ import {
 import { META, debtStatus } from "../../utils/ledger";
 import { CCY_KEYS, CCY_LABEL, dlabel, fullDate, grp } from "../../utils/money";
 import { confirm } from "../../utils/confirm";
+import { qtyText } from "../../utils/text";
 
 export default function DebtDetailScreen({ navigation, route }) {
   const { colors } = useTheme();
@@ -359,7 +360,9 @@ Después podrás registrar el ${what} de nuevo.`,
             </Txt>
             {debt.items.map((x, i) => (
               <Txt key={x.id ?? i} style={{ fontSize: 14 }}>
-                {"• " + x.name}
+                {"• " +
+                  x.name +
+                  (x.qty && x.qty !== 1 ? " × " + qtyText(x.qty) : "")}
               </Txt>
             ))}
           </View>

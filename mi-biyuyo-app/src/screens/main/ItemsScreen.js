@@ -14,7 +14,7 @@ import {
 } from "../../components/ui";
 import DateRangeFilter from "../../components/DateRangeFilter";
 import { itemAgg } from "../../utils/ledger";
-import { itemKey } from "../../utils/text";
+import { itemKey, qtyText } from "../../utils/text";
 import { endOfMonth, fullDate, nTxt, startOfMonth } from "../../utils/money";
 import { go } from "../../navigation/helpers";
 
@@ -99,6 +99,7 @@ export default function ItemsScreen({ navigation, route }) {
                 </Txt>
                 <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
                   {nTxt(r.n, "compra")}
+                  {r.qty !== r.n ? " · Cantidad total: " + qtyText(r.qty) : ""}
                 </Txt>
               </View>
               <Txt style={{ fontSize: 14, fontWeight: "700" }}>
