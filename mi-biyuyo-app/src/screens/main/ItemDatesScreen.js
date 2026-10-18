@@ -25,6 +25,32 @@ export default function ItemDatesScreen({ navigation, route }) {
   const item = itemAgg(list, disp).find((x) => x.key === itemKey(name));
   const buys = item ? item.buys.slice().sort((a, b) => byRecent(a.m, b.m)) : [];
 
+  // Montos. Las compras sin monto se estiman con el último precio por unidad que tenga el ítem
+  // (la compra más reciente con monto: monto ÷ cantidad), y se marcan como estimadas.
+  const money = (v) => model.fx.money(disp, v);
+  const lastPriced = buys.find((b) => b.amt > 0); // `buys` va de la más reciente a la más antigua
+  const lastUnit = lastPriced ? lastPriced.amt / lastPriced.qty : 0;
+  const rows = buys.map((b) =>
+    b.amt > 0
+      ? { ...b, est: false }
+      : { ...b, amt: lastUnit * b.qty, est: lastUnit > 0 },
+  );
+  const withAmt = rows.filter((r) => r.amt > 0);
+  const nEst = rows.filter((r) => r.est).length;
+  const total = withAmt.reduce((a, r) => a + r.amt, 0);
+  const qtyAmt = withAmt.reduce((a, r) => a + r.qty, 0);
+  const stats = [];
+  if (withAmt.length) {
+    stats.push([
+      nEst ? "Monto total (con estimados)" : "Monto total",
+      money(total),
+    ]);
+    stats.push(["Promedio por compra", money(total / withAmt.length)]);
+    // Si todas las compras fueron de 1 unidad, el promedio por unidad sería el mismo
+    if (qtyAmt !== withAmt.length)
+      stats.push(["Promedio por unidad", money(total / qtyAmt)]);
+  }
+
   return (
     <Screen data={false} contentStyle={{ paddingTop: 16 }}>
       <Header title={name || "Ítem"} onBack={() => navigation.goBack()} />
@@ -35,14 +61,34 @@ export default function ItemDatesScreen({ navigation, route }) {
         </Txt>
         <Txt style={{ fontSize: 15, fontWeight: "700" }}>
           {nTxt(buys.length, "compra")}
-          {item && item.qty !== buys.length
-            ? " · Cantidad total: " + qtyText(item.qty)
-            : ""}
-          {item && item.amt > 0 ? " · " + model.fx.money(disp, item.amt) : ""}
+          {item ? " · Cantidad total: " + qtyText(item.qty) : ""}
         </Txt>
+        {stats.map(([label, value]) => (
+          <View
+            key={label}
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              gap: 12,
+              paddingTop: 6,
+            }}
+          >
+            <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
+              {label}
+            </Txt>
+            <Txt style={{ fontSize: 14, fontWeight: "700" }}>{value}</Txt>
+          </View>
+        ))}
+        {nEst ? (
+          <Txt
+            style={{ fontSize: 11, color: colors.textSecondary, paddingTop: 4 }}
+          >
+            {`${nTxt(nEst, "compra")} sin monto ${nEst === 1 ? "se estimó" : "se estimaron"} con el último precio por unidad: ${money(lastUnit)}.`}
+          </Txt>
+        ) : null}
       </Card>
       <View style={{ gap: 8 }}>
-        {buys.map(({ m, amt, qty }) => (
+        {rows.map(({ m, amt, qty, est }) => (
           <TouchableOpacity
             key={m.id}
             activeOpacity={0.8}
@@ -67,13 +113,25 @@ export default function ItemDatesScreen({ navigation, route }) {
                 numberOfLines={1}
                 style={{ fontSize: 12, color: colors.textSecondary }}
               >
-                {(qty !== 1 ? "Cantidad " + qtyText(qty) + " · " : "") +
-                  m.title}
+                {"Cantidad " + qtyText(qty) + " · " + m.title}
               </Txt>
             </View>
-            <Txt style={{ fontSize: 14, fontWeight: "700" }}>
-              {amt > 0 ? model.fx.money(disp, amt) : "Sin monto"}
-            </Txt>
+            <View style={{ alignItems: "flex-end", gap: 1 }}>
+              <Txt
+                style={{
+                  fontSize: 14,
+                  fontWeight: "700",
+                  color: est ? colors.textSecondary : colors.text,
+                }}
+              >
+                {amt > 0 ? (est ? "≈ " : "") + money(amt) : "Sin monto"}
+              </Txt>
+              {est ? (
+                <Txt style={{ fontSize: 11, color: colors.textSecondary }}>
+                  Estimado
+                </Txt>
+              ) : null}
+            </View>
           </TouchableOpacity>
         ))}
         {!buys.length ? (
