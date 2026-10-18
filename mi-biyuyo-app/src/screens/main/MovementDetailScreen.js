@@ -153,54 +153,57 @@ export default function MovementDetailScreen({ navigation, route }) {
         <ConvRows title="MONTO EN LAS 3 MONEDAS" rows={rows} />
       </Card>
 
-      <Card pad={14} style={{ gap: 4 }}>
-        <Txt
-          style={{
-            fontSize: 12,
-            fontWeight: "700",
-            letterSpacing: 0.5,
-            color: colors.textSecondary,
-          }}
-        >
-          DETALLE DE LA COMPRA
-        </Txt>
-        {m.items.map((x, i) => (
-          <View
-            key={x.id ?? i}
+      {/* Solo los gastos y las deudas por pagar llevan ítems; en ingresos y por cobrar no aplica */}
+      {m.type === "gasto" || m.type === "pagar" ? (
+        <Card pad={14} style={{ gap: 4 }}>
+          <Txt
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              gap: 12,
-              paddingVertical: 10,
-              borderBottomWidth: 1,
-              borderBottomColor: colors.divider,
+              fontSize: 12,
+              fontWeight: "700",
+              letterSpacing: 0.5,
+              color: colors.textSecondary,
             }}
           >
-            <Txt style={{ fontSize: 14, fontWeight: "600", flexShrink: 1 }}>
-              {x.name}
-            </Txt>
-            <Txt
+            DETALLE DE LA COMPRA
+          </Txt>
+          {m.items.map((x, i) => (
+            <View
+              key={x.id ?? i}
               style={{
-                fontSize: 14,
-                fontWeight: "700",
-                color: x.usd != null ? colors.text : colors.textSecondary,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: 12,
+                paddingVertical: 10,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.divider,
               }}
             >
-              {x.usd != null ? money(part(x.usd)) : "Sin monto"}
-            </Txt>
-          </View>
-        ))}
-        <Txt
-          style={{
-            fontSize: 13,
-            lineHeight: 18,
-            color: colors.textSecondary,
-            paddingTop: 6,
-          }}
-        >
-          {itemsNote}
-        </Txt>
-      </Card>
+              <Txt style={{ fontSize: 14, fontWeight: "600", flexShrink: 1 }}>
+                {x.name}
+              </Txt>
+              <Txt
+                style={{
+                  fontSize: 14,
+                  fontWeight: "700",
+                  color: x.usd != null ? colors.text : colors.textSecondary,
+                }}
+              >
+                {x.usd != null ? money(part(x.usd)) : "Sin monto"}
+              </Txt>
+            </View>
+          ))}
+          <Txt
+            style={{
+              fontSize: 13,
+              lineHeight: 18,
+              color: colors.textSecondary,
+              paddingTop: 6,
+            }}
+          >
+            {itemsNote}
+          </Txt>
+        </Card>
+      ) : null}
 
       <Card pad={14} style={{ gap: 10 }}>
         <Txt
