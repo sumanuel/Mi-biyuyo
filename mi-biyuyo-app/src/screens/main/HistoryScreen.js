@@ -32,7 +32,7 @@ const PAGE = 25;
 
 export default function HistoryScreen({ navigation, route }) {
   const { colors } = useTheme();
-  const { model, dv, disp } = useData();
+  const { model, dv, disp, saldoMode } = useData();
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const [limit, setLimit] = useState(PAGE);
@@ -78,7 +78,14 @@ export default function HistoryScreen({ navigation, route }) {
   const histVal =
     filter === "all" ? flInc - flExp : fl.reduce((a, m) => a + m.val[disp], 0);
   const money = (n) => model.fx.money(disp, n);
-  const all = feed(model, fl, filter === "all" && !q.trim(), dv, { from, to });
+  const all = feed(
+    model,
+    fl,
+    filter === "all" && !q.trim(),
+    dv,
+    { from, to },
+    saldoMode,
+  );
   const rows = all.slice(0, limit);
 
   return (

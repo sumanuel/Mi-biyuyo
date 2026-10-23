@@ -852,6 +852,7 @@ export function MovRow({ row, onPress, bordered = false, style }) {
           style={{
             flexDirection: "row",
             flexWrap: "wrap",
+            justifyContent: "flex-end",
             gap: 6,
             marginLeft: 52,
           }}

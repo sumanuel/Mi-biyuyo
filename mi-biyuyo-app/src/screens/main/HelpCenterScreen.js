@@ -11,6 +11,7 @@ const TOPICS = [
       "Ve a Ajustes > Tasas de cambio. Puedes escribirlas a mano o tocar «Obtener tasas en línea» para traerlas.",
       "Activa la consulta diaria para que, a las 7:00 a. m., la app revise las tasas y te avise en la campanita. Tú decides si las actualizas.",
       "Sin tasas no puedes registrar en bolívares ni en USDT.",
+      "En Ajustes > Apariencia, «Moneda para mostrar los montos» define en cuál moneda (USD, VES BCV o USDT) ves los montos al abrir la app: el saldo, el resumen de Inicio, las listas y las estadísticas. En cada pantalla puedes cambiarla un momento con los botones de moneda; al volver a abrir la app vuelve a la que elegiste en Ajustes.",
     ],
   },
   {
@@ -21,7 +22,7 @@ const TOPICS = [
       "«Sumar a Mi saldo» decide si el saldo de esa entidad cuenta en tu saldo total. Si lo desmarcas, la entidad sigue funcionando pero no suma.",
       "Con «Transferir» mueves dinero entre entidades, con comisión opcional. También puedes definir una alerta de saldo bajo.",
       "Para ordenar tus entidades, mantén presionada una, arrástrala al lugar que prefieras y suéltala. El orden se guarda en tu cuenta.",
-      "En Últimos movimientos y en el Historial, cada movimiento muestra debajo cuánto te quedó justo después de hacerlo: el saldo de la entidad que usaste (por ejemplo, «Banesco USD 831.30») y «Mi saldo», el total de tus entidades que suman. Así sigues cómo evoluciona tu dinero. Las transferencias muestran solo Mi saldo, y si la entidad no suma a Mi saldo, solo ves el de la entidad. Los saldos se valoran con la tasa de hoy, igual que Mi saldo, así que el más reciente coincide con lo que ves arriba.",
+      "En Últimos movimientos y en el Historial, cada movimiento muestra debajo cuánto te quedó justo después de hacerlo: el saldo de la entidad que usaste (por ejemplo, «Banesco USD 831.30») y «Mi saldo», el total de tus entidades que suman. Así sigues cómo evoluciona tu dinero. Las transferencias muestran solo Mi saldo, y si la entidad no suma a Mi saldo, solo ves el de la entidad. Los saldos se valoran con la tasa de hoy, igual que Mi saldo, así que el más reciente coincide con lo que ves arriba. En Ajustes > Apariencia, «Saldo en los movimientos», eliges qué ver: Ambos, solo el de la Entidad, solo Mi saldo o Ninguno. Los saldos van alineados a la derecha, bajo el monto.",
     ],
   },
   {
@@ -79,7 +80,7 @@ const TOPICS = [
       "En un gasto abre «Detalle de la compra» y agrega los ítems: pan, queso, vino… Es opcional, pero muy útil.",
       "Cada ítem tiene su casilla «Cantidad» (empieza en 1; puedes poner 2, 0,5, 1,25…). El monto del ítem sigue siendo el total de esa línea: si compraste 3 quesos por 15, pones cantidad 3 y monto 15.",
       "Si activas «Asignar monto a cada ítem», cada uno lleva su monto (la suma no puede pasar del total).",
-      "Con eso, en Estadísticas > Ítems más comprados ves qué compras más y en qué fechas compraste cada cosa. También ves la cantidad total del período: por ejemplo, si compraste jamón 2, 3 y 1 vez, aparece «Cantidad total: 6». Los ítems sin cantidad (por ejemplo, los registrados antes de existir esta casilla) cuentan como 1. Al tocar el ítem ves la cantidad y el monto de cada compra, además del monto total y los promedios por compra y por unidad cuando hay montos asignados. Las compras de ese ítem que no tienen monto se estiman con el último precio por unidad que tenga (monto ÷ cantidad de su compra más reciente con monto) y aparecen marcadas como «Estimado»; si el ítem nunca tuvo monto, no se calcula nada.",
+      "Con eso, en Estadísticas > Ítems más comprados (ordenados del que más compras al que menos, tengan monto o no) ves qué compras más y en qué fechas compraste cada cosa. También ves la cantidad total del período: por ejemplo, si compraste jamón 2, 3 y 1 vez, aparece «Cantidad total: 6». Los ítems sin cantidad (por ejemplo, los registrados antes de existir esta casilla) cuentan como 1. Al tocar el ítem ves la cantidad y el monto de cada compra, además del monto total y los promedios por compra y por unidad cuando hay montos asignados. Las compras de ese ítem que no tienen monto se estiman con el último precio por unidad que tenga (monto ÷ cantidad de su compra más reciente con monto) y aparecen marcadas como «Estimado»; si el ítem nunca tuvo monto, no se calcula nada.",
       "No te preocupes por cómo escribes cada ítem: «Jamón», «jamon» y «jamones» cuentan como el mismo (se ignoran mayúsculas, tildes y el plural). Se muestra con la forma que más has usado. Las búsquedas del Historial funcionan igual.",
     ],
   },

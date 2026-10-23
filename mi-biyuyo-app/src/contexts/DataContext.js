@@ -17,6 +17,10 @@ import { buildModel } from "../utils/ledger";
 
 const THRESHOLD_KEY = "@mb_threshold";
 const HIDE_KEY = "@mb_hide_balance";
+const DISP_KEY = "@mb_default_disp";
+const SALDO_KEY = "@mb_saldo_mode";
+const DISP_OPTS = ["usd", "bcv", "bin"];
+const SALDO_OPTS = ["both", "ent", "tot", "none"];
 const DataContext = createContext(null);
 
 export function errorMessage(err, fallback = "No se pudo completar la acción") {
@@ -30,6 +34,9 @@ export function DataProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [disp, setDisp] = useState("usd");
+  const [defaultDisp, setDefaultDispState] = useState("usd");
+  // Saldo que se muestra bajo cada movimiento: both (entidad y Mi saldo), ent, tot o none
+  const [saldoMode, setSaldoModeState] = useState("both");
   const [threshold, setThresholdState] = useState(50);
   const [hideBalance, setHideBalance] = useState(false);
   const [toast, setToast] = useState(null);
@@ -61,6 +68,32 @@ export function DataProvider({ children }) {
 
   useEffect(() => {
     AsyncStorage.getItem(HIDE_KEY).then((v) => setHideBalance(v === "1"));
+  }, []);
+
+  // Preferencias: la moneda con la que se muestran los montos al abrir la app y el saldo en los movimientos
+  useEffect(() => {
+    AsyncStorage.getItem(DISP_KEY).then((v) => {
+      if (DISP_OPTS.includes(v)) {
+        setDefaultDispState(v);
+        setDisp(v);
+      }
+    });
+    AsyncStorage.getItem(SALDO_KEY).then((v) => {
+      if (SALDO_OPTS.includes(v)) setSaldoModeState(v);
+    });
+  }, []);
+
+  const setDefaultDisp = useCallback((k) => {
+    if (!DISP_OPTS.includes(k)) return;
+    setDefaultDispState(k);
+    setDisp(k);
+    AsyncStorage.setItem(DISP_KEY, k).catch(() => {});
+  }, []);
+
+  const setSaldoMode = useCallback((m) => {
+    if (!SALDO_OPTS.includes(m)) return;
+    setSaldoModeState(m);
+    AsyncStorage.setItem(SALDO_KEY, m).catch(() => {});
   }, []);
 
   // Ojito de Mi saldo: oculta o muestra los montos (se recuerda entre sesiones)
@@ -165,6 +198,10 @@ export function DataProvider({ children }) {
         refresh,
         disp,
         setDisp,
+        defaultDisp,
+        setDefaultDisp,
+        saldoMode,
+        setSaldoMode,
         dv,
         threshold,
         setThreshold,

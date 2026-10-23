@@ -10,7 +10,15 @@ import {
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useData } from "../../contexts/DataContext";
-import { Screen, Txt, H1, Icon, Field, Button } from "../../components/ui";
+import {
+  Screen,
+  Txt,
+  H1,
+  Icon,
+  Field,
+  Button,
+  Segmented,
+} from "../../components/ui";
 import * as authService from "../../services/api/authService";
 import {
   authenticateWithBiometrics,
@@ -89,7 +97,15 @@ function Row({ label, sub, onPress, last, right }) {
 export default function SettingsScreen({ navigation }) {
   const { colors, isDark, toggle } = useTheme();
   const { logout, user } = useAuth();
-  const { threshold, setThreshold, showToast } = useData();
+  const {
+    threshold,
+    setThreshold,
+    showToast,
+    defaultDisp,
+    setDefaultDisp,
+    saldoMode,
+    setSaldoMode,
+  } = useData();
   const soon = () => showToast("Próximamente");
 
   // Desbloqueo con huella: solo aparece si el dispositivo tiene huella o Face ID registrados
@@ -253,6 +269,67 @@ export default function SettingsScreen({ navigation }) {
       </Section>
 
       <Section title="APARIENCIA">
+        <View
+          style={{
+            gap: 10,
+            padding: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.divider,
+          }}
+        >
+          <View style={{ gap: 2 }}>
+            <Txt style={{ fontSize: 15, fontWeight: "600" }}>
+              Moneda para mostrar los montos
+            </Txt>
+            <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
+              La que se usa al abrir la app. Puedes cambiarla en cada pantalla.
+            </Txt>
+          </View>
+          <Segmented
+            height={42}
+            fontSize={13}
+            items={[
+              ["usd", "USD"],
+              ["bcv", "VES BCV"],
+              ["bin", "USDT"],
+            ].map(([k, label]) => ({
+              label,
+              active: defaultDisp === k,
+              onPress: () => setDefaultDisp(k),
+            }))}
+          />
+        </View>
+        <View
+          style={{
+            gap: 10,
+            padding: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.divider,
+          }}
+        >
+          <View style={{ gap: 2 }}>
+            <Txt style={{ fontSize: 15, fontWeight: "600" }}>
+              Saldo en los movimientos
+            </Txt>
+            <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
+              Qué saldo ver bajo cada movimiento de Inicio e Historial.
+            </Txt>
+          </View>
+          <Segmented
+            height={42}
+            fontSize={12}
+            items={[
+              ["both", "Ambos"],
+              ["ent", "Entidad"],
+              ["tot", "Mi saldo"],
+              ["none", "Ninguno"],
+            ].map(([k, label]) => ({
+              label,
+              active: saldoMode === k,
+              onPress: () => setSaldoMode(k),
+            }))}
+          />
+        </View>
         <Row
           label="Modo oscuro"
           sub="Cambiar el tema de la app"
