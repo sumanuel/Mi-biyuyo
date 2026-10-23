@@ -13,6 +13,7 @@ const FEATURES = [
   "Tus propias categorías: créalas, ocúltalas o elimínalas",
   "Detalle de las compras con cantidad y monto por ítem, y qué es lo que más compras",
   "Gastos planificados: prepara tu lista y regístrala cuando llegue el momento",
+  "Cuánto te queda en cada entidad y en Mi saldo después de cada movimiento",
   "Estadísticas por rango de fechas, con el detalle de cada categoría, y alertas de saldo bajo",
   "Bloqueo con tu huella para proteger tus datos",
 ];

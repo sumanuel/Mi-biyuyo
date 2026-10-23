@@ -757,6 +757,23 @@ export function ProgressBar({ pct, color, height = 8 }) {
 export function MovRow({ row, onPress, bordered = false, style }) {
   const { colors } = useTheme();
   const t = tone(colors, row.tone);
+  const saldo =
+    row.saldo && (row.saldo.entVal || row.saldo.tot) ? row.saldo : null;
+  const chip = (label, value) => (
+    <View
+      style={{
+        flexDirection: "row",
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        backgroundColor: colors.chip,
+      }}
+    >
+      <Txt style={{ fontSize: 11, color: colors.textSecondary }}>{label}</Txt>
+      <Txt style={{ fontSize: 11, fontWeight: "700" }}>{value}</Txt>
+    </View>
+  );
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -764,9 +781,7 @@ export function MovRow({ row, onPress, bordered = false, style }) {
       accessibilityLabel={row.title}
       style={[
         {
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 12,
+          gap: 8,
           paddingVertical: 12,
           paddingHorizontal: 14,
           backgroundColor: colors.surface,
@@ -781,53 +796,70 @@ export function MovRow({ row, onPress, bordered = false, style }) {
         style,
       ]}
     >
-      <Tile icon={row.icon} soft={t.soft} fg={t.fg} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <Txt numberOfLines={1} style={{ fontSize: 14, fontWeight: "700" }}>
-          {row.title}
-        </Txt>
-        <Txt
-          numberOfLines={1}
-          style={{ fontSize: 12, color: colors.textSecondary }}
-        >
-          {row.sub}
-        </Txt>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Tile icon={row.icon} soft={t.soft} fg={t.fg} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Txt numberOfLines={1} style={{ fontSize: 14, fontWeight: "700" }}>
+            {row.title}
+          </Txt>
+          <Txt
+            numberOfLines={1}
+            style={{ fontSize: 12, color: colors.textSecondary }}
+          >
+            {row.sub}
+          </Txt>
+        </View>
+        <View style={{ alignItems: "flex-end", gap: 3, maxWidth: "42%" }}>
+          <Txt
+            style={{
+              fontSize: bordered ? 15 : 14,
+              fontWeight: "800",
+              color: t.fg,
+            }}
+          >
+            {row.amount}
+          </Txt>
+          {row.date ? (
+            <Txt
+              style={{
+                fontSize: 11,
+                fontWeight: "600",
+                color: colors.textSecondary,
+                textAlign: "right",
+              }}
+            >
+              {row.date}
+            </Txt>
+          ) : null}
+          {bordered && row.line2 ? (
+            <Txt
+              style={{
+                fontSize: 11,
+                fontWeight: "600",
+                color: row.line2Danger
+                  ? colors.danger.fg
+                  : colors.textSecondary,
+                textAlign: "right",
+              }}
+            >
+              {row.line2}
+            </Txt>
+          ) : null}
+        </View>
       </View>
-      <View style={{ alignItems: "flex-end", gap: 3, maxWidth: "42%" }}>
-        <Txt
+      {saldo ? (
+        <View
           style={{
-            fontSize: bordered ? 15 : 14,
-            fontWeight: "800",
-            color: t.fg,
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 6,
+            marginLeft: 52,
           }}
         >
-          {row.amount}
-        </Txt>
-        {row.date ? (
-          <Txt
-            style={{
-              fontSize: 11,
-              fontWeight: "600",
-              color: colors.textSecondary,
-              textAlign: "right",
-            }}
-          >
-            {row.date}
-          </Txt>
-        ) : null}
-        {bordered && row.line2 ? (
-          <Txt
-            style={{
-              fontSize: 11,
-              fontWeight: "600",
-              color: row.line2Danger ? colors.danger.fg : colors.textSecondary,
-              textAlign: "right",
-            }}
-          >
-            {row.line2}
-          </Txt>
-        ) : null}
-      </View>
+          {saldo.entVal ? chip(saldo.ent, saldo.entVal) : null}
+          {saldo.tot ? chip("Mi saldo", saldo.tot) : null}
+        </View>
+      ) : null}
     </TouchableOpacity>
   );
 }
