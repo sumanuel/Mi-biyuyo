@@ -21,6 +21,7 @@ const TOPICS = [
       "«Sumar a Mi saldo» decide si el saldo de esa entidad cuenta en tu saldo total. Si lo desmarcas, la entidad sigue funcionando pero no suma.",
       "Con «Transferir» mueves dinero entre entidades, con comisión opcional. También puedes definir una alerta de saldo bajo.",
       "Para ordenar tus entidades, mantén presionada una, arrástrala al lugar que prefieras y suéltala. El orden se guarda en tu cuenta.",
+      "En Últimos movimientos y en el Historial, cada movimiento muestra debajo cuánto te quedó justo después de hacerlo: el saldo de la entidad que usaste (por ejemplo, «Banesco USD 831.30») y «Mi saldo», el total de tus entidades que suman. Así sigues cómo evoluciona tu dinero. Las transferencias muestran solo Mi saldo, y si la entidad no suma a Mi saldo, solo ves el de la entidad. Los saldos se valoran con la tasa de hoy, igual que Mi saldo, así que el más reciente coincide con lo que ves arriba.",
     ],
   },
   {

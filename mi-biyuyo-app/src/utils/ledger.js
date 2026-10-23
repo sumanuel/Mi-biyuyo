@@ -418,6 +418,86 @@ export function buildModel(raw, ratesOverride) {
     fees: transfers.reduce((a, t) => a + t.feeVal[c], 0),
   });
 
+  /* ---------- saldo después de cada movimiento ---------- */
+  // Recorre movimientos, abonos y transferencias en orden cronológico llevando el saldo de cada
+  // entidad (misma cuenta que entNative: saldo inicial + entradas - salidas). Para cada fila guarda
+  // el saldo de su entidad y el total de Mi saldo justo después, valuados con la tasa de hoy
+  // (así la fila más reciente coincide con lo que muestra Mi saldo). Clave = clave de la fila.
+  const trail = {};
+  {
+    const run = {};
+    ents.forEach((e) => (run[e.id] = { n: e.initNative, s: e.init }));
+    const usdOf = (e) => {
+      const r = run[e.id];
+      if (e.ccy === "usd") return r.n;
+      const c = e.ccy === "usdt" ? "bin" : "bcv";
+      return fx.ready(c) ? fx.toUsd(c, r.n) : r.s;
+    };
+    const total = () => included.reduce((a, e) => a + usdOf(e), 0);
+    const evs = [];
+    moves.forEach((m) => {
+      const e = entById[m.ent];
+      if (e && isLive(m)) {
+        const sg = m.type === "ingreso" || m.type === "pagar" ? 1 : -1;
+        evs.push({
+          key: "m" + m.id,
+          d: m.d,
+          ts: m.ts,
+          e,
+          sg,
+          val: m.val,
+          usd: m.usd,
+        });
+      }
+    });
+    // Mismo orden de inserción que `feed` (movimientos, abonos, transferencias), para que en un
+    // empate de fecha y hora el orden cronológico sea justo el inverso del de la lista
+    moves.forEach((m) =>
+      (m.pays || []).forEach((q) => {
+        const pe = entById[q.ent];
+        if (pe)
+          evs.push({
+            key: "p" + q.id,
+            d: q.d,
+            ts: q.ts,
+            e: pe,
+            sg: m.type === "cobrar" ? 1 : -1,
+            val: q.val,
+            usd: q.usd,
+          });
+      }),
+    );
+    transfers.forEach((t) =>
+      evs.push({ key: "t" + t.id, d: t.d, ts: t.ts, t }),
+    );
+    // Del más antiguo al más reciente: el inverso exacto del orden de la lista
+    evs.sort(byRecent).reverse();
+    evs.forEach((ev) => {
+      if (ev.t) {
+        const t = ev.t;
+        if (run[t.from]) {
+          run[t.from].n -=
+            nat(t.val, entById[t.from]) + nat(t.feeVal, entById[t.from]);
+          run[t.from].s -= t.usd + t.fee;
+        }
+        if (run[t.to]) {
+          run[t.to].n += nat(t.val, entById[t.to]);
+          run[t.to].s += t.usd;
+        }
+        trail[ev.key] = { ent: null, bal: 0, tot: total() };
+      } else {
+        run[ev.e.id].n += ev.sg * nat(ev.val, ev.e);
+        run[ev.e.id].s += ev.sg * ev.usd;
+        // Si la entidad no suma a Mi saldo, el total no cambió con este movimiento: no se muestra
+        trail[ev.key] = {
+          ent: ev.e.id,
+          bal: usdOf(ev.e),
+          tot: ev.e.include ? total() : null,
+        };
+      }
+    });
+  }
+
   const dueText = (m) => {
     if (m.dueIn === null || m.dueIn === undefined) return "Sin fecha";
     const cuota = m.nextInst ? `Cuota ${m.nextInst.n}/${m.inst} · ` : "";
@@ -438,6 +518,7 @@ export function buildModel(raw, ratesOverride) {
     entById,
     entName,
     transfers,
+    trail,
     paidOf,
     pendOf,
     totalOf,
@@ -618,7 +699,21 @@ export function feed(model, list, withTransfers, dv, range) {
         });
     });
   }
-  return out.sort(byRecent).map((o) => o.r);
+  return out.sort(byRecent).map((o) => ({
+    ...o.r,
+    saldo: saldoOf(model, o.r.key, dv),
+  }));
+}
+
+/** Saldo de la entidad y total de Mi saldo justo después de una fila (null si no aplica). */
+function saldoOf(model, key, dv) {
+  const s = model.trail[key];
+  if (!s) return null;
+  return {
+    ent: s.ent ? model.entName(s.ent) : null,
+    entVal: s.ent ? dv(s.bal) : null,
+    tot: s.tot != null ? dv(s.tot) : null,
+  };
 }
 
 /**
