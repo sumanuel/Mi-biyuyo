@@ -39,8 +39,16 @@ const MAX_MOVEMENTS = 20;
 export default function HomeScreen({ navigation }) {
   const { user } = useAuth();
   const { colors } = useTheme();
-  const { model, dv, threshold, showToast, hideBalance, toggleHideBalance } =
-    useData();
+  const {
+    model,
+    dv,
+    threshold,
+    showToast,
+    hideBalance,
+    toggleHideBalance,
+    saldoMode,
+    disp,
+  } = useData();
   const { unread } = useRateNotifications();
   const guide = useGuide();
   const shown = (text) => (hideBalance ? maskMoney(text) : text);
@@ -71,7 +79,10 @@ export default function HomeScreen({ navigation }) {
   const pp = pillOf(pag.length, overdue(pag));
   const alerts = alertsOf(model, dv, threshold);
   const sorted = model.moves.slice().sort(byRecent);
-  const recent = feed(model, sorted, true, dv).slice(0, MAX_MOVEMENTS);
+  const recent = feed(model, sorted, true, dv, undefined, saldoMode).slice(
+    0,
+    MAX_MOVEMENTS,
+  );
   const open = (nav) => go(navigation, nav.name, nav.params);
 
   const rateCard = (label, value, unit = "USD") => (
@@ -331,7 +342,9 @@ export default function HomeScreen({ navigation }) {
             color: "#ffffff",
           }}
         >
-          {shown(fx.money("usd", model.balance))}
+          {fx.ready(disp)
+            ? shown(fx.money(disp, fx.fromUsd(disp, model.balance)))
+            : shown(fx.money("usd", model.balance))}
         </Txt>
         <Txt
           style={{
@@ -344,33 +357,40 @@ export default function HomeScreen({ navigation }) {
         </Txt>
         <View style={{ gap: 8 }}>
           {[
-            ["BCV", fx.money("bcv", fx.fromUsd("bcv", model.balance))],
-            ["Binance P2P", fx.money("bin", fx.fromUsd("bin", model.balance))],
-          ].map(([label, value]) => (
-            <View
-              key={label}
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                backgroundColor: "rgba(255,255,255,0.12)",
-                borderRadius: 12,
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-              }}
-            >
-              <Txt style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>
-                {label}
-              </Txt>
-              <Txt
-                style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}
+            ["usd", "USD"],
+            ["bcv", "BCV"],
+            ["bin", "Binance P2P"],
+          ]
+            // La moneda elegida va arriba en grande; abajo las otras dos
+            .filter(([k]) => !(k === disp && fx.ready(disp)))
+            .map(([k, label]) => [
+              k,
+              label,
+              fx.money(k, fx.fromUsd(k, model.balance)),
+            ])
+            .map(([k, label, value]) => (
+              <View
+                key={label}
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  backgroundColor: "rgba(255,255,255,0.12)",
+                  borderRadius: 12,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                }}
               >
-                {fx.ready(label === "BCV" ? "bcv" : "bin")
-                  ? shown(value)
-                  : "Sin tasa"}
-              </Txt>
-            </View>
-          ))}
+                <Txt style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>
+                  {label}
+                </Txt>
+                <Txt
+                  style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}
+                >
+                  {fx.ready(k) ? shown(value) : "Sin tasa"}
+                </Txt>
+              </View>
+            ))}
         </View>
       </View>
 
@@ -406,7 +426,7 @@ export default function HomeScreen({ navigation }) {
         <View style={{ flexDirection: "row", gap: 10 }}>
           {stat(
             "Ingresos",
-            fx.money("usd", model.sum(m30, "ingreso")),
+            fx.money(disp, model.sumIn(m30, "ingreso", disp)),
             <Pill
               label={nTxt(incomes.length, "ingreso")}
               bg={colors.ok.bg}
@@ -417,7 +437,7 @@ export default function HomeScreen({ navigation }) {
           )}
           {stat(
             "Gastos",
-            fx.money("usd", model.sum(m30, "gasto")),
+            fx.money(disp, model.sumIn(m30, "gasto", disp)),
             <Pill
               label={nTxt(expenses.length, "gasto")}
               bg={colors.gasto.soft}
@@ -430,14 +450,14 @@ export default function HomeScreen({ navigation }) {
         <View style={{ flexDirection: "row", gap: 10 }}>
           {stat(
             "Por cobrar",
-            fx.money("usd", cobrTot),
+            fx.money(disp, fx.fromUsd(disp, cobrTot)),
             <TonePill label={pc.t} toneName={pc.tone} />,
             null,
             () => go(navigation, "Receivables"),
           )}
           {stat(
             "Por pagar",
-            fx.money("usd", pagTot),
+            fx.money(disp, fx.fromUsd(disp, pagTot)),
             <TonePill label={pp.t} toneName={pp.tone} />,
             null,
             () => go(navigation, "Payables"),
