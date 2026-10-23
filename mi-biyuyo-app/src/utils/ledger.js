@@ -671,7 +671,14 @@ export const byRecent = (a, b) => a.d - b.d || (b.ts || 0) - (a.ts || 0);
  * Mezcla movimientos, abonos y (opcional) transferencias, del más reciente al más antiguo.
  * `range` = { from, to } (YYYY-MM-DD, ambos incluidos) filtra también abonos, transferencias y saldos iniciales.
  */
-export function feed(model, list, withTransfers, dv, range) {
+export function feed(
+  model,
+  list,
+  withTransfers,
+  dv,
+  range,
+  saldoMode = "both",
+) {
   const inRange = (date) =>
     !range ||
     ((!range.from || date >= range.from) && (!range.to || date <= range.to));
@@ -701,18 +708,20 @@ export function feed(model, list, withTransfers, dv, range) {
   }
   return out.sort(byRecent).map((o) => ({
     ...o.r,
-    saldo: saldoOf(model, o.r.key, dv),
+    saldo: saldoOf(model, o.r.key, dv, saldoMode),
   }));
 }
 
 /** Saldo de la entidad y total de Mi saldo justo después de una fila (null si no aplica). */
-function saldoOf(model, key, dv) {
+function saldoOf(model, key, dv, mode) {
   const s = model.trail[key];
-  if (!s) return null;
+  if (!s || mode === "none") return null;
+  const showEnt = mode !== "tot";
+  const showTot = mode !== "ent";
   return {
-    ent: s.ent ? model.entName(s.ent) : null,
-    entVal: s.ent ? dv(s.bal) : null,
-    tot: s.tot != null ? dv(s.tot) : null,
+    ent: s.ent && showEnt ? model.entName(s.ent) : null,
+    entVal: s.ent && showEnt ? dv(s.bal) : null,
+    tot: s.tot != null && showTot ? dv(s.tot) : null,
   };
 }
 
@@ -778,7 +787,8 @@ export function pillOf(n, over) {
 }
 
 /**
- * Ítems comprados (gastos) agrupados por nombre, del que más suma al que menos.
+ * Ítems comprados (gastos) agrupados por nombre, del que más se compra al que menos: por número de
+ * compras, luego por cantidad total y luego por monto (tengan monto o no).
  * El nombre se compara sin mayúsculas, tildes ni plural: «Jamón», «jamon» y «jamones» son el
  * mismo ítem. Se muestra la forma que el usuario escribió más veces (si empatan, la más reciente).
  * Cada ítem lleva sus compras (`buys`) con fecha, monto en la moneda `disp` y cantidad, y la cantidad
@@ -831,5 +841,5 @@ export function itemAgg(list, disp) {
       const { forms, ...rest } = g;
       return { ...rest, name: best };
     })
-    .sort((a, b) => b.amt - a.amt || b.n - a.n);
+    .sort((a, b) => b.n - a.n || b.qty - a.qty || b.amt - a.amt);
 }

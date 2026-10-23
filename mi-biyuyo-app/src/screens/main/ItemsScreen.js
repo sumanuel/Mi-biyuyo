@@ -32,7 +32,7 @@ export default function ItemsScreen({ navigation, route }) {
   const list = model.moves.filter((m) => m.date >= from && m.date <= to);
   const qn = itemKey(q); // sin tildes, mayúsculas ni plural: «jamones» encuentra «Jamón»
   const items = itemAgg(list, disp).filter((x) => !qn || x.key.includes(qn));
-  const max = items.length && items[0].amt > 0 ? items[0].amt : 1;
+  const max = items.length && items[0].n > 0 ? items[0].n : 1; // la barra mide las compras
 
   return (
     <Screen data={false} contentStyle={{ paddingTop: 16 }}>
@@ -67,7 +67,8 @@ export default function ItemsScreen({ navigation, route }) {
       <DispTabs height={40} />
       <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
         {nTxt(items.length, "ítem")} del {fullDate(from)} al {fullDate(to)}.
-        Toca uno para ver las fechas en que lo compraste.
+        Ordenados del que más compras al que menos. Toca uno para ver las fechas
+        en que lo compraste.
       </Txt>
       <View style={{ gap: 8 }}>
         {items.slice(0, limit).map((r) => (
@@ -108,7 +109,7 @@ export default function ItemsScreen({ navigation, route }) {
             </View>
             <ProgressBar
               height={6}
-              pct={r.amt > 0 ? Math.max(4, Math.round((r.amt / max) * 100)) : 0}
+              pct={Math.max(4, Math.round((r.n / max) * 100))}
               color={colors.chartExpense}
             />
           </TouchableOpacity>

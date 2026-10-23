@@ -122,13 +122,13 @@ export default function StatsScreen({ navigation }) {
 
   /* ---- ítems más comprados ---- */
   const aggArr = itemAgg(list, disp);
-  const aggMax = aggArr.length && aggArr[0].amt > 0 ? aggArr[0].amt : 1;
+  const aggMax = aggArr.length && aggArr[0].n > 0 ? aggArr[0].n : 1; // la barra mide las compras
   const itemsMore = aggArr.length > 3;
   const itemsTop = aggArr.slice(0, 3).map((x) => ({
     name: x.name,
     meta: nTxt(x.n, "compra") + " · Cantidad total: " + qtyText(x.qty),
     val: x.amt > 0 ? dd(x.amt) : "Sin monto",
-    w: x.amt > 0 ? Math.max(4, Math.round((x.amt / aggMax) * 100)) : 0,
+    w: Math.max(4, Math.round((x.n / aggMax) * 100)),
   }));
 
   /* ---- distribución y deudas ---- */
@@ -519,8 +519,8 @@ export default function StatsScreen({ navigation }) {
             marginTop: -6,
           }}
         >
-          Suma solo los ítems con monto asignado. Toca uno para ver las fechas
-          en que lo compraste.
+          Del que más compras al que menos. El monto suma solo los ítems con
+          monto asignado. Toca uno para ver las fechas en que lo compraste.
         </Txt>
         {itemsTop.map((r) => (
           <TouchableOpacity
