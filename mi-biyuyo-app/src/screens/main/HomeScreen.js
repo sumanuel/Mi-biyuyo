@@ -137,17 +137,49 @@ export default function HomeScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  const stat = (label, value, pill, toneKey, onPress) => (
-    <Card onPress={onPress} style={{ flex: 1, gap: 6 }} pad={14}>
-      <Txt
-        style={{ fontSize: 12, color: colors.textSecondary, fontWeight: "600" }}
-      >
-        {label}
-      </Txt>
-      <Txt style={{ fontSize: 20, fontWeight: "800" }}>{value}</Txt>
-      {pill}
-    </Card>
-  );
+  const stat = (label, value, pill, toneKey, onPress) => {
+    // "VES 1.192.486,75" → moneda y número por separado
+    const text = String(value);
+    const sp = text.indexOf(" ");
+    const amount =
+      sp > 0
+        ? { code: text.slice(0, sp), num: text.slice(sp + 1) }
+        : { code: "", num: text };
+    return (
+      <Card onPress={onPress} style={{ flex: 1, gap: 6 }} pad={14}>
+        <Txt
+          style={{
+            fontSize: 12,
+            color: colors.textSecondary,
+            fontWeight: "600",
+          }}
+        >
+          {label}
+        </Txt>
+        {/* La moneda va arriba y el número debajo, en una sola línea que se ajusta al ancho de la tarjeta */}
+        <View style={{ gap: 0 }}>
+          <Txt
+            style={{
+              fontSize: 12,
+              fontWeight: "700",
+              color: colors.textSecondary,
+            }}
+          >
+            {amount.code}
+          </Txt>
+          <Txt
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+            style={{ fontSize: 20, fontWeight: "800" }}
+          >
+            {amount.num}
+          </Txt>
+        </View>
+        {pill}
+      </Card>
+    );
+  };
 
   return (
     <Screen pull contentStyle={{ gap: 18 }}>
