@@ -64,6 +64,7 @@ import { GuideProvider } from "./src/contexts/GuideContext";
 import GettingStartedScreen from "./src/screens/main/GettingStartedScreen";
 import HelpCenterScreen from "./src/screens/main/HelpCenterScreen";
 import AboutScreen from "./src/screens/main/AboutScreen";
+import ExportScreen from "./src/screens/main/ExportScreen";
 import ProfileScreen from "./src/screens/main/ProfileScreen";
 import RateNotificationsScreen from "./src/screens/main/RateNotificationsScreen";
 
@@ -296,6 +297,7 @@ function AppNavigator() {
                       />
                       <Stack.Screen name="Profile" component={ProfileScreen} />
                       <Stack.Screen name="About" component={AboutScreen} />
+                      <Stack.Screen name="Export" component={ExportScreen} />
                       <Stack.Screen
                         name="GettingStarted"
                         component={GettingStartedScreen}
