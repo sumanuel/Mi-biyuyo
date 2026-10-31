@@ -568,7 +568,7 @@ export default function HomeScreen({ navigation }) {
             alignItems: "center",
             gap: 14,
             padding: 16,
-            backgroundColor: colors.accent,
+            backgroundColor: colors.gasto.strong, // el verde es el color de los ingresos
             borderRadius: 16,
           }}
         >
