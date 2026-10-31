@@ -242,8 +242,8 @@ export default function SettingsScreen({ navigation }) {
       <Section title="SISTEMA">
         <Row
           label="Exportar a Excel"
-          sub="Movimientos, cuentas y categorías"
-          onPress={soon}
+          sub="Movimientos, abonos, transferencias, ítems y saldos"
+          onPress={() => navigation.navigate("Export")}
         />
         <Row
           label="Centro de ayuda"

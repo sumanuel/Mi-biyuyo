@@ -103,6 +103,14 @@ const TOPICS = [
     ],
   },
   {
+    title: "Exportar a Excel",
+    body: [
+      "Ve a Ajustes > Sistema > Exportar a Excel. Elige el período (Este mes, Mes anterior, Últimos 3 meses, fechas a tu gusto o «Todo el historial») y toca «Exportar a Excel».",
+      "Se genera un archivo .xlsx con varias hojas: Resumen (totales del período y tasas de hoy), Movimientos (ingresos, gastos, por cobrar y por pagar, con el monto en USD, VES y USDT), Abonos, Transferencias, Ítems (con su cantidad y monto) y Entidades (los saldos de hoy).",
+      "Al terminar, el teléfono te deja guardarlo (Archivos, Drive), abrirlo con Excel o enviarlo por WhatsApp o correo. Los montos son números, así que puedes sumarlos, filtrarlos y hacer tus propios cuadros en Excel.",
+    ],
+  },
+  {
     title: "Seguridad de tu cuenta",
     body: [
       "Al registrarte confirmas tu correo con un código de 6 dígitos.",

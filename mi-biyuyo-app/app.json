@@ -50,7 +50,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#1f7a59"
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "extra": {
       "eas": {
