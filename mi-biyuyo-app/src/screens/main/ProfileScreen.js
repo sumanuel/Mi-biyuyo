@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth, useProfile } from "../../contexts/AuthContext";
 import { useData, errorMessage } from "../../contexts/DataContext";
 import {
   Screen,
@@ -19,6 +19,7 @@ export default function ProfileScreen({ navigation }) {
   const chain = useFocusChain();
   const { colors } = useTheme();
   const { user, updateUser } = useAuth();
+  const profile = useProfile();
   const { showToast } = useData();
   const [name, setName] = useState(user?.name || "");
   const [busy, setBusy] = useState(false);
@@ -83,6 +84,13 @@ export default function ProfileScreen({ navigation }) {
       <Field
         label="Correo"
         value={user?.email || ""}
+        editable={false}
+        inputStyle={{ color: colors.textSecondary }}
+      />
+      <Field
+        label="País y moneda"
+        hint="(no se puede cambiar)"
+        value={`${profile.name} · ${profile.single ? `${profile.currencyName} (${profile.currency})` : "Dólar, bolívares y USDT"}`}
         editable={false}
         inputStyle={{ color: colors.textSecondary }}
       />

@@ -10,6 +10,7 @@ import {
   Button,
   ConvRows,
   Icon,
+  OnlyMulti,
 } from "../../components/ui";
 import { META, dayRateTxt, isDebtType } from "../../utils/ledger";
 import { CCY_KEYS, CCY_LABEL, dlabel } from "../../utils/money";
@@ -97,9 +98,11 @@ export default function MovementSavedScreen({ navigation, route }) {
           {last.cat.name} · {dlabel(last.date)}
         </Txt>
       </View>
-      <Card style={{ alignSelf: "stretch" }} pad={14}>
-        <ConvRows title="MONTO EN LAS 3 MONEDAS" rows={rows} tint={tint} />
-      </Card>
+      <OnlyMulti>
+        <Card style={{ alignSelf: "stretch" }} pad={14}>
+          <ConvRows title="MONTO EN LAS 3 MONEDAS" rows={rows} tint={tint} />
+        </Card>
+      </OnlyMulti>
       <View
         style={{
           alignSelf: "stretch",

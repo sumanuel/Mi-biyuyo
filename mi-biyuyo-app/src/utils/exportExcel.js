@@ -3,7 +3,7 @@ import * as XLSX from "xlsx";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { KIND_LABEL, META, isDebtType } from "./ledger";
-import { CCY_LABEL, ENT_CCY_LABEL, todayStr } from "./money";
+import { CCY_LABEL, ENT_CCY_LABEL, getActiveProfile, todayStr } from "./money";
 
 const XLSX_MIME =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -48,11 +48,27 @@ const inRange = (date, from, to) => !!date && date >= from && date <= to;
 /**
  * Libro de Excel con lo registrado entre `from` y `to` (YYYY-MM-DD, ambos incluidos):
  * Resumen, Movimientos, Abonos, Transferencias, Ítems y Entidades (saldos de hoy).
- * Los montos van como números (se pueden sumar y filtrar en Excel); los valores en USD, VES y
- * USDT son los guardados el día de cada movimiento.
+ * Los montos van como números (se pueden sumar y filtrar en Excel).
+ *  - Venezuela (varias monedas): montos en USD, VES y USDT, los guardados el día de cada movimiento.
+ *  - Países de una sola moneda: una sola columna de monto, en la moneda del país y con sus decimales.
  */
 export function buildWorkbook(model, { from, to }) {
   const { fx } = model;
+  const single = !!fx.single;
+  const prof = getActiveProfile();
+  const cur = prof.currency; // código de la moneda del país (solo se usa en modo single)
+  const FM = single ? (prof.decimals === 0 ? "#,##0" : FMT_MONEY) : FMT_MONEY;
+
+  // Columnas de monto de un valor {usd, bcv, bin}: 3 en Venezuela, 1 en el resto
+  const amts = (v) =>
+    single ? [num(v.usd, FM)] : [num(v.usd), num(v.bcv), num(v.bin, FMT_USDT)];
+  const amtHead = single
+    ? [`Monto (${cur})`]
+    : ["Monto USD", "Monto VES (BCV)", "Monto USDT (Binance)"];
+  const amtWide = single ? [16] : [14, 18, 20];
+  // Columnas solo de Venezuela (moneda del registro y monto en esa moneda)
+  const own = (list) => (single ? [] : list);
+
   const moves = model.moves
     .filter((m) => inRange(m.date, from, to))
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.ts - b.ts));
@@ -67,16 +83,16 @@ export function buildWorkbook(model, { from, to }) {
       m.hasDesc ? m.title : "",
       m.person || "",
       m.ent && !(debt && m.cash === false) ? model.entName(m.ent) : "",
-      CCY_LABEL[m.ccy],
-      num(
-        m.amount != null ? m.amount : m.val[m.ccy],
-        m.ccy === "bin" ? FMT_USDT : FMT_MONEY,
-      ),
-      num(m.val.usd),
-      num(m.val.bcv),
-      num(m.val.bin, FMT_USDT),
+      ...own([
+        CCY_LABEL[m.ccy],
+        num(
+          m.amount != null ? m.amount : m.val[m.ccy],
+          m.ccy === "bin" ? FMT_USDT : FMT_MONEY,
+        ),
+      ]),
+      ...amts(m.val),
       debt ? (model.pendOf(m) <= 0.005 ? "Saldada" : "Pendiente") : "",
-      debt ? num(model.pendOf(m)) : null,
+      debt ? num(model.pendOf(m), FM) : null,
       debt && m.dueDate ? dateCell(m.dueDate) : null,
       debt && m.inst ? m.inst : null,
       m.items.length || null,
@@ -91,20 +107,32 @@ export function buildWorkbook(model, { from, to }) {
       "Descripción",
       "Persona",
       "Entidad",
-      "Moneda del registro",
-      "Monto (moneda del registro)",
-      "Monto USD",
-      "Monto VES (BCV)",
-      "Monto USDT (Binance)",
+      ...own(["Moneda del registro", "Monto (moneda del registro)"]),
+      ...amtHead,
       "Estado (deudas)",
-      "Pendiente USD (tasa de hoy)",
+      single ? "Pendiente" : "Pendiente USD (tasa de hoy)",
       "Vencimiento",
       "Cuotas",
       "Ítems",
       "Notas",
     ],
     movRows,
-    [12, 12, 20, 30, 18, 16, 18, 20, 14, 18, 20, 16, 22, 13, 8, 8, 24],
+    [
+      12,
+      12,
+      20,
+      30,
+      18,
+      16,
+      ...own([18, 20]),
+      ...amtWide,
+      16,
+      single ? 14 : 22,
+      13,
+      8,
+      8,
+      24,
+    ],
   );
 
   /* ---------- Abonos ---------- */
@@ -120,11 +148,11 @@ export function buildWorkbook(model, { from, to }) {
           m.person || m.cat.name,
           m.hasDesc ? m.title : m.cat.name,
           p.ent ? model.entName(p.ent) : "",
-          CCY_LABEL[p.ccy],
-          num(p.val[p.ccy], p.ccy === "bin" ? FMT_USDT : FMT_MONEY),
-          num(p.val.usd),
-          num(p.val.bcv),
-          num(p.val.bin, FMT_USDT),
+          ...own([
+            CCY_LABEL[p.ccy],
+            num(p.val[p.ccy], p.ccy === "bin" ? FMT_USDT : FMT_MONEY),
+          ]),
+          ...amts(p.val),
           text(p.method),
         ],
       ]);
@@ -138,15 +166,12 @@ export function buildWorkbook(model, { from, to }) {
       "Persona",
       "Deuda",
       "Entidad",
-      "Moneda",
-      "Monto (moneda del abono)",
-      "Monto USD",
-      "Monto VES (BCV)",
-      "Monto USDT (Binance)",
+      ...own(["Moneda", "Monto (moneda del abono)"]),
+      ...amtHead,
       "Detalle",
     ],
     payRows.map((r) => r[1]),
-    [12, 8, 18, 28, 16, 16, 22, 14, 18, 20, 18],
+    [12, 8, 18, 28, 16, ...own([16, 22]), ...amtWide, 18],
   );
 
   /* ---------- Transferencias ---------- */
@@ -158,30 +183,26 @@ export function buildWorkbook(model, { from, to }) {
       "Fecha",
       "Desde",
       "Hacia",
-      "Moneda",
-      "Monto USD",
-      "Monto VES (BCV)",
-      "Monto USDT (Binance)",
-      "Comisión USD",
+      ...own(["Moneda"]),
+      ...amtHead,
+      single ? "Comisión" : "Comisión USD",
     ],
     trfs.map((t) => [
       dateCell(t.date),
       model.entName(t.from),
       model.entName(t.to),
-      CCY_LABEL[t.ccy],
-      num(t.val.usd),
-      num(t.val.bcv),
-      num(t.val.bin, FMT_USDT),
-      num(t.feeVal.usd),
+      ...own([CCY_LABEL[t.ccy]]),
+      ...amts(t.val),
+      num(t.feeVal.usd, FM),
     ]),
-    [12, 18, 18, 16, 14, 18, 20, 14],
+    [12, 18, 18, ...own([16]), ...amtWide, 14],
   );
 
   /* ---------- Ítems de las compras ---------- */
   const itemRows = [];
   moves.forEach((m) =>
     m.items.forEach((it) => {
-      const own =
+      const ownAmt =
         it.usd > 0 && m.usd > 0
           ? (it.usd / m.usd) * (m.amount != null ? m.amount : m.val[m.ccy])
           : null;
@@ -191,9 +212,11 @@ export function buildWorkbook(model, { from, to }) {
         m.cat.name,
         it.name,
         num(it.qty || 1, "General"),
-        num(own, m.ccy === "bin" ? FMT_USDT : FMT_MONEY),
-        CCY_LABEL[m.ccy],
-        num(it.usd > 0 ? it.usd : null),
+        ...own([
+          num(ownAmt, m.ccy === "bin" ? FMT_USDT : FMT_MONEY),
+          CCY_LABEL[m.ccy],
+        ]),
+        num(it.usd > 0 ? it.usd : null, FM),
       ]);
     }),
   );
@@ -204,12 +227,11 @@ export function buildWorkbook(model, { from, to }) {
       "Categoría",
       "Ítem",
       "Cantidad",
-      "Monto (moneda del registro)",
-      "Moneda",
-      "Monto USD",
+      ...own(["Monto (moneda del registro)", "Moneda"]),
+      single ? `Monto (${cur})` : "Monto USD",
     ],
     itemRows,
-    [12, 28, 20, 24, 10, 24, 16, 14],
+    [12, 28, 20, 24, 10, ...own([24, 16]), single ? 16 : 14],
   );
 
   /* ---------- Entidades: saldos de hoy ---------- */
@@ -217,59 +239,80 @@ export function buildWorkbook(model, { from, to }) {
     [
       "Entidad",
       "Tipo",
-      "Moneda",
-      "Saldo actual (moneda de la entidad)",
-      "Saldo actual USD",
+      ...own(["Moneda", "Saldo actual (moneda de la entidad)"]),
+      single ? `Saldo actual (${cur})` : "Saldo actual USD",
       "Suma a Mi saldo",
     ],
     model.ents.map((e) => [
       e.name,
       KIND_LABEL[e.kind] || "",
-      ENT_CCY_LABEL[e.ccy] || e.ccy,
-      num(model.entNative(e), e.ccy === "usdt" ? FMT_USDT : FMT_MONEY),
-      num(model.entBal(e)),
+      ...own([
+        ENT_CCY_LABEL[e.ccy] || e.ccy,
+        num(model.entNative(e), e.ccy === "usdt" ? FMT_USDT : FMT_MONEY),
+      ]),
+      num(model.entBal(e), FM),
       e.include ? "Sí" : "No",
     ]),
-    [22, 18, 10, 32, 18, 16],
+    [22, 18, ...own([10, 32]), single ? 22 : 18, 16],
   );
 
   /* ---------- Resumen ---------- */
-  const sumRow = (label, type) => [
-    label,
-    num(model.sumIn(moves, type, "usd")),
-    num(model.sumIn(moves, type, "bcv")),
-    num(model.sumIn(moves, type, "bin"), FMT_USDT),
-  ];
   const inc = model.sumIn(moves, "ingreso", "usd");
   const exp = model.sumIn(moves, "gasto", "usd");
+  const sumRow = (label, type) => [
+    label,
+    ...amts({
+      usd: model.sumIn(moves, type, "usd"),
+      bcv: model.sumIn(moves, type, "bcv"),
+      bin: model.sumIn(moves, type, "bin"),
+    }),
+  ];
+  const head = single
+    ? ["", `Monto (${cur})`]
+    : ["", "USD", "VES (BCV)", "USDT (Binance)"];
   const wsSum = XLSX.utils.aoa_to_sheet([
     ["Mi Biyuyo · Exportación a Excel"],
     [],
+    ["País", single ? `${prof.name} (${cur})` : "Venezuela"],
     ["Período", `${from} a ${to}`],
     ["Generado el", dateCell(todayStr())],
     ["Movimientos en el período", moves.length],
     [],
-    ["", "USD", "VES (BCV)", "USDT (Binance)"],
+    head,
     sumRow("Ingresos", "ingreso"),
     sumRow("Gastos", "gasto"),
-    ["Balance (ingresos - gastos, USD)", num(inc - exp)],
+    [
+      single
+        ? "Balance (ingresos - gastos)"
+        : "Balance (ingresos - gastos, USD)",
+      num(inc - exp, FM),
+    ],
     sumRow("Por cobrar registrado", "cobrar"),
     sumRow("Por pagar registrado", "pagar"),
     [],
-    ["Mi saldo hoy (USD)", num(model.balance)],
     [
-      "Tasa BCV (VES por 1 USD)",
-      fx.ready("bcv") ? num(fx.rate, "#,##0.0000") : "Sin tasa",
+      single ? `Mi saldo hoy (${cur})` : "Mi saldo hoy (USD)",
+      num(model.balance, FM),
     ],
-    [
-      "Tasa Binance P2P (VES por 1 USDT)",
-      fx.ready("bin") && fx.ready("bcv")
-        ? num(fx.FACT.bcv / fx.FACT.bin, "#,##0.0000")
-        : "Sin tasa",
-    ],
+    ...(single
+      ? []
+      : [
+          [
+            "Tasa BCV (VES por 1 USD)",
+            fx.ready("bcv") ? num(fx.rate, "#,##0.0000") : "Sin tasa",
+          ],
+          [
+            "Tasa Binance P2P (VES por 1 USDT)",
+            fx.ready("bin") && fx.ready("bcv")
+              ? num(fx.FACT.bcv / fx.FACT.bin, "#,##0.0000")
+              : "Sin tasa",
+          ],
+        ]),
     [],
     [
-      "Los montos de cada movimiento están en las monedas guardadas el día en que se registró. Entidades muestra los saldos de hoy.",
+      single
+        ? "Entidades muestra los saldos de hoy."
+        : "Los montos de cada movimiento están en las monedas guardadas el día en que se registró. Entidades muestra los saldos de hoy.",
     ],
   ]);
   wsSum["!cols"] = [{ wch: 38 }, { wch: 18 }, { wch: 18 }, { wch: 20 }];

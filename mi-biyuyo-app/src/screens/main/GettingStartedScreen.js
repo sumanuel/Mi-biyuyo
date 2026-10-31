@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useGuide } from "../../contexts/GuideContext";
+import { useProfile } from "../../contexts/AuthContext";
 import {
   Screen,
   Header,
@@ -46,10 +47,21 @@ const STEPS = {
   },
 };
 
+// Textos distintos cuando el país usa una sola moneda (sin tasas ni equivalencias)
+const SINGLE_TEXT = {
+  entities: {
+    text: "Una entidad es donde tienes tu dinero: efectivo, un banco o una billetera digital. Escribe su saldo inicial: aparecerá como tu primer movimiento y sumará a Mi saldo.",
+  },
+  moves: {
+    text: "Toca Registrar (+) y elige: ingreso, gasto, por cobrar (te deben) o por pagar (debes). Escribe el monto, la fecha y la entidad.",
+  },
+};
+
 /** Guía de primeros pasos: los pasos se marcan solos cuando ya están hechos. */
 export default function GettingStartedScreen({ navigation }) {
   const { colors } = useTheme();
   const guide = useGuide();
+  const { single } = useProfile();
 
   useEffect(() => {
     guide.markSeen();
@@ -78,7 +90,7 @@ export default function GettingStartedScreen({ navigation }) {
       </Card>
 
       {guide.steps.map((s, i) => {
-        const c = STEPS[s.key];
+        const c = { ...STEPS[s.key], ...(single ? SINGLE_TEXT[s.key] : {}) };
         return (
           <Card
             key={s.key}

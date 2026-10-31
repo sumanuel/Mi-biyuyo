@@ -16,8 +16,14 @@ import {
   MovRow,
   Icon,
   Empty,
+  OnlyMulti,
 } from "../../components/ui";
-import { KIND_ICON, KIND_LABEL, PT, ledgerOf } from "../../utils/ledger";
+import {
+  KIND_ICON,
+  KIND_LABEL,
+  payMethods,
+  ledgerOf,
+} from "../../utils/ledger";
 import {
   CCY_KEYS,
   CCY_LABEL,
@@ -45,7 +51,8 @@ export default function EntityDetailScreen({ navigation, route }) {
 
   const k = colors.kind[e.kind] || colors.kind.otro;
   const bal = model.entBal(e);
-  const pt = PT[e.pt] || PT.none;
+  const methods = payMethods();
+  const pt = methods.defs[e.pt] || methods.defs.none;
   const data = (e.pd || [])
     .map((v, i) => ({ label: pt.f[i] || "", value: v }))
     .filter((f) => f.value && f.label);
@@ -122,7 +129,8 @@ export default function EntityDetailScreen({ navigation, route }) {
               {e.name}
             </Txt>
             <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
-              {(KIND_LABEL[e.kind] || "Otro") + " · " + ENT_CCY_LABEL[e.ccy]}
+              {(KIND_LABEL[e.kind] || "Otro") +
+                (fx.single ? "" : " · " + ENT_CCY_LABEL[e.ccy])}
             </Txt>
           </View>
         </View>
@@ -200,9 +208,11 @@ export default function EntityDetailScreen({ navigation, route }) {
 
       <DispTabs height={40} />
 
-      <Card pad={14}>
-        <ConvRows title="SALDO EN LAS 3 MONEDAS" rows={rows} />
-      </Card>
+      <OnlyMulti>
+        <Card pad={14}>
+          <ConvRows title="SALDO EN LAS 3 MONEDAS" rows={rows} />
+        </Card>
+      </OnlyMulti>
 
       <Card pad={14} style={{ gap: 10 }}>
         <View

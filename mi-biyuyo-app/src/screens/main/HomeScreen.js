@@ -19,6 +19,7 @@ import {
   Icon,
   Divider,
   EyeButton,
+  OnlyMulti,
 } from "../../components/ui";
 import { go } from "../../navigation/helpers";
 import {
@@ -141,8 +142,9 @@ export default function HomeScreen({ navigation }) {
     // "VES 1.192.486,75" → moneda y número por separado
     const text = String(value);
     const sp = text.indexOf(" ");
+    // Con una sola moneda el símbolo puede ir detrás (1.234,56 €): se muestra el monto completo
     const amount =
-      sp > 0
+      sp > 0 && !fx.single
         ? { code: text.slice(0, sp), num: text.slice(sp + 1) }
         : { code: "", num: text };
     return (
@@ -158,15 +160,17 @@ export default function HomeScreen({ navigation }) {
         </Txt>
         {/* La moneda va arriba y el número debajo, en una sola línea que se ajusta al ancho de la tarjeta */}
         <View style={{ gap: 0 }}>
-          <Txt
-            style={{
-              fontSize: 12,
-              fontWeight: "700",
-              color: colors.textSecondary,
-            }}
-          >
-            {amount.code}
-          </Txt>
+          {amount.code ? (
+            <Txt
+              style={{
+                fontSize: 12,
+                fontWeight: "700",
+                color: colors.textSecondary,
+              }}
+            >
+              {amount.code}
+            </Txt>
+          ) : null}
           <Txt
             numberOfLines={1}
             adjustsFontSizeToFit
@@ -235,44 +239,50 @@ export default function HomeScreen({ navigation }) {
               />
             ) : null}
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("RateNotifications")}
-            accessibilityLabel="Notificaciones"
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 14,
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Icon name="bell" size={20} color={colors.text} stroke={2} />
-            {unread > 0 ? (
-              <View
-                style={{
-                  position: "absolute",
-                  top: -4,
-                  right: -4,
-                  minWidth: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  paddingHorizontal: 4,
-                  backgroundColor: colors.gasto.strong,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Txt
-                  style={{ fontSize: 10, fontWeight: "800", color: "#ffffff" }}
+          <OnlyMulti>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("RateNotifications")}
+              accessibilityLabel="Notificaciones"
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.surface,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon name="bell" size={20} color={colors.text} stroke={2} />
+              {unread > 0 ? (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -4,
+                    right: -4,
+                    minWidth: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    paddingHorizontal: 4,
+                    backgroundColor: colors.gasto.strong,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
-                  {unread > 9 ? "9+" : unread}
-                </Txt>
-              </View>
-            ) : null}
-          </TouchableOpacity>
+                  <Txt
+                    style={{
+                      fontSize: 10,
+                      fontWeight: "800",
+                      color: "#ffffff",
+                    }}
+                  >
+                    {unread > 9 ? "9+" : unread}
+                  </Txt>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          </OnlyMulti>
         </View>
       </View>
 
@@ -296,9 +306,9 @@ export default function HomeScreen({ navigation }) {
               color: colors.textSecondary,
             }}
           >
-            Para sacarle provecho a Mi Biyuyo, primero registra las tasas BCV y
-            Binance y crea tus entidades con su saldo. Toca la guía y te
-            llevamos paso a paso.
+            {fx.single
+              ? "Para sacarle provecho a Mi Biyuyo, primero crea tus entidades con su saldo y empieza a registrar tus movimientos. Toca la guía y te llevamos paso a paso."
+              : "Para sacarle provecho a Mi Biyuyo, primero registra las tasas BCV y Binance y crea tus entidades con su saldo. Toca la guía y te llevamos paso a paso."}
           </Txt>
           <View style={{ flexDirection: "row", gap: 10 }}>
             <TouchableOpacity
@@ -387,43 +397,51 @@ export default function HomeScreen({ navigation }) {
         >
           {balanceNote(model)}
         </Txt>
-        <View style={{ gap: 8 }}>
-          {[
-            ["usd", "USD"],
-            ["bcv", "BCV"],
-            ["bin", "Binance P2P"],
-          ]
-            // La moneda elegida va arriba en grande; abajo las otras dos
-            .filter(([k]) => !(k === disp && fx.ready(disp)))
-            .map(([k, label]) => [
-              k,
-              label,
-              fx.money(k, fx.fromUsd(k, model.balance)),
-            ])
-            .map(([k, label, value]) => (
-              <View
-                key={label}
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "baseline",
-                  backgroundColor: "rgba(255,255,255,0.12)",
-                  borderRadius: 12,
-                  paddingVertical: 10,
-                  paddingHorizontal: 12,
-                }}
-              >
-                <Txt style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>
-                  {label}
-                </Txt>
-                <Txt
-                  style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}
+        <OnlyMulti>
+          <View style={{ gap: 8 }}>
+            {[
+              ["usd", "USD"],
+              ["bcv", "BCV"],
+              ["bin", "Binance P2P"],
+            ]
+              // La moneda elegida va arriba en grande; abajo las otras dos
+              .filter(([k]) => !(k === disp && fx.ready(disp)))
+              .map(([k, label]) => [
+                k,
+                label,
+                fx.money(k, fx.fromUsd(k, model.balance)),
+              ])
+              .map(([k, label, value]) => (
+                <View
+                  key={label}
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    backgroundColor: "rgba(255,255,255,0.12)",
+                    borderRadius: 12,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                  }}
                 >
-                  {fx.ready(k) ? shown(value) : "Sin tasa"}
-                </Txt>
-              </View>
-            ))}
-        </View>
+                  <Txt
+                    style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}
+                  >
+                    {label}
+                  </Txt>
+                  <Txt
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "700",
+                      color: "#ffffff",
+                    }}
+                  >
+                    {fx.ready(k) ? shown(value) : "Sin tasa"}
+                  </Txt>
+                </View>
+              ))}
+          </View>
+        </OnlyMulti>
       </View>
 
       {alerts.length ? (
@@ -439,10 +457,16 @@ export default function HomeScreen({ navigation }) {
         </View>
       ) : null}
 
-      <View style={{ gap: 10 }}>
-        {rateCard("Tasa BCV", "VES " + grp(fx.rate, ".", ","))}
-        {rateCard("Tasa Binance P2P", "VES " + grp(fx.rateB, ".", ","), "USDT")}
-      </View>
+      <OnlyMulti>
+        <View style={{ gap: 10 }}>
+          {rateCard("Tasa BCV", "VES " + grp(fx.rate, ".", ","))}
+          {rateCard(
+            "Tasa Binance P2P",
+            "VES " + grp(fx.rateB, ".", ","),
+            "USDT",
+          )}
+        </View>
+      </OnlyMulti>
 
       <View style={{ gap: 10 }}>
         <SectionHead

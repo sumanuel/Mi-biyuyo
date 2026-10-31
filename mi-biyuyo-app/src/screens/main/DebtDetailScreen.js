@@ -15,6 +15,7 @@ import {
   ConvRows,
   Button,
   Empty,
+  OnlyMulti,
 } from "../../components/ui";
 import { META, debtStatus } from "../../utils/ledger";
 import { CCY_KEYS, CCY_LABEL, dlabel, fullDate, grp } from "../../utils/money";
@@ -182,16 +183,17 @@ Después podrás registrar el ${what} de nuevo.`,
         pay: p,
         inst,
         title: (isCobro ? "Cobro" : "Pago") + " · " + p.method,
-        sub:
-          dlabel(p.date) +
-          " · " +
-          (p.ccy === "usd"
-            ? "Moneda base"
-            : p.ccy === "bin"
-              ? "1 USDT = USD " + grp(1 / r, ",", ".")
-              : "Tasa " + grp(r, ".", ",")),
+        sub: fx.single
+          ? dlabel(p.date)
+          : dlabel(p.date) +
+            " · " +
+            (p.ccy === "usd"
+              ? "Moneda base"
+              : p.ccy === "bin"
+                ? "1 USDT = USD " + grp(1 / r, ",", ".")
+                : "Tasa " + grp(r, ".", ",")),
         amount: (isCobro ? "+" : "-") + fx.money(p.ccy, p.val[p.ccy]),
-        eq: "≈ " + fx.money("usd", p.usd),
+        eq: fx.single ? "" : "≈ " + fx.money("usd", p.usd),
         rest: settled
           ? "Saldada"
           : "Saldo " + dv(model.usdOfNative(debt, runNative)),
@@ -203,9 +205,11 @@ Después podrás registrar el ${what} de nuevo.`,
   timeline.push({
     key: "origin",
     title: "Deuda registrada",
-    sub: dlabel(debt.date) + " · " + CCY_LABEL[debt.ccy],
+    sub: fx.single
+      ? dlabel(debt.date)
+      : dlabel(debt.date) + " · " + CCY_LABEL[debt.ccy],
     amount: fx.money(debt.ccy, model.totalNative(debt)),
-    eq: "≈ " + fx.money("usd", debt.usd),
+    eq: fx.single ? "" : "≈ " + fx.money("usd", debt.usd),
     rest: "",
     neutral: true,
     dot: colors.muted,
@@ -371,9 +375,11 @@ Después podrás registrar el ${what} de nuevo.`,
 
       <DispTabs height={40} />
 
-      <Card pad={14}>
-        <ConvRows title="SALDO PENDIENTE EN LAS 3 MONEDAS" rows={rows} />
-      </Card>
+      <OnlyMulti>
+        <Card pad={14}>
+          <ConvRows title="SALDO PENDIENTE EN LAS 3 MONEDAS" rows={rows} />
+        </Card>
+      </OnlyMulti>
 
       {debt.sched ? (
         <View style={{ gap: 10 }}>

@@ -1,11 +1,17 @@
 import React, { useState } from "react";
 import { TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useProfile } from "../../contexts/AuthContext";
 import { Screen, Header, Txt, Card, Icon } from "../../components/ui";
+
+// Párrafos y temas con `only` solo se ven en ese modo: "multi" (Venezuela) o "single" (una moneda)
+const MULTI = (text) => ({ text, only: "multi" });
+const SINGLE = (text) => ({ text, only: "single" });
 
 const TOPICS = [
   {
     title: "Tasas de cambio (BCV y Binance)",
+    only: "multi",
     body: [
       "El dólar (USD) es la moneda base. Mi Biyuyo necesita dos tasas: BCV (bolívares por 1 USD) y Binance P2P (bolívares por 1 USDT). Con ellas convierte todo entre USD, VES y USDT.",
       "Ve a Ajustes > Tasas de cambio. Puedes escribirlas a mano o tocar «Obtener tasas en línea» para traerlas.",
@@ -18,7 +24,12 @@ const TOPICS = [
     title: "Entidades y saldos",
     body: [
       "Una entidad es el lugar donde está tu dinero: efectivo, un banco, una billetera digital, etc. Se crean en Entidades > Nueva entidad.",
-      "Elige su moneda (USD, VES o USDT) y su saldo inicial. El saldo inicial se registra como el primer movimiento de la entidad.",
+      MULTI(
+        "Elige su moneda (USD, VES o USDT) y su saldo inicial. El saldo inicial se registra como el primer movimiento de la entidad.",
+      ),
+      SINGLE(
+        "Escribe su saldo inicial. El saldo inicial se registra como el primer movimiento de la entidad.",
+      ),
       "«Sumar a Mi saldo» decide si el saldo de esa entidad cuenta en tu saldo total. Si lo desmarcas, la entidad sigue funcionando pero no suma.",
       "Con «Transferir» mueves dinero entre entidades, con comisión opcional. También puedes definir una alerta de saldo bajo.",
       "Para ordenar tus entidades, mantén presionada una, arrástrala al lugar que prefieras y suéltala. El orden se guarda en tu cuenta.",
@@ -28,9 +39,18 @@ const TOPICS = [
   {
     title: "Registrar ingresos y gastos",
     body: [
-      "Toca Registrar (+) y elige la categoría. Escribe el monto, elige la moneda del registro, la fecha y la entidad de donde sale o entra el dinero.",
-      "La moneda del registro empieza en VES · BCV; si lo necesitas, cámbiala a USD o USDT antes de guardar.",
-      "Abajo verás el equivalente en las tres monedas con la tasa del día. Esa tasa queda guardada con el movimiento.",
+      MULTI(
+        "Toca Registrar (+) y elige la categoría. Escribe el monto, elige la moneda del registro, la fecha y la entidad de donde sale o entra el dinero.",
+      ),
+      SINGLE(
+        "Toca Registrar (+) y elige la categoría. Escribe el monto, la fecha y la entidad de donde sale o entra el dinero.",
+      ),
+      MULTI(
+        "La moneda del registro empieza en VES · BCV; si lo necesitas, cámbiala a USD o USDT antes de guardar.",
+      ),
+      MULTI(
+        "Abajo verás el equivalente en las tres monedas con la tasa del día. Esa tasa queda guardada con el movimiento.",
+      ),
       "¿No encuentras la categoría que necesitas? Al final de la lista de categorías está el botón «Nueva categoría»: crea una del tipo que tengas abierto (ingreso, gasto, por cobrar o por pagar) sin salir de Registrar.",
       "Puedes adjuntar un recibo con foto o archivo.",
     ],
@@ -71,7 +91,12 @@ const TOPICS = [
       "Toca una deuda de la lista (Pendientes o Canceladas) para ver su detalle sin editarla: «Datos de la deuda» muestra quién te debe o a quién le debes, la descripción, la categoría, la fecha de registro, el vencimiento y la entidad; más abajo, el saldo, las cuotas y el historial de abonos.",
       "Además de 7, 15 o 30 días, puedes elegir una fecha de vencimiento en el calendario («Elegir fecha»).",
       "Si el comercio cobra en cuotas, elige 3, 6, 9 o 12 cuotas: se reparte el monto en partes iguales, una cada 15 días desde la fecha de la primera cuota. En el detalle de la deuda ves cada cuota; tus pagos las van cubriendo en orden y el vencimiento que se muestra es el de la próxima cuota.",
-      "Al registrar un pago de una deuda en cuotas, en «Cuotas a pagar» eliges cuántas pagar: 1 cuota, 2, 3… o todas. El monto se llena solo con lo que falta de esas cuotas (y se recalcula si cambias la moneda). Si ya habías abonado algo a la siguiente cuota, se paga lo que falta. También puedes escribir el monto que quieras, o usar «Saldo total» y «Mitad».",
+      MULTI(
+        "Al registrar un pago de una deuda en cuotas, en «Cuotas a pagar» eliges cuántas pagar: 1 cuota, 2, 3… o todas. El monto se llena solo con lo que falta de esas cuotas (y se recalcula si cambias la moneda). Si ya habías abonado algo a la siguiente cuota, se paga lo que falta. También puedes escribir el monto que quieras, o usar «Saldo total» y «Mitad».",
+      ),
+      SINGLE(
+        "Al registrar un pago de una deuda en cuotas, en «Cuotas a pagar» eliges cuántas pagar: 1 cuota, 2, 3… o todas. El monto se llena solo con lo que falta de esas cuotas. Si ya habías abonado algo a la siguiente cuota, se paga lo que falta. También puedes escribir el monto que quieras, o usar «Saldo total» y «Mitad».",
+      ),
     ],
   },
   {
@@ -96,8 +121,16 @@ const TOPICS = [
   {
     title: "Editar o eliminar un movimiento",
     body: [
-      "Abre un movimiento y toca «Editar movimiento». Se conservan las tasas del día en que lo registraste.",
-      "En una deuda que ya tiene abonos no se puede cambiar la moneda ni bajar el monto por debajo de lo abonado.",
+      MULTI(
+        "Abre un movimiento y toca «Editar movimiento». Se conservan las tasas del día en que lo registraste.",
+      ),
+      SINGLE("Abre un movimiento y toca «Editar movimiento»."),
+      MULTI(
+        "En una deuda que ya tiene abonos no se puede cambiar la moneda ni bajar el monto por debajo de lo abonado.",
+      ),
+      SINGLE(
+        "En una deuda que ya tiene abonos no se puede bajar el monto por debajo de lo abonado.",
+      ),
       "Al eliminar un movimiento, los saldos de las entidades se recalculan. La app te avisa antes, porque eliminar es irreversible.",
       "Para eliminar una cuenta por cobrar o por pagar, ábrela y toca «Eliminar cuenta por cobrar» (o «por pagar») al final del detalle. Se elimina junto con todos sus abonos, y los saldos de tus entidades quedan como si esa deuda nunca se hubiera registrado: se devuelve el dinero que salió o entró al registrarla y con cada abono.",
     ],
@@ -106,7 +139,12 @@ const TOPICS = [
     title: "Exportar a Excel",
     body: [
       "Ve a Ajustes > Sistema > Exportar a Excel. Elige el período (Este mes, Mes anterior, Últimos 3 meses, fechas a tu gusto o «Todo el historial») y toca «Exportar a Excel».",
-      "Se genera un archivo .xlsx con varias hojas: Resumen (totales del período y tasas de hoy), Movimientos (ingresos, gastos, por cobrar y por pagar, con el monto en USD, VES y USDT), Abonos, Transferencias, Ítems (con su cantidad y monto) y Entidades (los saldos de hoy).",
+      MULTI(
+        "Se genera un archivo .xlsx con varias hojas: Resumen (totales del período y tasas de hoy), Movimientos (ingresos, gastos, por cobrar y por pagar, con el monto en USD, VES y USDT), Abonos, Transferencias, Ítems (con su cantidad y monto) y Entidades (los saldos de hoy).",
+      ),
+      SINGLE(
+        "Se genera un archivo .xlsx con varias hojas: Resumen (totales del período), Movimientos (ingresos, gastos, por cobrar y por pagar), Abonos, Transferencias, Ítems (con su cantidad y monto) y Entidades (los saldos de hoy).",
+      ),
       "Al terminar, el teléfono te deja guardarlo (Archivos, Drive), abrirlo con Excel o enviarlo por WhatsApp o correo. Los montos son números, así que puedes sumarlos, filtrarlos y hacer tus propios cuadros en Excel.",
     ],
   },
@@ -121,6 +159,7 @@ const TOPICS = [
   },
   {
     title: "¿Por qué Mi saldo cambia si cambian las tasas?",
+    only: "multi",
     body: [
       "Los movimientos conservan la tasa del día en que los registraste, pero Mi saldo, tus entidades en VES o USDT y lo que está pendiente por cobrar o pagar se valoran con la tasa de hoy. Por eso pueden cambiar cuando se actualizan las tasas.",
     ],
@@ -136,7 +175,10 @@ const TOPICS = [
 /** Centro de ayuda: temas desplegables. */
 export default function HelpCenterScreen({ navigation }) {
   const { colors } = useTheme();
+  const { single } = useProfile();
   const [open, setOpen] = useState(0);
+  const mode = single ? "single" : "multi";
+  const topics = TOPICS.filter((t) => !t.only || t.only === mode);
 
   return (
     <Screen data={false} contentStyle={{ gap: 10, paddingTop: 16 }}>
@@ -144,7 +186,7 @@ export default function HelpCenterScreen({ navigation }) {
       <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
         Toca un tema para ver cómo funciona.
       </Txt>
-      {TOPICS.map((t, i) => {
+      {topics.map((t, i) => {
         const isOpen = open === i;
         return (
           <Card key={t.title} pad={0}>
@@ -180,18 +222,21 @@ export default function HelpCenterScreen({ navigation }) {
               <View
                 style={{ gap: 10, paddingHorizontal: 16, paddingBottom: 14 }}
               >
-                {t.body.map((p) => (
-                  <Txt
-                    key={p}
-                    style={{
-                      fontSize: 13,
-                      lineHeight: 19,
-                      color: colors.textSecondary,
-                    }}
-                  >
-                    {p}
-                  </Txt>
-                ))}
+                {t.body
+                  .filter((p) => typeof p === "string" || p.only === mode)
+                  .map((p) => (typeof p === "string" ? p : p.text))
+                  .map((p) => (
+                    <Txt
+                      key={p}
+                      style={{
+                        fontSize: 13,
+                        lineHeight: 19,
+                        color: colors.textSecondary,
+                      }}
+                    >
+                      {p}
+                    </Txt>
+                  ))}
               </View>
             ) : null}
           </Card>

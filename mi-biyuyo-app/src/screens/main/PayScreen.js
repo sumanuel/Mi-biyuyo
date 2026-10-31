@@ -16,17 +16,19 @@ import {
   ConvRows,
   Button,
   Empty,
+  OnlyMulti,
 } from "../../components/ui";
 import {
   CCY_KEYS,
   CCY_LABEL,
-  CCY_PREFIX,
   CCY_TO_API,
   fmtIn,
   fullDate,
   grp,
   parseNum,
   todayStr,
+  ccyPrefix,
+  defaultCcy,
 } from "../../utils/money";
 import DateField from "../../components/DateField";
 import { useFocusChain } from "../../hooks/useFocusChain";
@@ -56,13 +58,14 @@ export default function PayScreen({ navigation, route }) {
     if (c === debt.ccy) return native;
     return fx.fromUsd(c, model.usdOfNative(debt, native));
   };
-  const decOf = (c) => (c === "bin" ? 3 : 2);
-  const canPrefill = pendingInst.length > 0 && fx.ready("bcv");
+  const decOf = (c) => (c === "bin" ? 3 : undefined); // undefined = decimales del país
+  const ccy0 = defaultCcy(fx); // moneda inicial del pago
+  const canPrefill = pendingInst.length > 0 && fx.ready(ccy0);
 
-  const [ccy, setCcy] = useState("bcv");
+  const [ccy, setCcy] = useState(ccy0);
   const [kSel, setKSel] = useState(canPrefill ? 1 : null); // cuotas que se van a pagar
   const [amount, setAmount] = useState(
-    canPrefill ? fmtIn(instAmount(1, "bcv"), decOf("bcv")) : "",
+    canPrefill ? fmtIn(instAmount(1, ccy0), decOf(ccy0)) : "",
   );
   const [date, setDate] = useState(todayStr());
   const [entId, setEntId] = useState(null);
@@ -174,24 +177,26 @@ export default function PayScreen({ navigation, route }) {
         </View>
       </Card>
 
-      <View style={{ gap: 8 }}>
-        <Txt style={{ fontSize: 14, fontWeight: "700" }}>
-          Moneda del registro
-        </Txt>
-        <CcyOptions
-          tint={tint}
-          options={CCY_KEYS.map((k) => ({
-            label: CCY_LABEL[k],
-            sub: fx.rateShort(k),
-            active: k === ccy,
-            onPress: () => {
-              setCcy(k);
-              if (kSel && fx.ready(k))
-                setAmount(fmtIn(instAmount(kSel, k), decOf(k)));
-            },
-          }))}
-        />
-      </View>
+      <OnlyMulti>
+        <View style={{ gap: 8 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            Moneda del registro
+          </Txt>
+          <CcyOptions
+            tint={tint}
+            options={CCY_KEYS.map((k) => ({
+              label: CCY_LABEL[k],
+              sub: fx.rateShort(k),
+              active: k === ccy,
+              onPress: () => {
+                setCcy(k);
+                if (kSel && fx.ready(k))
+                  setAmount(fmtIn(instAmount(kSel, k), decOf(k)));
+              },
+            }))}
+          />
+        </View>
+      </OnlyMulti>
 
       {pendingInst.length > 0 ? (
         <View style={{ gap: 8 }}>
@@ -286,7 +291,7 @@ export default function PayScreen({ navigation, route }) {
               color: colors.textSecondary,
             }}
           >
-            {CCY_PREFIX[ccy]}
+            {ccyPrefix(ccy)}
           </Txt>
           <Input
             value={amount}
@@ -295,7 +300,7 @@ export default function PayScreen({ navigation, route }) {
               setKSel(null);
             }}
             keyboardType="decimal-pad"
-            placeholder="0,00"
+            placeholder={fmtIn(0)}
             accessibilityLabel="Monto del abono"
             {...chain(0, { last: true })}
             style={{
@@ -315,7 +320,9 @@ export default function PayScreen({ navigation, route }) {
               "Saldo total",
               () => {
                 setKSel(null);
-                setAmount(fmtIn(fx.fromUsd(ccy, pend), ccy === "bin" ? 3 : 2));
+                setAmount(
+                  fmtIn(fx.fromUsd(ccy, pend), ccy === "bin" ? 3 : undefined),
+                );
               },
             ],
             [
@@ -323,7 +330,10 @@ export default function PayScreen({ navigation, route }) {
               () => {
                 setKSel(null);
                 setAmount(
-                  fmtIn(fx.fromUsd(ccy, pend / 2), ccy === "bin" ? 3 : 2),
+                  fmtIn(
+                    fx.fromUsd(ccy, pend / 2),
+                    ccy === "bin" ? 3 : undefined,
+                  ),
                 );
               },
             ],
@@ -369,7 +379,9 @@ export default function PayScreen({ navigation, route }) {
             </Txt>
           </View>
         ) : null}
-        <View style={{ height: 1, backgroundColor: colors.divider }} />
+        <OnlyMulti>
+          <View style={{ height: 1, backgroundColor: colors.divider }} />
+        </OnlyMulti>
         <ConvRows title="EQUIVALENCIAS" rows={rows} tint={tint} />
         <View
           style={{

@@ -13,6 +13,7 @@ import {
   Button,
   Icon,
   Empty,
+  OnlyMulti,
 } from "../../components/ui";
 import { META, dayRateTxt, isDebtType } from "../../utils/ledger";
 import { CCY_KEYS, CCY_LABEL, dlabel } from "../../utils/money";
@@ -142,17 +143,21 @@ export default function MovementDetailScreen({ navigation, route }) {
                 ? " · " + model.entName(m.ent)
                 : "")}
           </Txt>
-          <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
-            Registrado en {CCY_LABEL[m.ccy]}
-          </Txt>
+          {fx.single ? null : (
+            <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
+              Registrado en {CCY_LABEL[m.ccy]}
+            </Txt>
+          )}
         </View>
       </Card>
 
       <DispTabs height={40} />
 
-      <Card pad={14}>
-        <ConvRows title="MONTO EN LAS 3 MONEDAS" rows={rows} />
-      </Card>
+      <OnlyMulti>
+        <Card pad={14}>
+          <ConvRows title="MONTO EN LAS 3 MONEDAS" rows={rows} />
+        </Card>
+      </OnlyMulti>
 
       {/* Solo los gastos y las deudas por pagar llevan ítems; en ingresos y por cobrar no aplica */}
       {m.type === "gasto" || m.type === "pagar" ? (
