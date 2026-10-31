@@ -15,6 +15,7 @@ import {
   ConvRows,
   Button,
   Empty,
+  OnlyMulti,
 } from "../../components/ui";
 import { META, debtStatus } from "../../utils/ledger";
 import { CCY_KEYS, CCY_LABEL, dlabel, fullDate, grp } from "../../utils/money";
@@ -374,9 +375,11 @@ Después podrás registrar el ${what} de nuevo.`,
 
       <DispTabs height={40} />
 
-      <Card pad={14}>
-        <ConvRows title="SALDO PENDIENTE EN LAS 3 MONEDAS" rows={rows} />
-      </Card>
+      <OnlyMulti>
+        <Card pad={14}>
+          <ConvRows title="SALDO PENDIENTE EN LAS 3 MONEDAS" rows={rows} />
+        </Card>
+      </OnlyMulti>
 
       {debt.sched ? (
         <View style={{ gap: 10 }}>

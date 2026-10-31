@@ -16,6 +16,7 @@ import {
   MovRow,
   Icon,
   Empty,
+  OnlyMulti,
 } from "../../components/ui";
 import {
   KIND_ICON,
@@ -207,9 +208,11 @@ export default function EntityDetailScreen({ navigation, route }) {
 
       <DispTabs height={40} />
 
-      <Card pad={14}>
-        <ConvRows title="SALDO EN LAS 3 MONEDAS" rows={rows} />
-      </Card>
+      <OnlyMulti>
+        <Card pad={14}>
+          <ConvRows title="SALDO EN LAS 3 MONEDAS" rows={rows} />
+        </Card>
+      </OnlyMulti>
 
       <Card pad={14} style={{ gap: 10 }}>
         <View

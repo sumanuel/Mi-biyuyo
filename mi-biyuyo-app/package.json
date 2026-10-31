@@ -38,6 +38,7 @@
     "xlsx": "0.18.5"
   },
   "scripts": {
+    "check:countries": "node scripts/check-countries.js",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",

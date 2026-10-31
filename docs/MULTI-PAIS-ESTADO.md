@@ -82,14 +82,26 @@ Rama `integra-multi-pais` (desde la del documento). Probada con la API y la base
 - [x] La app actual (sin país) sigue funcionando contra esta API: el usuario demo existente queda como Venezuela, modo `multi`, con sus tasas.
 - [ ] Pendiente de la fase: revisar si la app necesita el perfil del país dentro de la respuesta de `/ledger` (hoy lo recibe en el inicio de sesión y en `/auth/me`).
 
-### Fase 2: App
+### Fase 2: App — hecha en local el 31 de octubre de 2026 (falta probar en el teléfono)
 
-- [ ] Selector de país en el registro, `countries.js`, `paymentMethods.js`, `money.js` por país y contexto de perfil.
-- [ ] Resolver los 8 conflictos de la app (sección 2) y revisar los archivos combinados solos.
-- [ ] Adaptar al modo `single` todo lo de la sección 3, función por función.
-- [ ] Textos por modo: Acerca de, Centro de ayuda, introducción, guía de primeros pasos.
-- [ ] Probar en local con los dos usuarios (Venezuela y Colombia), web y luego Expo Go.
-- [ ] Venezuela: que todo siga exactamente igual (saldo, tasas, avisos, Pago Móvil, Excel con tres monedas).
+Rama `integra-multi-pais-app` (hija de `integra-multi-pais`). Probada en la web con la API y la base **locales**, con usuarios de Colombia, Portugal y Venezuela.
+
+- [x] Aplicar el cambio de la app de `multi-pais-api` (selector de país con búsqueda en el registro, `countries.js`, `paymentMethods.js`, `money.js` por país, perfil en `AuthContext`, modo de una moneda) y resolver los 8 conflictos: `App.js`, `AboutScreen`, `EntitiesScreen`, `HelpCenterScreen`, `HomeScreen`, `PayScreen`, `SettingsScreen`, `ledger.js`.
+- [x] 24 países en la app (iguales a los de la API) con símbolo, separadores, decimales (Chile y Paraguay sin decimales) y umbral de saldo bajo por país. Métodos de pago: los 10 originales + Brasil (Pix), Portugal (MB WAY), Costa Rica (SINPE Móvil) y Panamá (Yappy); el resto usa un conjunto genérico (cuenta bancaria y billetera móvil). Antes un país sin métodos propios caía en los de Venezuela.
+- [x] Adaptado a una sola moneda lo nuevo de `develop`:
+  - Moneda inicial de los formularios (Registrar, Pagar, Transferir, planes): la del país en vez de «VES · BCV».
+  - Gastos planificados: sin selector de moneda.
+  - Preferencia «Moneda para mostrar los montos»: oculta; `disp` siempre es la base (se ignora lo que haya guardado una cuenta de Venezuela en el mismo equipo).
+  - Inicio: tarjetas del resumen con el monto completo (símbolo detrás en España y Portugal) y sin filas de otras monedas.
+  - Excel: una sola columna de monto (`Monto (COP)`), decimales del país y sin tasas; el de Venezuela no cambió.
+  - Decimales según el país al precargar pagos por cuotas, «Mitad», «Saldo total» y planes (antes fijos en 2).
+  - Se quitaron las tarjetas vacías que dejaban las equivalencias en 3 monedas (detalle de deuda, de movimiento, de entidad, guardado, formulario de entidad).
+  - Ayuda y «Acerca de» con textos por modo.
+- [x] Probado en la web: Colombia (registrar gasto con `45.500,50`, saldo, deuda en 6 cuotas, pago por cuotas, Estadísticas, Ajustes sin tasas, Excel de una columna), Portugal (símbolo detrás), registro con selector de país y Venezuela (Inicio, formulario con selector de moneda, Ajustes con tasas, Excel con tres monedas) sin cambios.
+- [x] `npm run check:countries` (app): 236 comprobaciones; países y monedas iguales a los de la API y formato y lectura de montos de los 24 países.
+- [x] `database/seed_demo_single.js` (API): crea un usuario de prueba de cualquier país (`demo.<país>@mibiyuyo.test`, contraseña `Demo1234!`) con datos variados, solo en local.
+- [ ] Pendiente: probar en el teléfono con Expo Go (teclado, formato al escribir, tarjetas del resumen con cifras largas) y revisar con Chile (sin decimales) y Paraguay en pantalla.
+- [ ] Pendiente: traducir o adaptar textos de la introducción y la guía de primeros pasos para Portugal y Brasil (hoy todo en español, por decisión).
 
 ### Fase 3: Pruebas y publicación
 
