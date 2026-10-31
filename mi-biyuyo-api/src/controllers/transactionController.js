@@ -1,18 +1,16 @@
 const pool = require("../config/database");
 const { spawnNextRecurrence } = require("../utils/recurrence");
-const { convertToAll, toUsd } = require("../utils/currencyConverter");
+const {
+  convertToAll,
+  toUsd,
+  toUsdFor,
+  convertFor,
+} = require("../utils/currencyConverter");
+const { getUserCtx } = require("../utils/userContext");
 const { cleanQuantity } = require("../utils/quantity");
 
 // Tipos de categoría que son deudas (por cobrar = loan_given, por pagar = debt)
 const DEBT_TYPES = ["loan_given", "debt"];
-
-async function getUserRates(userId) {
-  const { rows } = await pool.query(
-    `SELECT usd_to_ves, binance_to_ves FROM exchange_rates WHERE user_id = $1`,
-    [userId],
-  );
-  return rows[0] || { usd_to_ves: 0, binance_to_ves: 0 };
-}
 
 exports.list = async (req, res, next) => {
   try {
@@ -116,7 +114,7 @@ async function assertEntity(userId, entityId) {
   return entityId;
 }
 
-async function replaceItems(client, transactionId, items, currency, rates) {
+async function replaceItems(client, transactionId, items, currency, ctx) {
   await client.query(
     `DELETE FROM transaction_items WHERE transaction_id = $1`,
     [transactionId],
@@ -130,7 +128,7 @@ async function replaceItems(client, transactionId, items, currency, rates) {
       [
         transactionId,
         name,
-        amt > 0 ? toUsd(amt, currency, rates) : null,
+        amt > 0 ? toUsdFor(amt, currency, ctx) : null,
         cleanQuantity(it.quantity),
       ],
     );
@@ -177,8 +175,8 @@ exports.create = async (req, res, next) => {
         .status(422)
         .json({ error: "amount y currency son requeridos" });
 
-    const rates = await getUserRates(req.user.id);
-    const converted = convertToAll(amount, currency, rates);
+    const ctx = await getUserCtx(req.user.id);
+    const converted = convertFor(amount, currency, ctx);
     await assertEntity(req.user.id, entity_id);
 
     // ¿La categoría es de por cobrar / por pagar?
@@ -221,7 +219,7 @@ exports.create = async (req, res, next) => {
         isDebtCat && recurring === true,
       ],
     );
-    await replaceItems(client, rows[0].id, items, currency, rates);
+    await replaceItems(client, rows[0].id, items, currency, ctx);
     await client.query("COMMIT");
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -309,8 +307,12 @@ exports.update = async (req, res, next) => {
         .json({ error: "El monto no puede ser menor a lo ya abonado" });
 
     // Conversión con las tasas originales del movimiento
-    const current = await getUserRates(req.user.id);
-    const rates = originalRates(cur, current);
+    const ctx0 = await getUserCtx(req.user.id);
+    // Multi: conserva las tasas del día en que se registró. Single: no hay tasas.
+    const ctx =
+      ctx0.mode === "single"
+        ? ctx0
+        : { mode: "multi", rates: originalRates(cur, ctx0.rates) };
     // Monto sin cambios (la columna guarda 2 decimales): se conservan los valores exactos ya guardados
     const same =
       currency === cur.currency &&
@@ -321,7 +323,7 @@ exports.update = async (req, res, next) => {
           amount_ves: cur.amount_ves,
           amount_binance: cur.amount_binance,
         }
-      : convertToAll(amount, currency, rates);
+      : convertFor(amount, currency, ctx);
 
     const entityId = has("entity_id")
       ? await assertEntity(req.user.id, b.entity_id)
@@ -372,7 +374,7 @@ exports.update = async (req, res, next) => {
         id,
       ],
     );
-    if (has("items")) await replaceItems(client, id, b.items, currency, rates);
+    if (has("items")) await replaceItems(client, id, b.items, currency, ctx);
     // Si al editar la deuda quedó saldada y es recurrente, se crea la del mes siguiente
     const next =
       isDebt && status === "paid" && cur.status !== "paid"

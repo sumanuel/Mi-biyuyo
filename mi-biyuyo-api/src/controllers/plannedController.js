@@ -1,5 +1,6 @@
 const pool = require("../config/database");
 const { cleanQuantity } = require("../utils/quantity");
+const { getUserCtx } = require("../utils/userContext");
 
 // Gastos planificados: plantillas reutilizables (nombre, categoría, fecha prevista opcional,
 // monto estimado opcional e ítems con monto opcional). No son movimientos: no afectan saldos
@@ -60,7 +61,12 @@ async function clean(client, userId, body) {
 
   const amount = num(body.amount);
   const hasMoney = amount !== null || items.some((it) => it.amount !== null);
-  const currency = CURRENCIES.includes(body.currency) ? body.currency : null;
+  // En modo single (un solo país/moneda) la única moneda válida es la base (alias "USD")
+  const { mode } = await getUserCtx(userId, client);
+  const allowed = mode === "single" ? ["USD"] : CURRENCIES;
+  if (hasMoney && body.currency && !allowed.includes(body.currency) && mode === "single")
+    throw fail("En tu país solo se usa tu moneda local");
+  const currency = allowed.includes(body.currency) ? body.currency : null;
   if (hasMoney && !currency) throw fail("Elige la moneda de los montos");
 
   return {

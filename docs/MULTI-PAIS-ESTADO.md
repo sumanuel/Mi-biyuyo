@@ -69,16 +69,18 @@ Lo construido desde el 1 de octubre asume tres monedas. Tras unir ambas ramas, c
 
 ## 5. Plan por fases
 
-### Fase 1: API (se puede publicar sola)
+### Fase 1: API (se puede publicar sola) — hecha en local el 31 de octubre de 2026
 
-- [ ] Crear `integra-multi-pais` desde `develop` (y la rama hija de la API).
-- [ ] Traer `countries.js`, `userContext.js`, `currencyConverter.js` y los cambios de controladores.
-- [ ] Resolver los 4 conflictos de la API (`migrate.js`, `authController`, `paymentController`, `transactionController`) conservando la lógica de ambos lados (cuotas, recurrentes, cantidad de ítems, planificados).
-- [ ] Revisar a mano `entityController` y el resto de controladores que se combinaron solos.
-- [ ] Planificados, recurrentes y cuotas con el contexto de modo (en `single` solo se acepta la moneda `USD` alias; sin tasas).
-- [ ] Migración de multi-país en la base **local** (columnas `country`, `mode`, `base_currency`).
-- [ ] Scripts de prueba de la API por modo (Venezuela y Colombia): registro, entidad, ingreso, gasto, por cobrar y por pagar con cuotas y abonos, eliminar abono, transferencia con comisión, gasto planificado, `/exchange-rates` (403 en `single`), `PUT /profile` rechaza cambiar el país.
-- [ ] Comprobar que la app actual (sin país) sigue funcionando contra esta API.
+Rama `integra-multi-pais` (desde la del documento). Probada con la API y la base **locales**: `npm run test:multipais` → 41 de 41.
+
+- [x] Crear `integra-multi-pais`.
+- [x] Traer `countries.js` (ahora con los 24 países), `userContext.js`, `currencyConverter.js` (`convertFor`, `toUsdFor`) y los cambios de controladores (auth, entidades, tasas, abonos, movimientos, transferencias).
+- [x] Resolver los 4 conflictos de la API (`migrate.js`, `authController`, `paymentController`, `transactionController`) conservando la lógica de ambos lados (cuotas, recurrentes, cantidad de ítems, `DEBT_TYPES`).
+- [x] Adaptar lo de `develop` al modo de una moneda: deudas recurrentes (`recurrence.js` usa el modo) y gastos planificados (en `single` solo vale la moneda base `USD`; `VES` y `BINANCE` → 422).
+- [x] Migración «v10» (`users.country`, `users.mode`, `users.base_currency`) aplicada en la base **local**. **No** está en producción.
+- [x] Script de pruebas `mi-biyuyo-api/tests/multi-pais.test.js` (sin dependencias): registro con y sin país y con país inexistente, `/auth/me`, país fijo, `/exchange-rates` (403 en `single`), entidades, gasto, ingreso y por cobrar con cuotas y abonos, eliminar abono, editar una deuda por debajo de lo abonado, recurrente que se renueva, transferencia con comisión, gastos planificados, ítems con cantidad y `/ledger`, en Colombia (`single`) y Venezuela (`multi`, con tasas). Se niega a correr contra producción (exige `env != production` y `DB_HOST` local) y borra sus usuarios de prueba.
+- [x] La app actual (sin país) sigue funcionando contra esta API: el usuario demo existente queda como Venezuela, modo `multi`, con sus tasas.
+- [ ] Pendiente de la fase: revisar si la app necesita el perfil del país dentro de la respuesta de `/ledger` (hoy lo recibe en el inicio de sesión y en `/auth/me`).
 
 ### Fase 2: App
 

@@ -1,4 +1,5 @@
-const { convertToAll } = require("./currencyConverter");
+const { convertFor } = require("./currencyConverter");
+const { getUserCtx } = require("./userContext");
 
 /**
  * Deudas recurrentes (por cobrar / por pagar que se repiten cada mes).
@@ -28,18 +29,16 @@ async function spawnNextRecurrence(db, userId, debtId) {
   );
   if (already.length) return null;
 
-  // Valores con las tasas de hoy; si falta alguna tasa, se copian los de la deuda original
+  // Valores con las tasas de hoy (modo multi) o sin tasas (modo single); si no se puede convertir
+  // (por ejemplo, falta una tasa), se copian los de la deuda original
   let conv = {
     amount_usd: src.amount_usd,
     amount_ves: src.amount_ves,
     amount_binance: src.amount_binance,
   };
   try {
-    const { rows: r } = await db.query(
-      `SELECT usd_to_ves, binance_to_ves FROM exchange_rates WHERE user_id = $1`,
-      [userId],
-    );
-    if (r.length) conv = convertToAll(parseFloat(src.amount), src.currency, r[0]);
+    const ctx = await getUserCtx(userId, db);
+    conv = convertFor(parseFloat(src.amount), src.currency, ctx);
   } catch (_) {
     /* se conservan los valores originales */
   }

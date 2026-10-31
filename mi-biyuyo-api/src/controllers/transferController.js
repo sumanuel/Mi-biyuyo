@@ -1,12 +1,15 @@
 const pool = require("../config/database");
-const { convertToAll } = require("../utils/currencyConverter");
+const { convertFor } = require("../utils/currencyConverter");
+const { getUserCtx } = require("../utils/userContext");
 
 exports.create = async (req, res, next) => {
   try {
     const { from_entity_id, to_entity_id, amount, fee, currency, date } =
       req.body;
     if (!from_entity_id || !to_entity_id || !amount || !currency)
-      return res.status(422).json({ error: "Faltan datos de la transferencia" });
+      return res
+        .status(422)
+        .json({ error: "Faltan datos de la transferencia" });
     if (String(from_entity_id) === String(to_entity_id))
       return res
         .status(422)
@@ -19,14 +22,10 @@ exports.create = async (req, res, next) => {
     if (ents.length !== 2)
       return res.status(404).json({ error: "Entidad no encontrada" });
 
-    const { rows: r } = await pool.query(
-      `SELECT usd_to_ves, binance_to_ves FROM exchange_rates WHERE user_id = $1`,
-      [req.user.id],
-    );
-    const rates = r[0] || { usd_to_ves: 0, binance_to_ves: 0 };
-    // Se guardan los 3 valores con la tasa del día de la transferencia
-    const a = convertToAll(amount, currency, rates);
-    const f = parseFloat(fee) > 0 ? convertToAll(fee, currency, rates) : null;
+    const ctx = await getUserCtx(req.user.id);
+    // Se guardan los valores con la tasa del día de la transferencia (sin tasas en modo single)
+    const a = convertFor(amount, currency, ctx);
+    const f = parseFloat(fee) > 0 ? convertFor(fee, currency, ctx) : null;
 
     const { rows } = await pool.query(
       `INSERT INTO transfers
