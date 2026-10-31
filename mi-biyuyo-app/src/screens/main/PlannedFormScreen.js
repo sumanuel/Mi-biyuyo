@@ -29,7 +29,7 @@ import {
   todayStr,
 } from "../../utils/money";
 
-const fmt = (n, ccy) => (n > 0 ? fmtIn(n, ccy === "bin" ? 3 : 2) : "");
+const fmt = (n, ccy) => (n > 0 ? fmtIn(n, ccy === "bin" ? 3 : undefined) : "");
 
 /** Crear o editar un gasto planificado (lista reutilizable con ítems y montos opcionales). */
 export default function PlannedFormScreen({ navigation, route }) {

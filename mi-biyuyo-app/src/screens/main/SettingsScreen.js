@@ -8,7 +8,8 @@ import {
   Platform,
 } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth, useProfile } from "../../contexts/AuthContext";
+import { grp } from "../../utils/money";
 import { useData } from "../../contexts/DataContext";
 import {
   Screen,
@@ -18,6 +19,7 @@ import {
   Field,
   Button,
   Segmented,
+  OnlyMulti,
 } from "../../components/ui";
 import * as authService from "../../services/api/authService";
 import {
@@ -101,11 +103,13 @@ export default function SettingsScreen({ navigation }) {
     threshold,
     setThreshold,
     showToast,
+    model,
     defaultDisp,
     setDefaultDisp,
     saldoMode,
     setSaldoMode,
   } = useData();
+  const profile = useProfile();
   const soon = () => showToast("Próximamente");
 
   // Desbloqueo con huella: solo aparece si el dispositivo tiene huella o Face ID registrados
@@ -221,11 +225,13 @@ export default function SettingsScreen({ navigation }) {
           sub="Crea, edita y elige cuáles ver al registrar"
           onPress={() => navigation.navigate("Categories")}
         />
-        <Row
-          label="Tasas de cambio"
-          sub="BCV y Binance P2P, manual o en línea"
-          onPress={() => navigation.navigate("ExchangeRate")}
-        />
+        <OnlyMulti>
+          <Row
+            label="Tasas de cambio"
+            sub="BCV y Binance P2P, manual o en línea"
+            onPress={() => navigation.navigate("ExchangeRate")}
+          />
+        </OnlyMulti>
         <Row
           label="Presupuestos"
           sub="Límites por categoría y metas de ahorro"
@@ -461,7 +467,7 @@ export default function SettingsScreen({ navigation }) {
               Umbral de saldo bajo
             </Txt>
             <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
-              Avisar cuando tu saldo baje de USD {threshold}
+              Avisar cuando tu saldo baje de {model.fx.money("usd", threshold)}
             </Txt>
           </View>
           <View
@@ -476,17 +482,17 @@ export default function SettingsScreen({ navigation }) {
           >
             {stepBtn(
               "minus",
-              () => setThreshold(threshold - 10),
+              () => setThreshold(threshold - profile.thresholdStep),
               "Reducir umbral",
             )}
             <Txt
               style={{ minWidth: 28, textAlign: "center", fontWeight: "800" }}
             >
-              {threshold}
+              {grp(threshold, profile.thousands, profile.decimal, 0)}
             </Txt>
             {stepBtn(
               "plus",
-              () => setThreshold(threshold + 10),
+              () => setThreshold(threshold + profile.thresholdStep),
               "Aumentar umbral",
             )}
           </View>

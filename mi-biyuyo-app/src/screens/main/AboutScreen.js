@@ -1,6 +1,7 @@
 import React from "react";
 import { Image, Linking, Platform, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useProfile } from "../../contexts/AuthContext";
 import { Screen, Header, Txt, Card, Button } from "../../components/ui";
 import { useData } from "../../contexts/DataContext";
 import app from "../../../app.json";
@@ -17,12 +18,27 @@ const FEATURES = [
   "Estadísticas por rango de fechas, con el detalle de cada categoría, y alertas de saldo bajo",
   "Bloqueo con tu huella para proteger tus datos",
 ];
+const FEATURES_SINGLE = [
+  "Ingresos, gastos, por cobrar y por pagar en la moneda de tu país",
+  "Por cobrar y por pagar con abonos, cuotas y fecha de vencimiento",
+  "Entidades (efectivo, bancos, billeteras) con transferencias entre ellas, ordenadas como prefieras",
+  "Tus propias categorías: créalas, ocúltalas o elimínalas",
+  "Detalle de las compras con cantidad y monto por ítem, y qué es lo que más compras",
+  "Gastos planificados: prepara tu lista y regístrala cuando llegue el momento",
+  "Cuánto te queda en cada entidad y en Mi saldo después de cada movimiento",
+  "Estadísticas por rango de fechas, con el detalle de cada categoría, y alertas de saldo bajo",
+  "Montos con el formato de números de tu país",
+  "Bloqueo con tu huella para proteger tus datos",
+];
 
 const SUPPORT_EMAIL = "contacto.sumadev@gmail.com";
 
 /** Acerca de: versión, descripción, fuentes de las tasas y contacto. */
 export default function AboutScreen({ navigation }) {
   const { colors } = useTheme();
+  const profile = useProfile();
+  const features = profile.single ? FEATURES_SINGLE : FEATURES;
+
   const { showToast } = useData();
 
   // Abre el correo con el asunto y los datos de la app ya puestos (sin datos personales)
@@ -61,13 +77,20 @@ export default function AboutScreen({ navigation }) {
 
       <Card style={{ gap: 10 }}>
         {info("Versión", app.expo.version)}
-        {info("Moneda base", "USD")}
-        {info("Monedas", "USD · VES · USDT")}
+        {info("País", profile.name)}
+        {profile.single ? (
+          info("Moneda", `${profile.currencyName} (${profile.currency})`)
+        ) : (
+          <>
+            {info("Moneda base", "USD")}
+            {info("Monedas", "USD · VES · USDT")}
+          </>
+        )}
       </Card>
 
       <Card style={{ gap: 10 }}>
         <Txt style={{ fontSize: 14, fontWeight: "700" }}>Qué puedes hacer</Txt>
-        {FEATURES.map((f) => (
+        {features.map((f) => (
           <View key={f} style={{ flexDirection: "row", gap: 8 }}>
             <Txt style={{ color: colors.accent, fontWeight: "800" }}>•</Txt>
             <Txt
@@ -84,18 +107,24 @@ export default function AboutScreen({ navigation }) {
         ))}
       </Card>
 
-      <Card style={{ gap: 6 }}>
-        <Txt style={{ fontSize: 14, fontWeight: "700" }}>
-          Fuente de las tasas
-        </Txt>
-        <Txt
-          style={{ fontSize: 13, lineHeight: 18, color: colors.textSecondary }}
-        >
-          La tasa BCV se consulta en DolarApi y la de Binance P2P en CriptoYa.
-          Puedes escribirlas a mano o actualizarlas cada día desde Tasas de
-          cambio. Son referenciales.
-        </Txt>
-      </Card>
+      {profile.single ? null : (
+        <Card style={{ gap: 6 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            Fuente de las tasas
+          </Txt>
+          <Txt
+            style={{
+              fontSize: 13,
+              lineHeight: 18,
+              color: colors.textSecondary,
+            }}
+          >
+            La tasa BCV se consulta en DolarApi y la de Binance P2P en CriptoYa.
+            Puedes escribirlas a mano o actualizarlas cada día desde Tasas de
+            cambio. Son referenciales.
+          </Txt>
+        </Card>
+      )}
 
       <Card style={{ gap: 10 }}>
         <Txt style={{ fontSize: 14, fontWeight: "700" }}>

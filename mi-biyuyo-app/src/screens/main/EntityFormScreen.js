@@ -17,8 +17,9 @@ import {
   Field,
   Label,
   Icon,
+  OnlyMulti,
 } from "../../components/ui";
-import { KIND_LABEL, KIND_PT, PT } from "../../utils/ledger";
+import { KIND_LABEL, payMethods } from "../../utils/ledger";
 import {
   CCY_KEYS,
   CCY_LABEL,
@@ -26,17 +27,20 @@ import {
   ENT_CCY_LABEL,
   grp,
   parseNum,
+  ccyPrefix,
+  fmtIn,
+  fmtEdit,
 } from "../../utils/money";
 import { useFocusChain } from "../../hooks/useFocusChain";
 
 const KINDS = ["efectivo", "banco", "digital", "otro"];
-const PTS = ["pm", "acct", "email", "id", "none"];
 
-const round2 = (n) => String(Math.round(n * 100) / 100).replace(".", ",");
+const round2 = (n) => fmtEdit(n, 2);
 
 /** Nueva entidad o edición de una existente (params.id). */
 export default function EntityFormScreen({ navigation, route }) {
   const chain = useFocusChain();
+  const methods = payMethods(); // métodos de pago del país
   const { colors } = useTheme();
   const { model, actions, showToast } = useData();
   const { fx } = model;
@@ -44,8 +48,8 @@ export default function EntityFormScreen({ navigation, route }) {
 
   const [name, setName] = useState(editing?.name || "");
   const [kind, setKind] = useState(editing?.kind || "banco");
-  const [ccy, setCcy] = useState(editing?.ccy || "ves");
-  const [pt, setPt] = useState(editing?.pt || KIND_PT.banco);
+  const [ccy, setCcy] = useState(editing?.ccy || (fx.single ? "usd" : "ves"));
+  const [pt, setPt] = useState(editing?.pt || methods.defaultFor("banco"));
   const [vals, setVals] = useState(
     editing?.pd?.length ? editing.pd.slice() : ["", "", ""],
   );
@@ -66,7 +70,8 @@ export default function EntityFormScreen({ navigation, route }) {
   const initUsd = toUsd(num);
   const alertUsd =
     alertOn && parseNum(alertStr) > 0 ? toUsd(parseNum(alertStr)) : null;
-  const vesNeedsRate = !fx.ready(ENT_CCY[ccy]) && (num > 0 || alertOn);
+  const vesNeedsRate =
+    !fx.single && !fx.ready(ENT_CCY[ccy]) && (num > 0 || alertOn);
   const canSave = name.trim().length > 0 && !vesNeedsRate && !busy;
 
   const save = async () => {
@@ -77,7 +82,7 @@ export default function EntityFormScreen({ navigation, route }) {
       kind,
       currency: ccy,
       payment_type: pt,
-      payment_data: vals.slice(0, PT[pt].f.length),
+      payment_data: vals.slice(0, methods.defs[pt].f.length),
       alert_usd: alertUsd,
       initial_amount: num,
       include_in_balance: include,
@@ -103,7 +108,7 @@ export default function EntityFormScreen({ navigation, route }) {
     sub: k === "usd" ? "Moneda base" : fx.rateTxt(k),
     value: fx.ready(k) ? fx.money(k, fx.fromUsd(k, initUsd)) : "Sin tasa",
   }));
-  const prefix = ENT_CCY_LABEL[ccy];
+  const prefix = fx.single ? ccyPrefix("usd") : ENT_CCY_LABEL[ccy];
 
   return (
     <Screen
@@ -143,47 +148,49 @@ export default function EntityFormScreen({ navigation, route }) {
               active={kind === k}
               onPress={() => {
                 setKind(k);
-                setPt(KIND_PT[k]);
+                setPt(methods.defaultFor(k));
               }}
             />
           ))}
         </ChipRow>
       </View>
 
-      <View style={{ gap: 8 }}>
-        <Txt style={{ fontSize: 14, fontWeight: "700" }}>
-          Moneda de la entidad
-        </Txt>
-        <CcyOptions
-          tint={colors.ingreso}
-          options={[
-            {
-              label: "USD",
-              sub: "Moneda base",
-              active: ccy === "usd",
-              onPress: () => setCcy("usd"),
-            },
-            {
-              label: "VES",
-              sub:
-                fx.rate > 0
-                  ? "A tasa BCV " + grp(fx.rate, ".", ",")
-                  : "Sin tasa BCV",
-              active: ccy === "ves",
-              onPress: () => setCcy("ves"),
-            },
-            {
-              label: "USDT",
-              sub:
-                fx.rateB > 0
-                  ? "Binance " + grp(fx.rateB, ".", ",")
-                  : "Sin tasa Binance",
-              active: ccy === "usdt",
-              onPress: () => setCcy("usdt"),
-            },
-          ]}
-        />
-      </View>
+      <OnlyMulti>
+        <View style={{ gap: 8 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            Moneda de la entidad
+          </Txt>
+          <CcyOptions
+            tint={colors.ingreso}
+            options={[
+              {
+                label: "USD",
+                sub: "Moneda base",
+                active: ccy === "usd",
+                onPress: () => setCcy("usd"),
+              },
+              {
+                label: "VES",
+                sub:
+                  fx.rate > 0
+                    ? "A tasa BCV " + grp(fx.rate, ".", ",")
+                    : "Sin tasa BCV",
+                active: ccy === "ves",
+                onPress: () => setCcy("ves"),
+              },
+              {
+                label: "USDT",
+                sub:
+                  fx.rateB > 0
+                    ? "Binance " + grp(fx.rateB, ".", ",")
+                    : "Sin tasa Binance",
+                active: ccy === "usdt",
+                onPress: () => setCcy("usdt"),
+              },
+            ]}
+          />
+        </View>
+      </OnlyMulti>
 
       {!editing ? (
         <Card style={{ gap: 12 }}>
@@ -211,7 +218,7 @@ export default function EntityFormScreen({ navigation, route }) {
               value={init}
               onChangeText={setInit}
               keyboardType="decimal-pad"
-              placeholder="0,00"
+              placeholder={fmtIn(0)}
               accessibilityLabel="Saldo inicial"
               {...chain(1)}
               style={{
@@ -335,7 +342,7 @@ export default function EntityFormScreen({ navigation, route }) {
             value={alertStr}
             onChangeText={setAlertStr}
             keyboardType="decimal-pad"
-            placeholder="0,00"
+            placeholder={fmtIn(0)}
             {...chain(2)}
           />
         ) : null}
@@ -344,20 +351,20 @@ export default function EntityFormScreen({ navigation, route }) {
       <View style={{ gap: 8 }}>
         <Txt style={{ fontSize: 14, fontWeight: "700" }}>Datos de pago</Txt>
         <ChipRow>
-          {PTS.map((k) => (
+          {methods.order.map((k) => (
             <Chip
               key={k}
-              label={PT[k].label}
+              label={methods.defs[k].label}
               active={pt === k}
               onPress={() => setPt(k)}
             />
           ))}
         </ChipRow>
       </View>
-      {PT[pt].f.map((label, i) => (
+      {methods.defs[pt].f.map((label, i) => (
         <Field
           key={pt + i}
-          {...chain(3 + i, { last: i === PT[pt].f.length - 1 })}
+          {...chain(3 + i, { last: i === methods.defs[pt].f.length - 1 })}
           label={label}
           value={vals[i] || ""}
           onChangeText={(v) =>
