@@ -36,9 +36,13 @@ export function DataProvider({ children }) {
   const [raw, setRaw] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [disp, setDisp] = useState("usd");
+  const [dispState, setDisp] = useState("usd");
   const [defaultDisp, setDefaultDispState] = useState("usd");
   // Saldo que se muestra bajo cada movimiento: both (entidad y Mi saldo), ent, tot o none
+  // Con una sola moneda (países sin tasas) la moneda de visualización es siempre la base: se ignora
+  // lo que se haya guardado en este equipo desde una cuenta de Venezuela
+  const single = !!profile?.single;
+  const disp = single ? "usd" : dispState;
   const [saldoMode, setSaldoModeState] = useState("both");
   const [threshold, setThresholdState] = useState(50);
   const [hideBalance, setHideBalance] = useState(false);
@@ -205,7 +209,7 @@ export function DataProvider({ children }) {
         refresh,
         disp,
         setDisp,
-        defaultDisp,
+        defaultDisp: single ? "usd" : defaultDisp,
         setDefaultDisp,
         saldoMode,
         setSaldoMode,

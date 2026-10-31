@@ -23,6 +23,9 @@ export const setActiveProfile = (p) => {
 };
 export const getActiveProfile = () => ACTIVE;
 
+/** Moneda con la que arrancan los formularios: VES · BCV en Venezuela; la moneda del país si es una sola. */
+export const defaultCcy = (fx) => (fx.single ? "usd" : "bcv");
+
 /** Prefijo del monto: en modo single, el símbolo de la moneda del país. */
 export const ccyPrefix = (c) => (ACTIVE.single ? ACTIVE.symbol : CCY_PREFIX[c]);
 

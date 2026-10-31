@@ -38,7 +38,12 @@ export default function ExportScreen({ navigation }) {
   };
 
   const sheets = [
-    ["Resumen", "Totales del período y tasas de hoy"],
+    [
+      "Resumen",
+      model.fx.single
+        ? "Totales del período"
+        : "Totales del período y tasas de hoy",
+    ],
     [
       "Movimientos",
       `${nTxt(counts.moves, "movimiento")} (ingresos, gastos, por cobrar y por pagar)`,

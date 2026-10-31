@@ -275,36 +275,39 @@ export default function SettingsScreen({ navigation }) {
       </Section>
 
       <Section title="APARIENCIA">
-        <View
-          style={{
-            gap: 10,
-            padding: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.divider,
-          }}
-        >
-          <View style={{ gap: 2 }}>
-            <Txt style={{ fontSize: 15, fontWeight: "600" }}>
-              Moneda para mostrar los montos
-            </Txt>
-            <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
-              La que se usa al abrir la app. Puedes cambiarla en cada pantalla.
-            </Txt>
+        <OnlyMulti>
+          <View
+            style={{
+              gap: 10,
+              padding: 16,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.divider,
+            }}
+          >
+            <View style={{ gap: 2 }}>
+              <Txt style={{ fontSize: 15, fontWeight: "600" }}>
+                Moneda para mostrar los montos
+              </Txt>
+              <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
+                La que se usa al abrir la app. Puedes cambiarla en cada
+                pantalla.
+              </Txt>
+            </View>
+            <Segmented
+              height={42}
+              fontSize={13}
+              items={[
+                ["usd", "USD"],
+                ["bcv", "VES BCV"],
+                ["bin", "USDT"],
+              ].map(([k, label]) => ({
+                label,
+                active: defaultDisp === k,
+                onPress: () => setDefaultDisp(k),
+              }))}
+            />
           </View>
-          <Segmented
-            height={42}
-            fontSize={13}
-            items={[
-              ["usd", "USD"],
-              ["bcv", "VES BCV"],
-              ["bin", "USDT"],
-            ].map(([k, label]) => ({
-              label,
-              active: defaultDisp === k,
-              onPress: () => setDefaultDisp(k),
-            }))}
-          />
-        </View>
+        </OnlyMulti>
         <View
           style={{
             gap: 10,

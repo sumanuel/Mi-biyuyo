@@ -13,6 +13,7 @@ import {
   ChipRow,
   Button,
   Icon,
+  OnlyMulti,
 } from "../../components/ui";
 import DateField from "../../components/DateField";
 import { useFocusChain } from "../../hooks/useFocusChain";
@@ -27,6 +28,7 @@ import {
   fmtIn,
   parseNum,
   todayStr,
+  defaultCcy,
 } from "../../utils/money";
 
 const fmt = (n, ccy) => (n > 0 ? fmtIn(n, ccy === "bin" ? 3 : undefined) : "");
@@ -48,7 +50,7 @@ export default function PlannedFormScreen({ navigation, route }) {
   const [catId, setCatId] = useState(editing?.catId || cats[0]?.id || null);
   const [hasDate, setHasDate] = useState(!!editing?.date);
   const [date, setDate] = useState(editing?.date || addDays(todayStr(), 3));
-  const [ccy, setCcy] = useState(editing?.ccy || "bcv");
+  const [ccy, setCcy] = useState(editing?.ccy || defaultCcy(model.fx));
   const [amount, setAmount] = useState(
     editing ? fmt(editing.amount, editing.ccy) : "",
   );
@@ -185,20 +187,22 @@ export default function PlannedFormScreen({ navigation, route }) {
         </ChipRow>
       </View>
 
-      <View style={{ gap: 8 }}>
-        {label("Moneda de los montos")}
-        <ChipRow>
-          {CCY_KEYS.map((k) => (
-            <Chip
-              key={k}
-              label={CCY_LABEL[k]}
-              active={k === ccy}
-              color={t.strong}
-              onPress={() => setCcy(k)}
-            />
-          ))}
-        </ChipRow>
-      </View>
+      <OnlyMulti>
+        <View style={{ gap: 8 }}>
+          {label("Moneda de los montos")}
+          <ChipRow>
+            {CCY_KEYS.map((k) => (
+              <Chip
+                key={k}
+                label={CCY_LABEL[k]}
+                active={k === ccy}
+                color={t.strong}
+                onPress={() => setCcy(k)}
+              />
+            ))}
+          </ChipRow>
+        </View>
+      </OnlyMulti>
 
       <View style={{ gap: 8 }}>
         {label(

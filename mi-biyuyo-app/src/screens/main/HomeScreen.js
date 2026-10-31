@@ -142,8 +142,9 @@ export default function HomeScreen({ navigation }) {
     // "VES 1.192.486,75" → moneda y número por separado
     const text = String(value);
     const sp = text.indexOf(" ");
+    // Con una sola moneda el símbolo puede ir detrás (1.234,56 €): se muestra el monto completo
     const amount =
-      sp > 0
+      sp > 0 && !fx.single
         ? { code: text.slice(0, sp), num: text.slice(sp + 1) }
         : { code: "", num: text };
     return (
@@ -159,15 +160,17 @@ export default function HomeScreen({ navigation }) {
         </Txt>
         {/* La moneda va arriba y el número debajo, en una sola línea que se ajusta al ancho de la tarjeta */}
         <View style={{ gap: 0 }}>
-          <Txt
-            style={{
-              fontSize: 12,
-              fontWeight: "700",
-              color: colors.textSecondary,
-            }}
-          >
-            {amount.code}
-          </Txt>
+          {amount.code ? (
+            <Txt
+              style={{
+                fontSize: 12,
+                fontWeight: "700",
+                color: colors.textSecondary,
+              }}
+            >
+              {amount.code}
+            </Txt>
+          ) : null}
           <Txt
             numberOfLines={1}
             adjustsFontSizeToFit

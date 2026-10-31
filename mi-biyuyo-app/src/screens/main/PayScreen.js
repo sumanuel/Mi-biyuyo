@@ -28,6 +28,7 @@ import {
   parseNum,
   todayStr,
   ccyPrefix,
+  defaultCcy,
 } from "../../utils/money";
 import DateField from "../../components/DateField";
 import { useFocusChain } from "../../hooks/useFocusChain";
@@ -58,12 +59,13 @@ export default function PayScreen({ navigation, route }) {
     return fx.fromUsd(c, model.usdOfNative(debt, native));
   };
   const decOf = (c) => (c === "bin" ? 3 : undefined); // undefined = decimales del país
-  const canPrefill = pendingInst.length > 0 && fx.ready("bcv");
+  const ccy0 = defaultCcy(fx); // moneda inicial del pago
+  const canPrefill = pendingInst.length > 0 && fx.ready(ccy0);
 
-  const [ccy, setCcy] = useState("bcv");
+  const [ccy, setCcy] = useState(ccy0);
   const [kSel, setKSel] = useState(canPrefill ? 1 : null); // cuotas que se van a pagar
   const [amount, setAmount] = useState(
-    canPrefill ? fmtIn(instAmount(1, "bcv"), decOf("bcv")) : "",
+    canPrefill ? fmtIn(instAmount(1, ccy0), decOf(ccy0)) : "",
   );
   const [date, setDate] = useState(todayStr());
   const [entId, setEntId] = useState(null);
@@ -328,7 +330,10 @@ export default function PayScreen({ navigation, route }) {
               () => {
                 setKSel(null);
                 setAmount(
-                  fmtIn(fx.fromUsd(ccy, pend / 2), ccy === "bin" ? 3 : undefined),
+                  fmtIn(
+                    fx.fromUsd(ccy, pend / 2),
+                    ccy === "bin" ? 3 : undefined,
+                  ),
                 );
               },
             ],

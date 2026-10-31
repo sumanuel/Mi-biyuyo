@@ -36,6 +36,7 @@ import {
   ccyPrefix,
   fmtIn,
   fmtEdit,
+  defaultCcy,
 } from "../../utils/money";
 import { itemKey, qtyText } from "../../utils/text";
 import { takePhoto, pickFile } from "../../utils/receipt";
@@ -116,7 +117,8 @@ export default function MovementFormScreen({ navigation, route }) {
         id: "p" + i,
         name: it.name,
         qty: it.qty ? qtyText(it.qty) : "1",
-        amt: it.amt > 0 ? fmtIn(it.amt, plan.ccy === "bin" ? 3 : undefined) : "",
+        amt:
+          it.amt > 0 ? fmtIn(it.amt, plan.ccy === "bin" ? 3 : undefined) : "",
       }))
     : [];
   const initItems = plan
@@ -133,7 +135,7 @@ export default function MovementFormScreen({ navigation, route }) {
         }))
       : [];
   const [ccy, setCcy] = useState(
-    editing ? editing.ccy : plan ? plan.ccy : "bcv",
+    editing ? editing.ccy : plan ? plan.ccy : defaultCcy(fx),
   );
   const [amount, setAmount] = useState(
     editing

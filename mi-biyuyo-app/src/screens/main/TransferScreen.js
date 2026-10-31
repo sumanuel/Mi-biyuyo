@@ -27,6 +27,7 @@ import {
   todayStr,
   ccyPrefix,
   fmtIn,
+  defaultCcy,
 } from "../../utils/money";
 import { useFocusChain } from "../../hooks/useFocusChain";
 
@@ -40,7 +41,7 @@ export default function TransferScreen({ navigation, route }) {
 
   const [fromId, setFromId] = useState(route.params?.from || model.ents[0]?.id);
   const [toId, setToId] = useState(null);
-  const [ccy, setCcy] = useState("bcv");
+  const [ccy, setCcy] = useState(defaultCcy(fx));
   const [amount, setAmount] = useState("");
   const [fee, setFee] = useState("");
   const [date, setDate] = useState(todayStr());

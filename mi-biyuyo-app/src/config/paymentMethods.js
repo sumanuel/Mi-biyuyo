@@ -10,6 +10,26 @@ const DEF_ID = { label: "ID de usuario", f: ["ID o usuario", "Plataforma"] };
 
 const COMMON = { email: DEF_EMAIL, id: DEF_ID, none: DEF_NONE };
 
+// Países sin métodos propios todavía: cuenta bancaria y billetera o transferencia móvil.
+// Se pueden ir añadiendo los de cada país (por ejemplo Pix en Brasil) en COUNTRY_METHODS.
+const GENERIC = {
+  order: ["acct", "pm", "email", "id", "none"],
+  kinds: { banco: "acct", digital: "pm" },
+  defs: {
+    ...COMMON,
+    acct: {
+      label: "Cuenta bancaria",
+      f: ["Banco", "N.º de cuenta", "Titular"],
+      show: 1,
+    },
+    pm: {
+      label: "Billetera / transferencia móvil",
+      f: ["Aplicación", "Teléfono", "Titular"],
+      show: 1,
+    },
+  },
+};
+
 const COUNTRY_METHODS = {
   VE: {
     order: ["pm", "acct", "email", "id", "none"],
@@ -167,11 +187,62 @@ const COUNTRY_METHODS = {
       },
     },
   },
+  BR: {
+    order: ["pm", "acct", "email", "id", "none"],
+    kinds: { banco: "acct", digital: "pm" },
+    defs: {
+      ...COMMON,
+      pm: { label: "Pix", f: ["Chave Pix", "Banco", "Titular"] },
+      acct: {
+        label: "Cuenta bancaria",
+        f: ["Banco", "Agencia", "N.º de cuenta", "Titular"],
+        show: 2,
+      },
+    },
+  },
+  PT: {
+    order: ["acct", "pm", "email", "id", "none"],
+    kinds: { banco: "acct", digital: "pm" },
+    defs: {
+      ...COMMON,
+      acct: {
+        label: "Cuenta bancaria (IBAN)",
+        f: ["IBAN", "Banco", "Titular"],
+      },
+      pm: { label: "MB WAY", f: ["Teléfono", "Titular"] },
+    },
+  },
+  CR: {
+    order: ["pm", "acct", "email", "id", "none"],
+    kinds: { banco: "acct", digital: "pm" },
+    defs: {
+      ...COMMON,
+      pm: { label: "SINPE Móvil", f: ["Teléfono", "Titular"] },
+      acct: {
+        label: "Cuenta IBAN",
+        f: ["IBAN", "Banco", "Titular"],
+      },
+    },
+  },
+  PA: {
+    order: ["pm", "acct", "email", "id", "none"],
+    kinds: { banco: "acct", digital: "pm" },
+    defs: {
+      ...COMMON,
+      pm: { label: "Yappy", f: ["Teléfono", "Titular"] },
+      acct: {
+        label: "Cuenta bancaria",
+        f: ["Banco", "N.º de cuenta", "Titular"],
+        show: 1,
+      },
+    },
+  },
 };
 
-/** Métodos de pago del país: { order, defs, defaultFor(kind) }. Sin país conocido = Venezuela. */
+/** Métodos de pago del país: { order, defs, defaultFor(kind) }. Sin país = Venezuela; país sin métodos propios = métodos genéricos. */
 export function methodsFor(country) {
-  const m = COUNTRY_METHODS[country] || COUNTRY_METHODS.VE;
+  const m =
+    COUNTRY_METHODS[country] || (country ? GENERIC : COUNTRY_METHODS.VE);
   return {
     order: m.order,
     defs: m.defs,
