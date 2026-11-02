@@ -180,10 +180,17 @@ export function DataProvider({ children }) {
       reorderEntities: (ids) =>
         run(() => ledgerService.reorderEntities(token, ids)),
       deleteEntity: (id) => run(() => ledgerService.deleteEntity(token, id)),
+      archiveEntity: (id, body) =>
+        run(() => ledgerService.archiveEntity(token, id, body)),
+      restoreEntity: (id) => run(() => ledgerService.restoreEntity(token, id)),
       createTransfer: (body) =>
         run(() => ledgerService.createTransfer(token, body)),
       deleteTransfer: (id) =>
         run(() => ledgerService.deleteTransfer(token, id)),
+      createAdjustment: (body) =>
+        run(() => ledgerService.createAdjustment(token, body)),
+      deleteAdjustment: (id) =>
+        run(() => ledgerService.deleteAdjustment(token, id)),
       getReceipt: (id) => ledgerService.getReceipt(token, id),
     }),
     [run, token],
