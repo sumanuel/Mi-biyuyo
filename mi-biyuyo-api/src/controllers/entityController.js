@@ -1,12 +1,13 @@
 const pool = require("../config/database");
 const { toUsd } = require("../utils/currencyConverter");
+const { insertAdjustment } = require("./adjustmentController");
 
 const KINDS = ["efectivo", "banco", "digital", "otro"];
 const PTYPES = ["none", "pm", "acct", "email", "id"];
 
 const cols = `id, name, kind, currency, initial_usd::float AS initial_usd, initial_amount::float AS initial_amount,
               payment_type, payment_data, alert_usd::float AS alert_usd,
-              include_in_balance, created_at`;
+              include_in_balance, created_at, archived_at`;
 
 function clean(body) {
   const name = String(body.name || "").trim();
@@ -203,6 +204,63 @@ exports.remove = async (req, res, next) => {
     if (!rows.length)
       return res.status(404).json({ error: "Entidad no encontrada" });
     res.json({ message: "Entidad eliminada" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Archivar: la entidad deja de sumar a Mi saldo y de salir al registrar, pero su historial se conserva.
+// Si trae `adjust_amount` (con signo, en la moneda de la entidad), antes se registra ese ajuste para
+// dejar el saldo en 0 («cerrar la entidad»); todo en una sola transacción.
+exports.archive = async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { rows: ents } = await client.query(
+      `SELECT id, currency, archived_at FROM entities WHERE id = $1 AND user_id = $2 FOR UPDATE`,
+      [req.params.id, req.user.id],
+    );
+    if (!ents.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Entidad no encontrada" });
+    }
+    if (ents[0].archived_at) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ error: "La entidad ya está archivada" });
+    }
+    const n = parseFloat(req.body.adjust_amount);
+    if (Number.isFinite(n) && Math.abs(n) >= 0.0001)
+      await insertAdjustment(
+        client,
+        req.user.id,
+        ents[0],
+        n,
+        null,
+        req.body.note || "Cierre de la entidad",
+      );
+    const { rows } = await client.query(
+      `UPDATE entities SET archived_at = NOW() WHERE id = $1 AND user_id = $2 RETURNING ${cols}`,
+      [req.params.id, req.user.id],
+    );
+    await client.query("COMMIT");
+    res.json(rows[0]);
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+};
+
+exports.restore = async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `UPDATE entities SET archived_at = NULL WHERE id = $1 AND user_id = $2 RETURNING ${cols}`,
+      [req.params.id, req.user.id],
+    );
+    if (!rows.length)
+      return res.status(404).json({ error: "Entidad no encontrada" });
+    res.json(rows[0]);
   } catch (err) {
     next(err);
   }

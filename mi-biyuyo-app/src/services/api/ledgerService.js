@@ -68,3 +68,13 @@ export const deleteAdjustment = async (token, id) => {
   const { data } = await createAuthClient(token).delete(`/adjustments/${id}`);
   return data;
 };
+
+export const archiveEntity = async (token, id, body) => {
+  const { data } = await createAuthClient(token).post(`/entities/${id}/archive`, body || {});
+  return data;
+};
+
+export const restoreEntity = async (token, id) => {
+  const { data } = await createAuthClient(token).post(`/entities/${id}/restore`);
+  return data;
+};

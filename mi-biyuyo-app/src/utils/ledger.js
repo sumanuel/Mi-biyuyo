@@ -143,7 +143,8 @@ export function buildModel(raw, ratesOverride) {
     active: false,
   });
 
-  const ents = (empty ? [] : raw.entities || []).map((e) => {
+  // Todas las entidades (también las archivadas, para mostrar su nombre y su historial)
+  const allEnts = (empty ? [] : raw.entities || []).map((e) => {
     const init = e.initial_usd || 0;
     // Saldo inicial en la moneda de la entidad (no cambia con las tasas)
     const initNative =
@@ -169,14 +170,18 @@ export function buildModel(raw, ratesOverride) {
       pt: e.payment_type || "none",
       pd: e.payment_data || [],
       alert: e.alert_usd,
-      include: e.include_in_balance !== false, // ¿suma a Mi saldo?
+      archived: !!e.archived, // archivada: no suma a Mi saldo ni sale al registrar; conserva su historial
+      include: e.include_in_balance !== false && !e.archived, // ¿suma a Mi saldo?
       created: e.created || null,
       d: e.created ? daysAgo(e.created) : 0,
       ts: e.ts || 0,
     };
   });
+  // `ents` = las activas (listas, selectores, Mi saldo); `archivedEnts` = las archivadas
+  const ents = allEnts.filter((e) => !e.archived);
+  const archivedEnts = allEnts.filter((e) => e.archived);
   const entById = {};
-  ents.forEach((e) => (entById[e.id] = e));
+  allEnts.forEach((e) => (entById[e.id] = e));
   const entName = (id) => (entById[id] ? entById[id].name : "");
 
   const moves = (empty ? [] : raw.transactions || []).map((t) => {
@@ -464,7 +469,7 @@ export function buildModel(raw, ratesOverride) {
   const trail = {};
   {
     const run = {};
-    ents.forEach((e) => (run[e.id] = { n: e.initNative, s: e.init }));
+    allEnts.forEach((e) => (run[e.id] = { n: e.initNative, s: e.init }));
     const usdOf = (e) => {
       const r = run[e.id];
       if (e.ccy === "usd") return r.n;
@@ -567,6 +572,8 @@ export function buildModel(raw, ratesOverride) {
     planned,
     ents,
     entById,
+    allEnts,
+    archivedEnts,
     entName,
     transfers,
     adjustments,
@@ -694,7 +701,7 @@ export function initialRow(model, e, dv) {
 
 /** Entidades con saldo inicial > 0 y fecha conocida. */
 export const withInitial = (model) =>
-  model.ents.filter((e) => e.init > 0.005 && e.created);
+  model.allEnts.filter((e) => e.init > 0.005 && e.created);
 
 const addVal2 = (a, b) => ({
   usd: a.usd + b.usd,

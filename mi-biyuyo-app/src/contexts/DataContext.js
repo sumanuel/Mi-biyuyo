@@ -180,6 +180,9 @@ export function DataProvider({ children }) {
       reorderEntities: (ids) =>
         run(() => ledgerService.reorderEntities(token, ids)),
       deleteEntity: (id) => run(() => ledgerService.deleteEntity(token, id)),
+      archiveEntity: (id, body) =>
+        run(() => ledgerService.archiveEntity(token, id, body)),
+      restoreEntity: (id) => run(() => ledgerService.restoreEntity(token, id)),
       createTransfer: (body) =>
         run(() => ledgerService.createTransfer(token, body)),
       deleteTransfer: (id) =>

@@ -21,6 +21,7 @@ import { KIND_ICON, KIND_LABEL, PT, ledgerOf } from "../../utils/ledger";
 import {
   CCY_KEYS,
   CCY_LABEL,
+  ENT_CCY,
   ENT_CCY_LABEL,
   last30Range,
   monthLabel,
@@ -60,10 +61,26 @@ export default function EntityDetailScreen({ navigation, route }) {
     showToast("Datos de pago copiados");
   };
 
+  // Con movimientos no se elimina (se perdería su historial): se archiva
+  const used = model.entUsed(e.id);
+  const native = model.entNative(e);
+
+  const restore = async () => {
+    try {
+      await actions.restoreEntity(e.id);
+      showToast(`«${e.name}» restaurada`);
+    } catch (err) {
+      showToast(errorMessage(err));
+    }
+  };
+
   const remove = async () => {
     const ok = await confirm(
       "Eliminar entidad",
-      `¿Eliminar "${e.name}"? Solo es posible si no tiene movimientos.`,
+      `¿Eliminar "${e.name}"?` +
+        (Math.abs(native) > 0.005
+          ? ` Su saldo de ${fx.money(ENT_CCY[e.ccy], native)} dejará de sumarse a Mi saldo.`
+          : ""),
     );
     if (!ok) return;
     try {
@@ -86,6 +103,14 @@ export default function EntityDetailScreen({ navigation, route }) {
       contentStyle={{ paddingTop: 16 }}
       footer={
         <Footer>
+          {e.archived ? (
+            <Button
+              label="Restaurar entidad"
+              height={52}
+              style={{ borderRadius: 14 }}
+              onPress={restore}
+            />
+          ) : (
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Button
               label="Transferir"
@@ -102,6 +127,7 @@ export default function EntityDetailScreen({ navigation, route }) {
               onPress={() => navigation.navigate("EntityForm", { id: e.id })}
             />
           </View>
+          )}
         </Footer>
       }
     >
@@ -145,16 +171,41 @@ export default function EntityDetailScreen({ navigation, route }) {
               : "Sin alerta de saldo bajo"}
           </Txt>
         </View>
-        <Button
-          label="Ajustar saldo"
-          outline
-          height={44}
-          style={{ borderRadius: 12 }}
-          onPress={() => navigation.navigate("AdjustBalance", { entId: e.id })}
-        />
+        {!e.archived ? (
+          <Button
+            label="Ajustar saldo"
+            outline
+            height={44}
+            style={{ borderRadius: 12 }}
+            onPress={() => navigation.navigate("AdjustBalance", { entId: e.id })}
+          />
+        ) : null}
       </Card>
 
-      {!e.include ? (
+      {e.archived ? (
+        <View
+          style={{
+            paddingVertical: 12,
+            paddingHorizontal: 14,
+            borderRadius: 14,
+            backgroundColor: colors.chip,
+          }}
+        >
+          <Txt
+            style={{
+              fontSize: 13,
+              lineHeight: 18,
+              color: colors.textSecondary,
+            }}
+          >
+            Esta entidad está archivada: no suma a Mi saldo ni aparece al
+            registrar. Su historial se conserva. Restáurala para volver a
+            usarla.
+          </Txt>
+        </View>
+      ) : null}
+
+      {!e.include && !e.archived ? (
         <View
           style={{
             paddingVertical: 12,
@@ -307,20 +358,30 @@ export default function EntityDetailScreen({ navigation, route }) {
         />
       </View>
 
-      <TouchableOpacity
-        onPress={remove}
-        style={{
-          minHeight: 44,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Txt
-          style={{ color: colors.danger.fg, fontSize: 13, fontWeight: "700" }}
+      {!e.archived ? (
+        <TouchableOpacity
+          onPress={
+            used
+              ? () => navigation.navigate("ArchiveEntity", { id: e.id })
+              : remove
+          }
+          style={{
+            minHeight: 44,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
-          Eliminar entidad
-        </Txt>
-      </TouchableOpacity>
+          <Txt
+            style={{
+              color: used ? colors.textSecondary : colors.danger.fg,
+              fontSize: 13,
+              fontWeight: "700",
+            }}
+          >
+            {used ? "Archivar entidad" : "Eliminar entidad"}
+          </Txt>
+        </TouchableOpacity>
+      ) : null}
     </Screen>
   );
 }

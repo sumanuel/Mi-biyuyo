@@ -23,7 +23,8 @@ exports.get = async (req, res, next) => {
         `SELECT id, name, kind, currency, initial_usd::float AS initial_usd,
                 initial_amount::float AS initial_amount,
                 payment_type, payment_data, alert_usd::float AS alert_usd,
-                include_in_balance, to_char(created_at,'YYYY-MM-DD') AS created,
+                include_in_balance, (archived_at IS NOT NULL) AS archived,
+                to_char(created_at,'YYYY-MM-DD') AS created,
                 (EXTRACT(EPOCH FROM created_at) * 1000)::float AS ts
          FROM entities WHERE user_id = $1 ORDER BY COALESCE(sort_order, 1000000), id`,
         [uid],

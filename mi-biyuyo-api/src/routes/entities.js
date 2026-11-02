@@ -7,6 +7,8 @@ router.get("/", ctrl.list);
 router.post("/", ctrl.create);
 router.put("/order", ctrl.reorder);
 router.put("/:id", ctrl.update);
+router.post("/:id/archive", ctrl.archive);
+router.post("/:id/restore", ctrl.restore);
 router.delete("/:id", ctrl.remove);
 
 module.exports = router;

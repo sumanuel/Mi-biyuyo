@@ -53,6 +53,8 @@ import CategoryFormScreen from "./src/screens/main/CategoryFormScreen";
 import EntityMovementsScreen from "./src/screens/main/EntityMovementsScreen";
 import TransferScreen from "./src/screens/main/TransferScreen";
 import AdjustBalanceScreen from "./src/screens/main/AdjustBalanceScreen";
+import ArchiveEntityScreen from "./src/screens/main/ArchiveEntityScreen";
+import ArchivedEntitiesScreen from "./src/screens/main/ArchivedEntitiesScreen";
 import ExchangeRateScreen from "./src/screens/main/ExchangeRateScreen";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as NativeSplash from "expo-splash-screen";
@@ -295,6 +297,14 @@ function AppNavigator() {
                       <Stack.Screen
                         name="AdjustBalance"
                         component={AdjustBalanceScreen}
+                      />
+                      <Stack.Screen
+                        name="ArchiveEntity"
+                        component={ArchiveEntityScreen}
+                      />
+                      <Stack.Screen
+                        name="ArchivedEntities"
+                        component={ArchivedEntitiesScreen}
                       />
                       <Stack.Screen
                         name="ExchangeRate"

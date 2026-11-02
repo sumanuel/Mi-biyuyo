@@ -388,6 +388,11 @@ async function migrate() {
       `CREATE INDEX IF NOT EXISTS idx_adjustments_entity ON balance_adjustments(entity_id)`,
     );
 
+    // ── entidades archivadas: dejan de sumar a Mi saldo y de salir al registrar, pero conservan su historial ──
+    await client.query(
+      `ALTER TABLE entities ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ`,
+    );
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {
