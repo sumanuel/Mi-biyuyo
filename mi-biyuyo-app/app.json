@@ -51,7 +51,8 @@
           "backgroundColor": "#1f7a59"
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "expo-status-bar"
     ],
     "extra": {
       "eas": {
