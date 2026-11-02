@@ -35,7 +35,7 @@ import {
   addDays,
   fullDate,
 } from "../../utils/money";
-import { itemKey, qtyText } from "../../utils/text";
+import { qtyText } from "../../utils/text";
 import { takePhoto, pickFile } from "../../utils/receipt";
 import DateField from "../../components/DateField";
 import { useFocusChain } from "../../hooks/useFocusChain";
@@ -54,19 +54,6 @@ const DUE_CUSTOM = 4;
 // Pagos en cuotas: cantidad de cuotas ofrecidas y cada cuántos días vence cada una
 const INST_OPTS = [0, 3, 6, 9, 12];
 const INST_DAYS = 15;
-const SUG_GASTO = [
-  "Queso",
-  "Jamón",
-  "Pan",
-  "Leche",
-  "Huevos",
-  "Vino",
-  "Aceitunas",
-  "Pollo",
-  "Frutas",
-  "Refresco",
-];
-const SUG_PAGAR = ["Cuota", "Intereses", "Seguro", "Comisión"];
 
 export default function MovementFormScreen({ navigation, route }) {
   const chain = useFocusChain();
@@ -106,6 +93,14 @@ export default function MovementFormScreen({ navigation, route }) {
   // Sin perder decimales (USDT guarda hasta 4): guardar sin cambios no altera el monto
   const nat = (n) =>
     n > 0 ? String(Math.round(n * 10000) / 10000).replace(".", ",") : "";
+  // Costo unitario de un ítem a partir del monto de su línea; el USD se guarda con 4 decimales,
+  // así que se quita el ruido (50,0015 -> 50) cuando el valor está a menos de 0,1 % de 2 decimales
+  const costNat = (line, qty) => {
+    const raw = line / (qty > 0 ? qty : 1);
+    if (!(raw > 0)) return "";
+    const r = Math.round(raw * 100) / 100;
+    return nat(r > 0 && Math.abs(r - raw) <= raw * 0.001 ? r : raw);
+  };
   const lockCcy =
     !!editing && isDebtType(editing.type) && editing.pays.length > 0;
   const paidNat = lockCcy ? model.paidNative(editing) : 0;
@@ -115,7 +110,7 @@ export default function MovementFormScreen({ navigation, route }) {
         id: "p" + i,
         name: it.name,
         qty: it.qty ? qtyText(it.qty) : "1",
-        amt: it.amt > 0 ? fmtIn(it.amt, plan.ccy === "bin" ? 3 : 2) : "",
+        cost: costNat(it.amt, it.qty),
       }))
     : [];
   const initItems = plan
@@ -125,9 +120,9 @@ export default function MovementFormScreen({ navigation, route }) {
           id: "e" + i,
           name: it.name,
           qty: it.qty ? qtyText(it.qty) : "1",
-          amt:
+          cost:
             it.usd > 0 && origOk
-              ? nat(it.usd * (editing.amount / editing.usd))
+              ? costNat(it.usd * (editing.amount / editing.usd), it.qty)
               : "",
         }))
       : [];
@@ -160,12 +155,6 @@ export default function MovementFormScreen({ navigation, route }) {
   const [items, setItems] = useState(initItems);
   const [itemsOpen, setItemsOpen] = useState(initItems.length > 0);
   const [iName, setIName] = useState("");
-  // Desde un plan: el monto por ítem se activa solo si todos los ítems lo tienen (si no, no bloquea el guardado)
-  const [itemsAmt, setItemsAmt] = useState(
-    plan
-      ? initItems.length > 0 && initItems.every((i) => i.amt)
-      : initItems.some((i) => i.amt),
-  );
   const [receipt, setReceipt] = useState(
     editing?.receipt ? { name: editing.receipt, existing: true } : null,
   );
@@ -188,33 +177,32 @@ export default function MovementFormScreen({ navigation, route }) {
   const needsEnt = !isDebt || cash;
   const noEnts = model.ents.length === 0;
 
-  const itemsSumUsd = itemsAmt
-    ? items.reduce((a, it) => a + toUsdE(ccy, parseNum(it.amt)), 0)
-    : 0;
-  const missing = itemsAmt
-    ? items.filter((it) => parseNum(it.amt) <= 0).length
-    : 0;
-  const overItems = itemsAmt && itemsSumUsd > usdVal + 0.005;
-  const itemsInvalid =
-    showItems && itemsAmt && items.length > 0 && (missing > 0 || overItems);
+  // Subtotal de cada ítem = cantidad x costo unitario (el costo es opcional)
+  const lineOf = (it) => {
+    const c = parseNum(it.cost);
+    const q = parseNum(it.qty);
+    return c > 0 ? Math.round(c * (q > 0 ? q : 1) * 10000) / 10000 : 0;
+  };
+  const itemsSum = items.reduce((a, it) => a + lineOf(it), 0);
+  const itemsSumUsd = items.reduce((a, it) => a + toUsdE(ccy, lineOf(it)), 0);
+  const withCost = items.filter((it) => lineOf(it) > 0).length;
+  const overItems = withCost > 0 && itemsSumUsd > usdVal + 0.005;
+  const itemsInvalid = showItems && overItems;
   const rateMissing = !readyF(ccy);
   const belowPaid = lockCcy && amtNum > 0 && amtNum < paidNat - 0.01;
 
   let itemsMsg = "";
   let itemsMsgDanger = false;
-  if (items.length && !itemsAmt)
-    itemsMsg = `${nTxt(items.length, "ítem")} sin monto. El total sigue siendo ${fx.money(ccy, amtNum)}.`;
-  if (items.length && itemsAmt) {
+  if (items.length && !withCost)
+    itemsMsg = `Pon el costo unitario para detallar el gasto. El total sigue siendo ${fx.money(ccy, amtNum)}.`;
+  if (withCost) {
     const rest = fromUsdE(ccy, Math.max(0, usdVal - itemsSumUsd));
     if (overItems) {
       itemsMsg = `La suma de los ítems supera el total en ${fx.money(ccy, fromUsdE(ccy, itemsSumUsd - usdVal))}.`;
       itemsMsgDanger = true;
-    } else if (missing > 0) {
-      itemsMsg = `Falta el monto de ${nTxt(missing, "ítem")}.`;
-      itemsMsgDanger = true;
     } else {
       itemsMsg =
-        `Detallado ${fx.money(ccy, fromUsdE(ccy, itemsSumUsd))} de ${fx.money(ccy, amtNum)}` +
+        `Detallado ${fx.money(ccy, itemsSum)} de ${fx.money(ccy, amtNum)}` +
         (rest > 0.005
           ? `. Sin detallar ${fx.money(ccy, rest)}.`
           : ". Todo detallado.");
@@ -248,14 +236,10 @@ export default function MovementFormScreen({ navigation, route }) {
     if (!n) return;
     setItems((prev) => [
       ...prev,
-      { id: `i${Date.now()}-${prev.length}`, name: n, qty: "1", amt: "" },
+      { id: `i${Date.now()}-${prev.length}`, name: n, qty: "1", cost: "" },
     ]);
     setIName("");
   };
-  const sugg = (type === "pagar" ? SUG_PAGAR : SUG_GASTO)
-    .filter((n) => !items.some((it) => itemKey(it.name) === itemKey(n)))
-    .slice(0, 6);
-
   const attach = async (fn) => {
     try {
       const r = await fn();
@@ -286,8 +270,7 @@ export default function MovementFormScreen({ navigation, route }) {
           ? items.map((it) => ({
               name: it.name,
               quantity: parseNum(it.qty) > 0 ? parseNum(it.qty) : null,
-              amount:
-                itemsAmt && parseNum(it.amt) > 0 ? parseNum(it.amt) : null,
+              amount: lineOf(it) > 0 ? lineOf(it) : null,
             }))
           : [],
       };
@@ -581,24 +564,24 @@ export default function MovementFormScreen({ navigation, route }) {
                   onChangeText={setIName}
                   {...chain(3, { last: true })}
                   onSubmitEditing={() => addNamed(iName)}
-                  placeholder="Ej: queso, jamón, vino"
+                  placeholder="Ej: queso, harina, café"
                   accessibilityLabel="Nuevo ítem"
                   style={{
                     flex: 1,
                     minWidth: 0,
-                    minHeight: 48,
+                    minHeight: 36,
                     borderWidth: 1,
                     borderColor: colors.border,
                     borderRadius: 12,
                     backgroundColor: colors.surface,
                     paddingHorizontal: 14,
-                    fontSize: 15,
+                    fontSize: 14,
                   }}
                 />
                 <TouchableOpacity
                   onPress={() => addNamed(iName)}
                   style={{
-                    minHeight: 48,
+                    minHeight: 36,
                     paddingHorizontal: 16,
                     borderRadius: 12,
                     backgroundColor: tint.strong,
@@ -617,164 +600,194 @@ export default function MovementFormScreen({ navigation, route }) {
                   </Txt>
                 </TouchableOpacity>
               </View>
-              <ChipRow>
-                {sugg.map((n) => (
-                  <TouchableOpacity
-                    key={n}
-                    onPress={() => addNamed(n)}
-                    style={{
-                      minHeight: 44,
-                      paddingHorizontal: 14,
-                      borderRadius: 999,
-                      borderWidth: 1,
-                      borderStyle: "dashed",
-                      borderColor: colors.disabled,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Txt style={{ fontSize: 13, fontWeight: "600" }}>+ {n}</Txt>
-                  </TouchableOpacity>
-                ))}
-              </ChipRow>
               <View>
-                {items.length ? (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <View style={{ flex: 1 }} />
-                    <Txt
+                {items.map((it, idx) => {
+                  const line = lineOf(it);
+                  const costBad = parseNum(it.cost) > 0 && overItems;
+                  return (
+                    <View
+                      key={it.id}
                       style={{
-                        width: 58,
-                        textAlign: "center",
-                        fontSize: 11,
-                        fontWeight: "700",
-                        color: colors.textSecondary,
+                        gap: 6,
+                        paddingVertical: 6,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.divider,
                       }}
                     >
-                      Cantidad
-                    </Txt>
-                    {itemsAmt ? (
-                      <Txt
+                      <View
                         style={{
-                          width: 92,
-                          textAlign: "center",
-                          fontSize: 11,
-                          fontWeight: "700",
-                          color: colors.textSecondary,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 8,
                         }}
                       >
-                        Monto
-                      </Txt>
-                    ) : null}
-                    <View style={{ width: 44 }} />
-                  </View>
-                ) : null}
-                {items.map((it, idx) => (
-                  <View
-                    key={it.id}
+                        <Txt
+                          numberOfLines={2}
+                          style={{ flex: 1, fontSize: 15, fontWeight: "700" }}
+                        >
+                          {it.name}
+                        </Txt>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setItems((prev) =>
+                              prev.filter((x) => x.id !== it.id),
+                            )
+                          }
+                          accessibilityLabel={`Quitar ${it.name}`}
+                          style={{
+                            width: 44,
+                            height: 28,
+                            alignItems: "flex-end",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Icon
+                            name="close"
+                            size={18}
+                            color={colors.textSecondary}
+                            stroke={2}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "flex-end",
+                          gap: 8,
+                        }}
+                      >
+                        <View style={{ width: 52, gap: 4 }}>
+                          <Txt
+                            style={{
+                              fontSize: 11,
+                              fontWeight: "600",
+                              color: colors.textSecondary,
+                            }}
+                          >
+                            Cantidad
+                          </Txt>
+                          <Input
+                            value={it.qty}
+                            onChangeText={(v) =>
+                              setItems((prev) =>
+                                prev.map((x) =>
+                                  x.id === it.id ? { ...x, qty: v } : x,
+                                ),
+                              )
+                            }
+                            keyboardType="decimal-pad"
+                            placeholder="1"
+                            accessibilityLabel={`Cantidad de ${it.name}`}
+                            {...chain(10 + idx * 2)}
+                            style={{
+                              minHeight: 32,
+                              borderWidth: 1,
+                              borderColor: colors.border,
+                              borderRadius: 10,
+                              backgroundColor: colors.surface,
+                              paddingHorizontal: 8,
+                              textAlign: "right",
+                              fontSize: 14,
+                              fontWeight: "700",
+                            }}
+                          />
+                        </View>
+                        <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                          <Txt
+                            style={{
+                              fontSize: 11,
+                              fontWeight: "600",
+                              color: colors.textSecondary,
+                            }}
+                          >
+                            Costo unit. (opcional)
+                          </Txt>
+                          <Input
+                            value={it.cost}
+                            onChangeText={(v) =>
+                              setItems((prev) =>
+                                prev.map((x) =>
+                                  x.id === it.id ? { ...x, cost: v } : x,
+                                ),
+                              )
+                            }
+                            keyboardType="decimal-pad"
+                            placeholder="0,00"
+                            accessibilityLabel={`Costo unitario de ${it.name}`}
+                            {...chain(11 + idx * 2, {
+                              last: idx === items.length - 1,
+                            })}
+                            style={{
+                              minHeight: 32,
+                              borderWidth: 1,
+                              borderColor: costBad
+                                ? colors.danger.border
+                                : colors.border,
+                              borderRadius: 10,
+                              backgroundColor: colors.surface,
+                              paddingHorizontal: 8,
+                              textAlign: "right",
+                              fontSize: 14,
+                              fontWeight: "700",
+                            }}
+                          />
+                        </View>
+                        <View
+                          style={{
+                            minWidth: 108,
+                            alignItems: "flex-end",
+                            gap: 4,
+                            paddingBottom: 7,
+                          }}
+                        >
+                          <Txt
+                            style={{
+                              fontSize: 11,
+                              fontWeight: "600",
+                              color: colors.textSecondary,
+                            }}
+                          >
+                            Subtotal
+                          </Txt>
+                          <Txt
+                            style={{
+                              fontSize: 14,
+                              fontWeight: "700",
+                              color:
+                                line > 0
+                                  ? colors.text
+                                  : colors.textSecondary,
+                            }}
+                          >
+                            {line > 0 ? fx.money(ccy, line) : "—"}
+                          </Txt>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+              {items.length > 0 && itemsSum > 0 ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingTop: 4,
+                  }}
+                >
+                  <Txt style={{ fontSize: 15, fontWeight: "700" }}>Total</Txt>
+                  <Txt
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                      paddingVertical: 6,
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.divider,
+                      fontSize: 18,
+                      fontWeight: "800",
+                      color: tint.strong,
                     }}
                   >
-                    <Txt
-                      numberOfLines={2}
-                      style={{ flex: 1, fontSize: 14, fontWeight: "600" }}
-                    >
-                      {it.name}
-                    </Txt>
-                    <Input
-                      value={it.qty}
-                      onChangeText={(v) =>
-                        setItems((prev) =>
-                          prev.map((x) =>
-                            x.id === it.id ? { ...x, qty: v } : x,
-                          ),
-                        )
-                      }
-                      keyboardType="decimal-pad"
-                      placeholder="Cant."
-                      accessibilityLabel={`Cantidad de ${it.name}`}
-                      {...chain(10 + idx * 2, {
-                        last: !itemsAmt && idx === items.length - 1,
-                      })}
-                      style={{
-                        width: 58,
-                        minHeight: 40,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        borderRadius: 10,
-                        backgroundColor: colors.surface,
-                        paddingHorizontal: 6,
-                        textAlign: "center",
-                        fontSize: 14,
-                        fontWeight: "700",
-                      }}
-                    />
-                    {itemsAmt ? (
-                      <Input
-                        value={it.amt}
-                        onChangeText={(v) =>
-                          setItems((prev) =>
-                            prev.map((x) =>
-                              x.id === it.id ? { ...x, amt: v } : x,
-                            ),
-                          )
-                        }
-                        keyboardType="decimal-pad"
-                        placeholder="0,00"
-                        accessibilityLabel={`Monto de ${it.name}`}
-                        {...chain(11 + idx * 2, {
-                          last: idx === items.length - 1,
-                        })}
-                        style={{
-                          width: 92,
-                          minHeight: 40,
-                          borderWidth: 1,
-                          borderColor:
-                            parseNum(it.amt) <= 0
-                              ? colors.danger.border
-                              : colors.border,
-                          borderRadius: 10,
-                          backgroundColor: colors.surface,
-                          paddingHorizontal: 10,
-                          textAlign: "right",
-                          fontSize: 14,
-                          fontWeight: "700",
-                        }}
-                      />
-                    ) : null}
-                    <TouchableOpacity
-                      onPress={() =>
-                        setItems((prev) => prev.filter((x) => x.id !== it.id))
-                      }
-                      accessibilityLabel={`Quitar ${it.name}`}
-                      style={{
-                        width: 44,
-                        height: 44,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Icon
-                        name="close"
-                        size={18}
-                        color={colors.textSecondary}
-                        stroke={2}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
+                    {fx.money(ccy, itemsSum)}
+                  </Txt>
+                </View>
+              ) : null}
               {itemsMsg ? (
                 <Txt
                   style={{
@@ -789,54 +802,6 @@ export default function MovementFormScreen({ navigation, route }) {
                   {itemsMsg}
                 </Txt>
               ) : null}
-              <TouchableOpacity
-                onPress={() => setItemsAmt((v) => !v)}
-                accessibilityRole="switch"
-                accessibilityState={{ checked: itemsAmt }}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                  minHeight: 48,
-                }}
-              >
-                <View
-                  style={{
-                    width: 44,
-                    height: 26,
-                    borderRadius: 13,
-                    backgroundColor: itemsAmt ? tint.strong : colors.disabled,
-                    justifyContent: "center",
-                  }}
-                >
-                  <View
-                    style={{
-                      position: "absolute",
-                      top: 3,
-                      left: itemsAmt ? 21 : 3,
-                      width: 20,
-                      height: 20,
-                      borderRadius: 10,
-                      backgroundColor: "#ffffff",
-                    }}
-                  />
-                </View>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Txt style={{ fontSize: 14, fontWeight: "700" }}>
-                    Asignar monto a cada ítem
-                  </Txt>
-                  <Txt
-                    style={{
-                      fontSize: 12,
-                      lineHeight: 16,
-                      color: colors.textSecondary,
-                    }}
-                  >
-                    Cada ítem lleva su monto y la suma no puede pasar del total.
-                    Da estadísticas más precisas.
-                  </Txt>
-                </View>
-              </TouchableOpacity>
             </>
           ) : null}
         </Card>
