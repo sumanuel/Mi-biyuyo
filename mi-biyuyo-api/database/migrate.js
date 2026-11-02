@@ -365,6 +365,29 @@ async function migrate() {
       await client.query(`UPDATE ${tbl} SET quantity = 1 WHERE quantity IS NULL`);
     }
 
+    // ── ajustes de saldo: corrigen el saldo de una entidad sin contar como ingreso ni gasto ──
+    // Los montos van con signo (+ suma, - resta); `amount` está en la moneda de la entidad
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS balance_adjustments (
+        id             SERIAL PRIMARY KEY,
+        user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        entity_id      INTEGER NOT NULL REFERENCES entities(id) ON DELETE RESTRICT,
+        amount         DECIMAL(15,4) NOT NULL,
+        amount_usd     DECIMAL(15,4) NOT NULL,
+        amount_ves     DECIMAL(15,4),
+        amount_binance DECIMAL(15,4),
+        date           DATE NOT NULL DEFAULT CURRENT_DATE,
+        note           VARCHAR(255),
+        created_at     TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_adjustments_user ON balance_adjustments(user_id, date DESC)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_adjustments_entity ON balance_adjustments(entity_id)`,
+    );
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {

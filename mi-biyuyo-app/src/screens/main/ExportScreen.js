@@ -23,7 +23,11 @@ export default function ExportScreen({ navigation }) {
 
   const counts = countsFor(model, { from, to });
   const nothing =
-    !counts.moves && !counts.pays && !counts.transfers && !model.ents.length;
+    !counts.moves &&
+    !counts.pays &&
+    !counts.transfers &&
+    !counts.adjusts &&
+    !model.ents.length;
 
   const run = async () => {
     if (busy) return;
@@ -45,6 +49,10 @@ export default function ExportScreen({ navigation }) {
     ],
     ["Abonos", `${nTxt(counts.pays, "abono")} de cobros y pagos`],
     ["Transferencias", `${nTxt(counts.transfers, "transferencia")}`],
+    [
+      "Ajustes",
+      `${nTxt(counts.adjusts, "ajuste")} de saldo (no cuentan como ingreso ni gasto)`,
+    ],
     [
       "Ítems",
       `${nTxt(counts.items, "ítem")} del detalle de las compras, con cantidad`,

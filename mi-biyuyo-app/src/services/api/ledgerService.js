@@ -58,3 +58,13 @@ export const deletePlanned = async (token, id) => {
   const { data } = await createAuthClient(token).delete(`/planned/${id}`);
   return data;
 };
+
+export const createAdjustment = async (token, body) => {
+  const { data } = await createAuthClient(token).post("/adjustments", body);
+  return data;
+};
+
+export const deleteAdjustment = async (token, id) => {
+  const { data } = await createAuthClient(token).delete(`/adjustments/${id}`);
+  return data;
+};

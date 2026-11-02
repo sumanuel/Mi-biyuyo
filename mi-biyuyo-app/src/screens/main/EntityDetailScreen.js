@@ -145,6 +145,13 @@ export default function EntityDetailScreen({ navigation, route }) {
               : "Sin alerta de saldo bajo"}
           </Txt>
         </View>
+        <Button
+          label="Ajustar saldo"
+          outline
+          height={44}
+          style={{ borderRadius: 12 }}
+          onPress={() => navigation.navigate("AdjustBalance", { entId: e.id })}
+        />
       </Card>
 
       {!e.include ? (

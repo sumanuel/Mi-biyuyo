@@ -268,6 +268,35 @@ export function buildModel(raw, ratesOverride) {
     ccy: CCY_FROM_API[t.currency] || "usd",
   }));
 
+  // Ajustes de saldo: corrigen el saldo de una entidad (no son ingreso ni gasto). Los valores van
+  // con signo: + suma, - resta. `native` es el monto en la moneda de la entidad.
+  const adjustments = (empty ? [] : raw.adjustments || []).map((a) => {
+    const sg = (a.amount_usd || a.amount) < 0 ? -1 : 1;
+    const v = mkVal(
+      Math.abs(a.amount_usd),
+      Math.abs(a.amount_ves),
+      Math.abs(a.amount_binance),
+    );
+    return {
+      id: a.id,
+      ent: a.entity_id,
+      date: a.date,
+      d: daysAgo(a.date),
+      ts: a.ts || 0,
+      usd: sg * v.usd,
+      val: { usd: sg * v.usd, bcv: sg * v.bcv, bin: sg * v.bin },
+      native: a.amount,
+      note: a.note || "",
+    };
+  });
+  const adjustmentById = {};
+  adjustments.forEach((a) => (adjustmentById[a.id] = a));
+  // ¿La entidad ya tiene movimientos (de cualquier tipo)? Si no, aún se puede corregir su saldo inicial
+  const entUsed = (id) =>
+    moves.some((m) => m.ent === id || (m.pays || []).some((q) => q.ent === id)) ||
+    transfers.some((t) => t.from === id || t.to === id) ||
+    adjustments.some((a) => a.ent === id);
+
   /* ---------- deudas: pendiente en la moneda de la deuda, valuado con la tasa de hoy ---------- */
   const isLive = (m) => !(isDebtType(m.type) && m.cash === false);
   const tolOf = (m) => (m.ccy === "bin" ? 0.005 : 0.01);
@@ -343,6 +372,9 @@ export function buildModel(raw, ratesOverride) {
       if (t.from === e.id) b -= nat(t.val, e) + nat(t.feeVal, e);
       if (t.to === e.id) b += nat(t.val, e);
     });
+    adjustments.forEach((a) => {
+      if (a.ent === e.id) b += nat(a.val, e);
+    });
     return b;
   };
   // Saldo con valores en USD guardados (solo respaldo si falta la tasa BCV)
@@ -358,6 +390,9 @@ export function buildModel(raw, ratesOverride) {
     transfers.forEach((t) => {
       if (t.from === e.id) b -= t.usd + t.fee;
       if (t.to === e.id) b += t.usd;
+    });
+    adjustments.forEach((a) => {
+      if (a.ent === e.id) b += a.usd;
     });
     return b;
   };
@@ -392,6 +427,9 @@ export function buildModel(raw, ratesOverride) {
       transfers.forEach((t) => {
         if (t.from === e.id) b -= t.val[c] + t.feeVal[c];
         if (t.to === e.id) b += t.val[c];
+      });
+      adjustments.forEach((a) => {
+        if (a.ent === e.id) b += a.val[c];
       });
       return total + b;
     }, 0);
@@ -470,6 +508,19 @@ export function buildModel(raw, ratesOverride) {
     transfers.forEach((t) =>
       evs.push({ key: "t" + t.id, d: t.d, ts: t.ts, t }),
     );
+    adjustments.forEach((a) => {
+      const ae = entById[a.ent];
+      if (ae)
+        evs.push({
+          key: "a" + a.id,
+          d: a.d,
+          ts: a.ts,
+          e: ae,
+          sg: 1, // el valor del ajuste ya lleva su signo
+          val: a.val,
+          usd: a.usd,
+        });
+    });
     // Del más antiguo al más reciente: el inverso exacto del orden de la lista
     evs.sort(byRecent).reverse();
     evs.forEach((ev) => {
@@ -518,6 +569,9 @@ export function buildModel(raw, ratesOverride) {
     entById,
     entName,
     transfers,
+    adjustments,
+    adjustmentById,
+    entUsed,
     trail,
     paidOf,
     pendOf,
@@ -664,6 +718,23 @@ export function transferRow(model, t, dv, ref) {
   };
 }
 
+/** Ajuste de saldo mostrado como movimiento (corrige el saldo; no cuenta como ingreso ni gasto). */
+export function adjustmentRow(model, a, dv) {
+  const pos = a.usd >= 0;
+  const abs = { usd: Math.abs(a.val.usd), bcv: Math.abs(a.val.bcv), bin: Math.abs(a.val.bin) };
+  return {
+    key: "a" + a.id,
+    title: "Ajuste de saldo",
+    icon: "swap",
+    tone: "neutral",
+    sub: model.entName(a.ent) + (a.note ? " · " + a.note : ""),
+    date: dlabel(a.date),
+    amount: (pos ? "+" : "-") + dv(abs),
+    line2: "Corrección de saldo",
+    nav: { name: "AdjustBalance", params: { adjId: a.id } },
+  };
+}
+
 /** Del más reciente al más antiguo: por fecha y, en el mismo día, por hora de registro. */
 export const byRecent = (a, b) => a.d - b.d || (b.ts || 0) - (a.ts || 0);
 
@@ -704,6 +775,10 @@ export function feed(
           k: "i" + e.id,
           r: initialRow(model, e, dv),
         });
+    });
+    model.adjustments.forEach((a) => {
+      if (inRange(a.date))
+        out.push({ d: a.d, ts: a.ts, k: "a" + a.id, r: adjustmentRow(model, a, dv) });
     });
   }
   return out.sort(byRecent).map((o) => ({
@@ -751,6 +826,9 @@ export function ledgerOf(model, entId, dv, range) {
   withInitial(model)
     .filter((e) => e.id === entId)
     .forEach((e) => add(e.d, e.created, initialRow(model, e, dv), e.ts));
+  model.adjustments.forEach((a) => {
+    if (a.ent === entId) add(a.d, a.date, adjustmentRow(model, a, dv), a.ts);
+  });
   return out.sort(byRecent).map((o) => o.r);
 }
 

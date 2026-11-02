@@ -21,6 +21,8 @@ const TOPICS = [
       "Elige su moneda (USD, VES o USDT) y su saldo inicial. El saldo inicial se registra como el primer movimiento de la entidad.",
       "«Sumar a Mi saldo» decide si el saldo de esa entidad cuenta en tu saldo total. Si lo desmarcas, la entidad sigue funcionando pero no suma.",
       "Con «Transferir» mueves dinero entre entidades, con comisión opcional. También puedes definir una alerta de saldo bajo.",
+      "Si el saldo de una entidad no coincide con lo que tienes de verdad, ábrela y toca «Ajustar saldo»: escribe el saldo real y la app registra la diferencia como un ajuste. No cuenta como ingreso ni gasto, y tus movimientos anteriores no cambian. Puedes deshacer un ajuste tocándolo en la lista de movimientos de la entidad.",
+      "Si te equivocaste al crear una entidad y todavía no tiene movimientos, puedes corregir su saldo inicial desde «Editar». Cuando ya tiene movimientos, el saldo inicial queda fijo y se corrige con «Ajustar saldo».",
       "Para ordenar tus entidades, mantén presionada una, arrástrala al lugar que prefieras y suéltala. El orden se guarda en tu cuenta.",
       "En Últimos movimientos y en el Historial, cada movimiento muestra debajo cuánto te quedó justo después de hacerlo: el saldo de la entidad que usaste (por ejemplo, «Banesco USD 831.30») y «Mi saldo», el total de tus entidades que suman. Así sigues cómo evoluciona tu dinero. Las transferencias muestran solo Mi saldo, y si la entidad no suma a Mi saldo, solo ves el de la entidad. Los saldos se valoran con la tasa de hoy, igual que Mi saldo, así que el más reciente coincide con lo que ves arriba. En Ajustes > Apariencia, «Saldo en los movimientos», eliges qué ver: Ambos, solo el de la Entidad, solo Mi saldo o Ninguno. Los saldos van alineados a la derecha, bajo el monto.",
     ],
@@ -106,7 +108,7 @@ const TOPICS = [
     title: "Exportar a Excel",
     body: [
       "Ve a Ajustes > Sistema > Exportar a Excel. Elige el período (Este mes, Mes anterior, Últimos 3 meses, fechas a tu gusto o «Todo el historial») y toca «Exportar a Excel».",
-      "Se genera un archivo .xlsx con varias hojas: Resumen (totales del período y tasas de hoy), Movimientos (ingresos, gastos, por cobrar y por pagar, con el monto en USD, VES y USDT), Abonos, Transferencias, Ítems (con su cantidad y monto) y Entidades (los saldos de hoy).",
+      "Se genera un archivo .xlsx con varias hojas: Resumen (totales del período y tasas de hoy), Movimientos (ingresos, gastos, por cobrar y por pagar, con el monto en USD, VES y USDT), Abonos, Transferencias, Ajustes (correcciones de saldo), Ítems (con su cantidad y monto) y Entidades (los saldos de hoy).",
       "Al terminar, el teléfono te deja guardarlo (Archivos, Drive), abrirlo con Excel o enviarlo por WhatsApp o correo. Los montos son números, así que puedes sumarlos, filtrarlos y hacer tus propios cuadros en Excel.",
     ],
   },

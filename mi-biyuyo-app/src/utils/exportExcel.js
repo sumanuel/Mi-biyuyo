@@ -47,7 +47,7 @@ const inRange = (date, from, to) => !!date && date >= from && date <= to;
 
 /**
  * Libro de Excel con lo registrado entre `from` y `to` (YYYY-MM-DD, ambos incluidos):
- * Resumen, Movimientos, Abonos, Transferencias, Ítems y Entidades (saldos de hoy).
+ * Resumen, Movimientos, Abonos, Transferencias, Ajustes, Ítems y Entidades (saldos de hoy).
  * Los montos van como números (se pueden sumar y filtrar en Excel); los valores en USD, VES y
  * USDT son los guardados el día de cada movimiento.
  */
@@ -177,6 +177,32 @@ export function buildWorkbook(model, { from, to }) {
     [12, 18, 18, 16, 14, 18, 20, 14],
   );
 
+  /* ---------- Ajustes de saldo (correcciones; no son ingresos ni gastos) ---------- */
+  const adjs = model.adjustments
+    .filter((a) => inRange(a.date, from, to))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.ts - b.ts));
+  const wsAdj = sheetOf(
+    [
+      "Fecha",
+      "Entidad",
+      "Monto (moneda de la entidad)",
+      "Monto USD",
+      "Monto VES (BCV)",
+      "Monto USDT (Binance)",
+      "Motivo",
+    ],
+    adjs.map((a) => [
+      dateCell(a.date),
+      model.entName(a.ent),
+      num(a.native, model.entById[a.ent]?.ccy === "usdt" ? FMT_USDT : FMT_MONEY),
+      num(a.val.usd),
+      num(a.val.bcv),
+      num(a.val.bin, FMT_USDT),
+      text(a.note),
+    ]),
+    [12, 22, 26, 14, 18, 20, 30],
+  );
+
   /* ---------- Ítems de las compras ---------- */
   const itemRows = [];
   moves.forEach((m) =>
@@ -279,6 +305,7 @@ export function buildWorkbook(model, { from, to }) {
   XLSX.utils.book_append_sheet(wb, wsMov, "Movimientos");
   XLSX.utils.book_append_sheet(wb, wsPay, "Abonos");
   XLSX.utils.book_append_sheet(wb, wsTrf, "Transferencias");
+  XLSX.utils.book_append_sheet(wb, wsAdj, "Ajustes");
   XLSX.utils.book_append_sheet(wb, wsItems, "Ítems");
   XLSX.utils.book_append_sheet(wb, wsEnt, "Entidades");
   return {
@@ -287,6 +314,7 @@ export function buildWorkbook(model, { from, to }) {
       moves: moves.length,
       pays: payRows.length,
       transfers: trfs.length,
+      adjusts: adjs.length,
       items: itemRows.length,
     },
   };
@@ -303,6 +331,7 @@ export function countsFor(model, { from, to }) {
       0,
     ),
     transfers: model.transfers.filter((t) => inRange(t.date, from, to)).length,
+    adjusts: model.adjustments.filter((a) => inRange(a.date, from, to)).length,
     items: moves.reduce((a, m) => a + m.items.length, 0),
   };
 }
@@ -313,6 +342,7 @@ export function firstDate(model) {
     ...model.moves.map((m) => m.date),
     ...model.moves.flatMap((m) => (m.pays || []).map((p) => p.date)),
     ...model.transfers.map((t) => t.date),
+    ...model.adjustments.map((a) => a.date),
   ].filter(Boolean);
   return dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : todayStr();
 }
