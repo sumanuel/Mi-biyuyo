@@ -1,7 +1,7 @@
 // Datos de demostración = los del prototipo (Mi Biyuyo · Prototipo.html).
 // Uso:  node database/seed_demo.js [correo]      (por defecto demo@mibiyuyo.test / Demo1234!)
 // Crea el usuario si no existe y REEMPLAZA sus entidades, movimientos y transferencias.
-require("dotenv").config();
+require("../src/config/loadEnv");
 const bcrypt = require("bcryptjs");
 const pool = require("../src/config/database");
 

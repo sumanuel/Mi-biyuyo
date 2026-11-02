@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("../src/config/loadEnv");
 const pool = require("../src/config/database");
 
 // Categorías del prototipo. type: income | expense | loan_given (por cobrar) | debt (por pagar)

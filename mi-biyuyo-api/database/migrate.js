@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("../src/config/loadEnv");
 const pool = require("../src/config/database");
 
 async function migrate() {
