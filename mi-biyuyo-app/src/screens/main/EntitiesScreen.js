@@ -357,6 +357,17 @@ export default function EntitiesScreen({ navigation }) {
           Mantén presionada una entidad y arrástrala para ordenarlas a tu gusto.
         </Txt>
       ) : null}
+      {model.archivedEnts.length > 0 ? (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("ArchivedEntities")}
+          style={{ minHeight: 44, justifyContent: "center" }}
+          accessibilityRole="button"
+        >
+          <Txt style={{ fontSize: 14, fontWeight: "700", color: colors.textSecondary }}>
+            Entidades archivadas ({model.archivedEnts.length})
+          </Txt>
+        </TouchableOpacity>
+      ) : null}
 
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Button

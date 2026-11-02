@@ -5,7 +5,7 @@ const { SELECT: PLANNED_SELECT } = require("./plannedController");
 exports.get = async (req, res, next) => {
   try {
     const uid = req.user.id;
-    const [cats, ents, txs, trs, rates, planned] = await Promise.all([
+    const [cats, ents, txs, trs, rates, planned, adjs] = await Promise.all([
       pool.query(
         `SELECT c.id, c.code, c.name, c.type, c.icon, c.color, c.active,
                 (c.user_id IS NOT NULL) AS own,
@@ -23,7 +23,8 @@ exports.get = async (req, res, next) => {
         `SELECT id, name, kind, currency, initial_usd::float AS initial_usd,
                 initial_amount::float AS initial_amount,
                 payment_type, payment_data, alert_usd::float AS alert_usd,
-                include_in_balance, to_char(created_at,'YYYY-MM-DD') AS created,
+                include_in_balance, (archived_at IS NOT NULL) AS archived,
+                to_char(created_at,'YYYY-MM-DD') AS created,
                 (EXTRACT(EPOCH FROM created_at) * 1000)::float AS ts
          FROM entities WHERE user_id = $1 ORDER BY COALESCE(sort_order, 1000000), id`,
         [uid],
@@ -70,12 +71,21 @@ exports.get = async (req, res, next) => {
          ORDER BY p.planned_date NULLS LAST, p.created_at DESC`,
         [uid],
       ),
+      pool.query(
+        `SELECT id, entity_id, amount::float AS amount, amount_usd::float AS amount_usd,
+                amount_ves::float AS amount_ves, amount_binance::float AS amount_binance,
+                to_char(date,'YYYY-MM-DD') AS date, note,
+                (EXTRACT(EPOCH FROM created_at) * 1000)::float AS ts
+         FROM balance_adjustments WHERE user_id = $1 ORDER BY date DESC, id DESC`,
+        [uid],
+      ),
     ]);
     res.json({
       categories: cats.rows,
       entities: ents.rows,
       transactions: txs.rows,
       transfers: trs.rows,
+      adjustments: adjs.rows,
       planned: planned.rows,
       rates: rates.rows[0] || { usd_to_ves: 0, binance_to_ves: 0 },
     });

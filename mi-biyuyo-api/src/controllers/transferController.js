@@ -13,11 +13,15 @@ exports.create = async (req, res, next) => {
         .json({ error: "Origen y destino deben ser distintos" });
 
     const { rows: ents } = await pool.query(
-      `SELECT id FROM entities WHERE user_id = $1 AND id = ANY($2::int[])`,
+      `SELECT id, archived_at FROM entities WHERE user_id = $1 AND id = ANY($2::int[])`,
       [req.user.id, [from_entity_id, to_entity_id]],
     );
     if (ents.length !== 2)
       return res.status(404).json({ error: "Entidad no encontrada" });
+    if (ents.some((e) => e.archived_at))
+      return res
+        .status(409)
+        .json({ error: "Una de las entidades está archivada" });
 
     const { rows: r } = await pool.query(
       `SELECT usd_to_ves, binance_to_ves FROM exchange_rates WHERE user_id = $1`,

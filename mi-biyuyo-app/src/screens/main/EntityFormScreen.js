@@ -24,6 +24,7 @@ import {
   CCY_LABEL,
   ENT_CCY,
   ENT_CCY_LABEL,
+  fmtIn,
   grp,
   parseNum,
 } from "../../utils/money";
@@ -49,7 +50,14 @@ export default function EntityFormScreen({ navigation, route }) {
   const [vals, setVals] = useState(
     editing?.pd?.length ? editing.pd.slice() : ["", "", ""],
   );
-  const [init, setInit] = useState("");
+  // Editando: el saldo inicial solo se puede corregir mientras la entidad no tenga movimientos;
+  // después se corrige con «Ajustar saldo» (así el historial no cambia hacia atrás)
+  const canEditInit = !editing || !model.entUsed(editing.id);
+  const [init, setInit] = useState(
+    editing && editing.initNative > 0
+      ? fmtIn(editing.initNative, editing.ccy === "usdt" ? 3 : 2)
+      : "",
+  );
   const [alertOn, setAlertOn] = useState(
     editing ? editing.alert != null : false,
   );
@@ -79,9 +87,9 @@ export default function EntityFormScreen({ navigation, route }) {
       payment_type: pt,
       payment_data: vals.slice(0, PT[pt].f.length),
       alert_usd: alertUsd,
-      initial_amount: num,
       include_in_balance: include,
     };
+    if (canEditInit) body.initial_amount = num;
     try {
       if (editing) {
         await actions.updateEntity(editing.id, body);
@@ -185,7 +193,7 @@ export default function EntityFormScreen({ navigation, route }) {
         />
       </View>
 
-      {!editing ? (
+      {canEditInit ? (
         <Card style={{ gap: 12 }}>
           <Txt
             style={{
@@ -251,8 +259,8 @@ export default function EntityFormScreen({ navigation, route }) {
               color: colors.textSecondary,
             }}
           >
-            El saldo se ajusta con los movimientos y las transferencias. No se
-            edita a mano.
+            El saldo se ajusta con los movimientos y las transferencias. Para
+            corregirlo, usa «Ajustar saldo» en el detalle de la entidad.
           </Txt>
         </View>
       )}
