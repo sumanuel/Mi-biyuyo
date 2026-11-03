@@ -23,6 +23,16 @@ function currentBranch() {
 }
 
 const branch = currentBranch();
+
+// Si el entorno ya trae la base definida (p. ej. `migrate:prod` precarga .env.production con
+// `-r dotenv/config`), dotenv no pisa esos valores: se respetan y se avisa con el host real.
+if (process.env.DB_HOST) {
+  const isLocalHost = ["localhost", "127.0.0.1", "::1"].includes(process.env.DB_HOST);
+  console.log(`[env] variables ya definidas en el entorno → ${isLocalHost ? "base LOCAL" : "base REMOTA"} (${process.env.DB_HOST}); no se carga ningún .env por rama`);
+  module.exports = { branch, local: isLocalHost };
+  return;
+}
+
 const local = branch !== null && !PRODUCTION_BRANCHES.includes(branch);
 const file = path.resolve(__dirname, "..", "..", local ? ".env.localdb" : ".env");
 
