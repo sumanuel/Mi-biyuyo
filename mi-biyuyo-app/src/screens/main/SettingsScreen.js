@@ -1,3 +1,4 @@
+import { usePlan } from "../../hooks/usePlan";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -106,6 +107,7 @@ export default function SettingsScreen({ navigation }) {
     saldoMode,
     setSaldoMode,
   } = useData();
+  const { plan, gate } = usePlan();
   const soon = () => showToast("Próximamente");
 
   // Desbloqueo con huella: solo aparece si el dispositivo tiene huella o Face ID registrados
@@ -211,6 +213,19 @@ export default function SettingsScreen({ navigation }) {
       <H1>Configuraciones</H1>
 
       <Section title="PERFIL">
+        {plan.enabled ? (
+          <Row
+            label="Mi plan"
+            sub={
+              plan.plan === "trial"
+                ? `Prueba Premium · te quedan ${plan.trialDaysLeft} ${plan.trialDaysLeft === 1 ? "día" : "días"}`
+                : plan.plan === "premium"
+                  ? "Plan Premium"
+                  : "Plan Gratis · conoce Premium"
+            }
+            onPress={() => navigation.navigate("Plans")}
+          />
+        ) : null}
         <Row
           label="Mi perfil"
           sub="Nombre, correo y moneda principal"
@@ -243,7 +258,7 @@ export default function SettingsScreen({ navigation }) {
         <Row
           label="Exportar a Excel"
           sub="Movimientos, abonos, transferencias, ítems y saldos"
-          onPress={() => navigation.navigate("Export")}
+          onPress={() => gate("export") && navigation.navigate("Export")}
         />
         <Row
           label="Centro de ayuda"

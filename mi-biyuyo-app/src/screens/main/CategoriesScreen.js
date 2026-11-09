@@ -1,3 +1,4 @@
+import { usePlan } from "../../hooks/usePlan";
 import React, { useState } from "react";
 import { Switch, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -24,6 +25,7 @@ import { nTxt } from "../../utils/money";
 export default function CategoriesScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { model, actions, showToast } = useData();
+  const { gate } = usePlan();
   const [type, setType] = useState(route.params?.type || "gasto");
   const [busyId, setBusyId] = useState(null);
   const t = colors[type];
@@ -86,7 +88,10 @@ export default function CategoriesScreen({ navigation, route }) {
       <TouchableOpacity
         key={c.id}
         activeOpacity={0.8}
-        onPress={() => navigation.navigate("CategoryForm", { id: c.id })}
+        onPress={() =>
+          gate("custom_categories") &&
+          navigation.navigate("CategoryForm", { id: c.id })
+        }
         accessibilityLabel={`Editar ${c.name}`}
       >
         {body}
@@ -133,7 +138,10 @@ export default function CategoriesScreen({ navigation, route }) {
             label="Nueva categoría"
             bg={t.strong}
             height={54}
-            onPress={() => navigation.navigate("CategoryForm", { type })}
+            onPress={() =>
+              gate("custom_categories") &&
+              navigation.navigate("CategoryForm", { type })
+            }
           />
         </Footer>
       }

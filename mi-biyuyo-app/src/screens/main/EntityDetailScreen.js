@@ -31,6 +31,7 @@ import {
   paymentText,
   shareAsImage,
 } from "../../components/PaymentShareCard";
+import { usePlan } from "../../hooks/usePlan";
 import { go } from "../../navigation/helpers";
 import { confirm } from "../../utils/confirm";
 
@@ -40,6 +41,7 @@ export default function EntityDetailScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { model, dv, actions, showToast } = useData();
   const { period } = usePeriod();
+  const { gate } = usePlan();
   const { fx } = model;
   const [payOpen, setPayOpen] = useState(false); // datos de pago: acordeón cerrado por defecto
   const [capturing, setCapturing] = useState(false); // dibuja la tarjeta con QR solo mientras se comparte
@@ -86,6 +88,7 @@ export default function EntityDetailScreen({ navigation, route }) {
   const native = model.entNative(e);
 
   const restore = async () => {
+    if (!gate("multi_entity")) return;
     try {
       await actions.restoreEntity(e.id);
       showToast(`«${e.name}» restaurada`);
@@ -137,7 +140,10 @@ export default function EntityDetailScreen({ navigation, route }) {
               height={52}
               style={{ flex: 1, borderRadius: 14 }}
               disabled={model.ents.length < 2}
-              onPress={() => navigation.navigate("Transfer", { from: e.id })}
+              onPress={() =>
+                gate("transfers") &&
+                navigation.navigate("Transfer", { from: e.id })
+              }
             />
             <Button
               label="Editar"
@@ -197,10 +203,37 @@ export default function EntityDetailScreen({ navigation, route }) {
             outline
             height={44}
             style={{ borderRadius: 12 }}
-            onPress={() => navigation.navigate("AdjustBalance", { entId: e.id })}
+            onPress={() =>
+              e.locked
+                ? gate("locked_entity")
+                : navigation.navigate("AdjustBalance", { entId: e.id })
+            }
           />
         ) : null}
       </Card>
+
+      {e.locked ? (
+        <View
+          style={{
+            paddingVertical: 12,
+            paddingHorizontal: 14,
+            borderRadius: 14,
+            backgroundColor: colors.chip,
+          }}
+        >
+          <Txt
+            style={{
+              fontSize: 13,
+              lineHeight: 18,
+              color: colors.textSecondary,
+            }}
+          >
+            Esta entidad está en solo lectura con el plan Gratis: puedes ver su
+            saldo y su historial, pero no registrar movimientos en ella. Con
+            Premium vuelve a funcionar normal.
+          </Txt>
+        </View>
+      ) : null}
 
       {e.archived ? (
         <View
@@ -406,7 +439,9 @@ export default function EntityDetailScreen({ navigation, route }) {
         <TouchableOpacity
           onPress={
             used
-              ? () => navigation.navigate("ArchiveEntity", { id: e.id })
+              ? () =>
+                  gate("multi_entity") &&
+                  navigation.navigate("ArchiveEntity", { id: e.id })
               : remove
           }
           style={{

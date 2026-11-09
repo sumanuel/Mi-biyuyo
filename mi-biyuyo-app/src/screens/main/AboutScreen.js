@@ -23,7 +23,7 @@ const SUPPORT_EMAIL = "contacto.sumadev@gmail.com";
 /** Acerca de: versión, descripción, fuentes de las tasas y contacto. */
 export default function AboutScreen({ navigation }) {
   const { colors } = useTheme();
-  const { showToast } = useData();
+  const { showToast, plan } = useData();
 
   // Abre el correo con el asunto y los datos de la app ya puestos (sin datos personales)
   const writeSupport = () => {
@@ -83,6 +83,22 @@ export default function AboutScreen({ navigation }) {
           </View>
         ))}
       </Card>
+
+      {plan.enabled ? (
+        <Card style={{ gap: 6 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            Planes Gratis y Premium
+          </Txt>
+          <Txt
+            style={{ fontSize: 13, lineHeight: 18, color: colors.textSecondary }}
+          >
+            Mi Biyuyo tiene un plan Gratis (1 entidad, ingresos, gastos y
+            estadísticas básicas) y un plan Premium con todas las funciones. Tus
+            datos nunca se borran al cambiar de plan. Mira el detalle en Ajustes
+            &gt; Mi plan.
+          </Txt>
+        </Card>
+      ) : null}
 
       <Card style={{ gap: 6 }}>
         <Txt style={{ fontSize: 14, fontWeight: "700" }}>
