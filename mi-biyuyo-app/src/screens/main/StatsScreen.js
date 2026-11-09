@@ -50,11 +50,13 @@ export default function StatsScreen({ navigation }) {
   }, []);
 
   const list = model.moves.filter((m) => m.date >= from && m.date <= to);
+  // Ingresos y gastos del período: incluye los abonos de deudas a crédito (cuentan al pagarse)
+  const flow = list.concat(model.payFlowsIn(from, to));
   const days = daysBetween(from, to) + 1;
   // Estadísticas: valor del día de cada movimiento, en la moneda elegida
   const dd = (n) => fx.money(disp, n);
-  const inc = model.sumIn(list, "ingreso", disp);
-  const exp = model.sumIn(list, "gasto", disp);
+  const inc = model.sumIn(flow, "ingreso", disp);
+  const exp = model.sumIn(flow, "gasto", disp);
   const net = inc - exp;
   const saving = inc > 0 ? Math.round(((inc - exp) / inc) * 100) : 0;
   const gap = fx.rate > 0 ? (fx.rateB / fx.rate - 1) * 100 : 0;
@@ -63,7 +65,7 @@ export default function StatsScreen({ navigation }) {
   const nb = days <= 7 ? days : 6;
   const size = days / nb;
   const acc = Array.from({ length: nb }, () => ({ i: 0, e: 0 }));
-  list.forEach((m) => {
+  flow.forEach((m) => {
     if (m.type !== "ingreso" && m.type !== "gasto") return;
     const idx = Math.min(nb - 1, Math.floor(daysBetween(from, m.date) / size));
     if (idx < 0) return;
@@ -94,7 +96,7 @@ export default function StatsScreen({ navigation }) {
   /* ---- rankings ---- */
   const rank = (t, top) => {
     const g = {};
-    list
+    flow
       .filter((m) => m.type === t)
       .forEach((m) => {
         const key = m.cat.id ?? "x";
@@ -243,7 +245,7 @@ export default function StatsScreen({ navigation }) {
       <PeriodBar />
       <DispTabs height={40} />
 
-      {list.length === 0 ? (
+      {flow.length === 0 ? (
         <View
           style={{
             padding: 12,

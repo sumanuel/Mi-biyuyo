@@ -20,7 +20,9 @@ export default function CategoryMovesScreen({ navigation, route }) {
   const { model, disp } = useData();
   const { catId, type, name, from, to } = route.params || {};
 
+  // Incluye los abonos de deudas a crédito (cuentan como gasto/ingreso al pagarse)
   const moves = model.moves
+    .concat(model.payFlows)
     .filter(
       (m) =>
         m.type === type &&
@@ -49,7 +51,11 @@ export default function CategoryMovesScreen({ navigation, route }) {
           <TouchableOpacity
             key={m.id}
             activeOpacity={0.8}
-            onPress={() => go(navigation, "MovementDetail", { id: m.id })}
+            onPress={() =>
+              m.pay
+                ? go(navigation, "DebtDetail", { id: m.debt.id })
+                : go(navigation, "MovementDetail", { id: m.id })
+            }
             accessibilityLabel={`Ver movimiento del ${fullDate(m.date)}`}
             style={{
               flexDirection: "row",

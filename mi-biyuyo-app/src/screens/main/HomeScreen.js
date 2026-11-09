@@ -65,8 +65,10 @@ export default function HomeScreen({ navigation }) {
   const m30 = model.moves.filter(
     (m) => m.date >= range.from && m.date <= range.to,
   );
-  const incomes = m30.filter((m) => m.type === "ingreso");
-  const expenses = m30.filter((m) => m.type === "gasto");
+  // Incluye los abonos de deudas a crédito (cuentan como gasto/ingreso al pagarse)
+  const f30 = m30.concat(model.payFlowsIn(range.from, range.to));
+  const incomes = f30.filter((m) => m.type === "ingreso");
+  const expenses = f30.filter((m) => m.type === "gasto");
   const cobr = model.moves.filter(
     (m) => m.type === "cobrar" && model.pendOf(m) > 0.005,
   );
@@ -458,7 +460,7 @@ export default function HomeScreen({ navigation }) {
         <View style={{ flexDirection: "row", gap: 10 }}>
           {stat(
             "Ingresos",
-            fx.money(disp, model.sumIn(m30, "ingreso", disp)),
+            fx.money(disp, model.sumIn(f30, "ingreso", disp)),
             <Pill
               label={nTxt(incomes.length, "ingreso")}
               bg={colors.ok.bg}
@@ -469,7 +471,7 @@ export default function HomeScreen({ navigation }) {
           )}
           {stat(
             "Gastos",
-            fx.money(disp, model.sumIn(m30, "gasto", disp)),
+            fx.money(disp, model.sumIn(f30, "gasto", disp)),
             <Pill
               label={nTxt(expenses.length, "gasto")}
               bg={colors.gasto.soft}
