@@ -34,6 +34,7 @@ import PeriodBar from "../../components/PeriodBar";
 import { usePeriod } from "../../contexts/PeriodContext";
 import { useRateNotifications } from "../../contexts/RateNotificationsContext";
 import PlanBanner from "../../components/PlanBanner";
+import PlanCrown from "../../components/PlanCrown";
 import { useGuide } from "../../contexts/GuideContext";
 
 const MAX_ENTITIES = 2;
@@ -208,7 +209,10 @@ export default function HomeScreen({ navigation }) {
           >
             Panel de control
           </Txt>
-          <H1 style={{ fontSize: 24 }}>{user?.name || "Mi Biyuyo"}</H1>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <H1 style={{ fontSize: 24, flexShrink: 1 }}>{user?.name || "Mi Biyuyo"}</H1>
+            <PlanCrown />
+          </View>
         </View>
         <View style={{ flexDirection: "row", gap: 10 }}>
           <TouchableOpacity

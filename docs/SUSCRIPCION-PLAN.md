@@ -20,6 +20,7 @@ Estado: **solo plan, nada implementado.** Este documento recoge las decisiones t
 - **1 entidad.**
 - Registrar **ingresos y gastos**; ver Inicio, Historial y detalle de cada movimiento.
 - **Estadísticas limitadas:** *Balance del período* (con sus ingresos y gastos), *Brecha Binance* (ahorro) y *Distribución del saldo*.
+- **Períodos:** solo **Últimos 30 días** y **Este mes** (la app, no la API, lo aplica). Los movimientos más antiguos se conservan y suman a los saldos, pero consultarlos exige Premium.
 - Ajustes de apariencia, ocultar saldo, bloqueo con huella, ayuda, «Acerca de».
 - Categorías **predeterminadas** de la app.
 - Ajustar saldo de la entidad (es una corrección básica; ver §3.4).
@@ -30,6 +31,7 @@ Estado: **solo plan, nada implementado.** Este documento recoge las decisiones t
 - **Gastos planificados.**
 - **Detalle de la compra** (ítems con cantidad y costo) y **recibos adjuntos**.
 - **Categorías propias** (crear, editar y usar).
+- **Cualquier período:** Mes anterior, Mes específico y Desde / Hasta.
 - **Estadísticas completas:** *Flujo del período*, *Gastos por categoría* (y su detalle), *Ingresos por fuente*, *Ítems más comprados* y *Por cobrar y por pagar*.
 - **Exportar a Excel.**
 

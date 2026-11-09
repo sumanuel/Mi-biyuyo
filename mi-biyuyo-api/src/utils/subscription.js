@@ -18,6 +18,7 @@ const FEATURES = [
   "items", // detalle de la compra
   "receipts", // recibos adjuntos
   "full_stats", // estadísticas completas (solo la app lo aplica, salvo los endpoints del servidor)
+  "period_range", // mes anterior, mes específico y rangos de fechas (solo la app lo aplica)
   "export", // Excel (solo la app)
 ];
 

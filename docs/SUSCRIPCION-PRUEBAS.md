@@ -47,6 +47,8 @@ Marca cada casilla en el teléfono.
 - [ ] Crear y usar una categoría propia; registrar con ítems y con recibo.
 - [ ] Estadísticas: se ven todas las secciones. Exportar a Excel funciona.
 - [ ] Ajustes > Mi plan muestra «Prueba Premium» y los días.
+- [ ] Filtros: todas las opciones se pueden elegir, incluidos Mes anterior, Mes específico y Desde / Hasta.
+- [ ] Inicio: corona **con contorno** y «Prueba» junto al nombre; al tocarla abre Mi plan.
 
 ### Gratis (`free`)
 - [ ] Inicio: aviso «Tu prueba Premium terminó».
@@ -58,6 +60,8 @@ Marca cada casilla en el teléfono.
 - [ ] Formulario de gasto: «Detalle de la compra» y «Recibo» tienen la etiqueta Premium y llevan a Mi plan.
 - [ ] Categorías propias: no salen al registrar; «Nueva categoría» lleva a Mi plan. Los movimientos antiguos conservan su categoría.
 - [ ] Estadísticas: solo Balance del período, Ahorro / Brecha Binance y Distribución del saldo; el resto, bloqueado.
+- [ ] Botón «Filtros»: solo «Últimos 30 días» y «Este mes» se pueden elegir; «Mes anterior», «Mes específico» y «Desde / Hasta» muestran la etiqueta Premium y llevan a Mi plan.
+- [ ] Inicio: no hay corona junto al nombre.
 - [ ] Ajustes > Exportar a Excel lleva a Mi plan.
 - [ ] Nada se borró: mismos saldos, deudas, planes y categorías que en Premium.
 
@@ -65,10 +69,11 @@ Marca cada casilla en el teléfono.
 - [ ] Todo lo de Prueba funciona; las entidades que estaban en solo lectura vuelven a ser normales.
 - [ ] Mi plan dice «Premium hasta» con la fecha correcta y el botón es «Renovar Premium».
 - [ ] Sin aviso en Inicio (solo aparece si vence en 7 días o menos).
+- [ ] Inicio: corona **dorada llena** junto al nombre; al tocarla abre Mi plan.
 
 ### Premium por vencer (`premium-vence`) y vencido (`premium-vencido`)
 - [ ] `premium-vence`: Inicio avisa «Tu Premium vence en 2 días».
-- [ ] `premium-vencido`: pasa a Gratis como arriba; al pagar o canjear un código, todo vuelve **sin salir de la app** (jala para recargar si hace falta).
+- [ ] `premium-vencido`: si tenías elegido «Mes anterior» u otro período Premium, vuelve solo a «Últimos 30 días»; pasa a Gratis como arriba; al pagar o canjear un código, todo vuelve **sin salir de la app** (jala para recargar si hace falta).
 
 ## 4. Pagos y códigos
 - [ ] Mi plan > Activar Premium: elegir Mensual/Anual y cada método; el monto de Pago móvil sale en bolívares con la tasa del día y los de Zinli/PayPal en USD.
