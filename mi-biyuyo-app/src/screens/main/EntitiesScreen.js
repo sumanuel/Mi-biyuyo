@@ -14,6 +14,7 @@ import {
   EyeButton,
 } from "../../components/ui";
 import { KIND_ICON, PT, balanceNote } from "../../utils/ledger";
+import { usePlan } from "../../hooks/usePlan";
 import { ENT_CCY_LABEL, maskMoney } from "../../utils/money";
 
 export function ptSummary(e) {
@@ -40,6 +41,7 @@ export default function EntitiesScreen({ navigation }) {
   const { colors } = useTheme();
   const { model, dv, hideBalance, toggleHideBalance, actions, showToast } =
     useData();
+  const { gate, canAddEntity } = usePlan();
   const shareOf = (b) =>
     b < -0.005
       ? "Saldo negativo"
@@ -217,7 +219,7 @@ export default function EntitiesScreen({ navigation }) {
             numberOfLines={1}
             style={{ fontSize: 12, color: colors.textSecondary }}
           >
-            {ENT_CCY_LABEL[e.ccy] + " · " + ptSummary(e)}
+            {ENT_CCY_LABEL[e.ccy] + " · " + ptSummary(e) + (e.locked ? " · Solo lectura" : "")}
           </Txt>
         </View>
         <View style={{ alignItems: "flex-end", gap: 3, maxWidth: "40%" }}>
@@ -374,7 +376,11 @@ export default function EntitiesScreen({ navigation }) {
           label="Nueva entidad"
           height={50}
           style={{ flex: 1, borderRadius: 14 }}
-          onPress={() => navigation.navigate("EntityForm")}
+          onPress={() =>
+            canAddEntity
+              ? navigation.navigate("EntityForm")
+              : gate("multi_entity")
+          }
         />
         <Button
           label="Transferir"
@@ -382,7 +388,7 @@ export default function EntitiesScreen({ navigation }) {
           height={50}
           style={{ flex: 1, borderRadius: 14 }}
           disabled={model.ents.length < 2}
-          onPress={() => navigation.navigate("Transfer")}
+          onPress={() => gate("transfers") && navigation.navigate("Transfer")}
         />
       </View>
     </Screen>

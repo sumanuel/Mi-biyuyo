@@ -1,3 +1,4 @@
+import { usePlan } from "../../hooks/usePlan";
 import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -24,6 +25,7 @@ import { qtyText } from "../../utils/text";
 export default function DebtDetailScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { model, dv, actions, showToast } = useData();
+  const { gate } = usePlan();
   const { fx } = model;
   const debt = model.moveById[route.params?.id];
 
@@ -233,7 +235,7 @@ Después podrás registrar el ${what} de nuevo.`,
             disabled={closed}
             bg={tint.strong}
             height={54}
-            onPress={() => navigation.navigate("Pay", { id: debt.id })}
+            onPress={() => gate("debts") && navigation.navigate("Pay", { id: debt.id })}
           />
         </Footer>
       }
@@ -527,7 +529,10 @@ Después podrás registrar el ${what} de nuevo.`,
         outline
         height={50}
         style={{ borderRadius: 14 }}
-        onPress={() => navigation.navigate("MovementForm", { editId: debt.id })}
+        onPress={() =>
+          gate("debts") &&
+          navigation.navigate("MovementForm", { editId: debt.id })
+        }
       />
 
       <TouchableOpacity

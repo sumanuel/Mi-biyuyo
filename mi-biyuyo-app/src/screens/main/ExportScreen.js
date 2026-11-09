@@ -1,3 +1,5 @@
+import { usePlan } from "../../hooks/usePlan";
+import { LockedBlock, PremiumPill } from "../../components/PremiumLock";
 import React, { useState } from "react";
 import { View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -17,9 +19,21 @@ import {
 export default function ExportScreen({ navigation }) {
   const { colors } = useTheme();
   const { model, showToast } = useData();
+  const { can } = usePlan();
   const [from, setFrom] = useState(startOfMonth());
   const [to, setTo] = useState(endOfMonth());
   const [busy, setBusy] = useState(false);
+
+  if (!can("export"))
+    return (
+      <Screen data={false} contentStyle={{ gap: 16, paddingTop: 16 }}>
+        <Header title="Exportar a Excel" onBack={() => navigation.goBack()} />
+        <LockedBlock
+          feature="export"
+          text="Exportar tus movimientos a Excel es una función Premium."
+        />
+      </Screen>
+    );
 
   const counts = countsFor(model, { from, to });
   const nothing =

@@ -1,3 +1,5 @@
+import { usePlan } from "../../hooks/usePlan";
+import { LockedBlock, PremiumPill } from "../../components/PremiumLock";
 import React, { useState } from "react";
 import { View, TouchableOpacity } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -59,6 +61,9 @@ export default function MovementFormScreen({ navigation, route }) {
   const chain = useFocusChain();
   const { colors } = useTheme();
   const { model, actions, showToast } = useData();
+  const { can, gate } = usePlan();
+  const canItems = can("items");
+  const canReceipts = can("receipts");
   const { fx } = model;
 
   // Edición: parte de un movimiento existente y conserva las tasas del día en que se registró
@@ -171,11 +176,14 @@ export default function MovementFormScreen({ navigation, route }) {
 
   const amtNum = parseNum(amount);
   const usdVal = toUsdE(ccy, amtNum);
-  const entSel = entId && model.entById[entId] ? entId : model.ents[0]?.id;
+  const pickable = model.ents.filter(
+    (e) => !e.locked || (editing && e.id === editing.ent),
+  );
+  const entSel = entId && model.entById[entId] ? entId : pickable[0]?.id;
   // Por cobrar: el dinero ya salió. Por pagar: solo suma al saldo si el usuario lo recibió.
   const cash = type !== "pagar" || cashPagar;
   const needsEnt = !isDebt || cash;
-  const noEnts = model.ents.length === 0;
+  const noEnts = pickable.length === 0;
 
   // Subtotal de cada ítem = cantidad x costo unitario (el costo es opcional)
   const lineOf = (it) => {
@@ -266,14 +274,14 @@ export default function MovementFormScreen({ navigation, route }) {
         recurring: isDebt && rec,
         installments: isDebt && inst ? inst : null,
         installment_days: isDebt && inst ? INST_DAYS : null,
-        items: showItems
-          ? items.map((it) => ({
-              name: it.name,
-              quantity: parseNum(it.qty) > 0 ? parseNum(it.qty) : null,
-              amount: lineOf(it) > 0 ? lineOf(it) : null,
-            }))
-          : [],
       };
+      if (!showItems) body.items = [];
+      else if (canItems)
+        body.items = items.map((it) => ({
+          name: it.name,
+          quantity: parseNum(it.qty) > 0 ? parseNum(it.qty) : null,
+          amount: lineOf(it) > 0 ? lineOf(it) : null,
+        }));
       // Recibo: sin cambios si ya existía y no se tocó
       if (!receipt?.existing) {
         body.receipt_name = receipt ? receipt.name : null;
@@ -295,7 +303,7 @@ export default function MovementFormScreen({ navigation, route }) {
 
   const entChips = (
     <ChipRow>
-      {model.ents.map((e) => (
+      {pickable.map((e) => (
         <Chip
           key={e.id}
           label={e.name}
@@ -528,7 +536,7 @@ export default function MovementFormScreen({ navigation, route }) {
       {showItems ? (
         <Card style={{ gap: 12 }}>
           <TouchableOpacity
-            onPress={() => setItemsOpen((v) => !v)}
+            onPress={() => (canItems ? setItemsOpen((v) => !v) : gate("items"))}
             activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityState={{ expanded: itemsOpen }}
@@ -542,9 +550,13 @@ export default function MovementFormScreen({ navigation, route }) {
             <Txt style={{ flex: 1, fontSize: 14, fontWeight: "700" }}>
               Detalle de la compra
             </Txt>
-            <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
-              {items.length ? nTxt(items.length, "ítem") : "Opcional"}
-            </Txt>
+            {canItems ? (
+              <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+                {items.length ? nTxt(items.length, "ítem") : "Opcional"}
+              </Txt>
+            ) : (
+              <PremiumPill />
+            )}
             <View
               style={{ transform: [{ rotate: itemsOpen ? "90deg" : "0deg" }] }}
             >
@@ -816,9 +828,13 @@ export default function MovementFormScreen({ navigation, route }) {
           }}
         >
           <Txt style={{ fontSize: 14, fontWeight: "700" }}>Recibo</Txt>
-          <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
-            Opcional
-          </Txt>
+          {canReceipts ? (
+            <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+              Opcional
+            </Txt>
+          ) : (
+            <PremiumPill />
+          )}
         </View>
         {receipt ? (
           <View
@@ -876,7 +892,7 @@ export default function MovementFormScreen({ navigation, route }) {
             ].map(([label, icon, fn]) => (
               <TouchableOpacity
                 key={label}
-                onPress={() => attach(fn)}
+                onPress={() => (canReceipts ? attach(fn) : gate("receipts"))}
                 style={{
                   flex: 1,
                   minHeight: 52,

@@ -1,3 +1,4 @@
+import { usePlan } from "../../hooks/usePlan";
 import React from "react";
 import { TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -36,6 +37,7 @@ function whenOf(p) {
 export default function PlannedScreen({ navigation }) {
   const { colors } = useTheme();
   const { model } = useData();
+  const { gate } = usePlan();
   const { fx } = model;
   const t = colors.gasto;
 
@@ -56,7 +58,7 @@ export default function PlannedScreen({ navigation }) {
             label="Nuevo gasto planificado"
             bg={t.strong}
             height={54}
-            onPress={() => navigation.navigate("PlannedForm")}
+            onPress={() => gate("planned") && navigation.navigate("PlannedForm")}
           />
         </Footer>
       }
@@ -81,7 +83,10 @@ export default function PlannedScreen({ navigation }) {
           <Card key={p.id} style={{ gap: 12 }}>
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => navigation.navigate("PlannedForm", { id: p.id })}
+              onPress={() =>
+                gate("planned") &&
+                navigation.navigate("PlannedForm", { id: p.id })
+              }
               accessibilityLabel={`Editar ${p.name}`}
               style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
             >
@@ -133,7 +138,10 @@ export default function PlannedScreen({ navigation }) {
                 outline
                 height={44}
                 style={{ flex: 1, borderRadius: 12 }}
-                onPress={() => navigation.navigate("PlannedForm", { id: p.id })}
+                onPress={() =>
+                gate("planned") &&
+                navigation.navigate("PlannedForm", { id: p.id })
+              }
               />
             </View>
           </Card>

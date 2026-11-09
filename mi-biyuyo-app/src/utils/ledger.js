@@ -143,6 +143,9 @@ export function buildModel(raw, ratesOverride) {
     active: false,
   });
 
+  // Plan Gratis: solo la primera entidad queda activa; las demás son de solo lectura (`locked`)
+  const lockedIds = (!empty && raw.subscription?.locked_entity_ids) || [];
+
   // Todas las entidades (también las archivadas, para mostrar su nombre y su historial)
   const allEnts = (empty ? [] : raw.entities || []).map((e) => {
     const init = e.initial_usd || 0;
@@ -170,6 +173,7 @@ export function buildModel(raw, ratesOverride) {
       pt: e.payment_type || "none",
       pd: e.payment_data || [],
       alert: e.alert_usd,
+      locked: lockedIds.includes(e.id), // solo lectura por el plan: no recibe movimientos
       archived: !!e.archived, // archivada: no suma a Mi saldo ni sale al registrar; conserva su historial
       include: e.include_in_balance !== false && !e.archived, // ¿suma a Mi saldo?
       created: e.created || null,
@@ -179,6 +183,7 @@ export function buildModel(raw, ratesOverride) {
   });
   // `ents` = las activas (listas, selectores, Mi saldo); `archivedEnts` = las archivadas
   const ents = allEnts.filter((e) => !e.archived);
+  const openEnts = ents.filter((e) => !e.locked); // las que pueden recibir movimientos
   const archivedEnts = allEnts.filter((e) => e.archived);
   const entById = {};
   allEnts.forEach((e) => (entById[e.id] = e));
@@ -596,6 +601,7 @@ export function buildModel(raw, ratesOverride) {
     moveById,
     planned,
     ents,
+    openEnts,
     entById,
     allEnts,
     archivedEnts,

@@ -14,6 +14,8 @@ import * as ledgerService from "../services/api/ledgerService";
 import * as transactionService from "../services/api/transactionService";
 import * as categoryService from "../services/api/categoryService";
 import { buildModel } from "../utils/ledger";
+import { isPlanError, normalizePlan } from "../utils/plan";
+import { navigationRef } from "../navigation/ref";
 
 const THRESHOLD_KEY = "@mb_threshold";
 const HIDE_KEY = "@mb_hide_balance";
@@ -116,6 +118,9 @@ export function DataProvider({ children }) {
     return buildModel(raw, r);
   }, [raw, rates]);
 
+  // Plan del usuario (Gratis / Prueba / Premium), calculado por el servidor
+  const plan = useMemo(() => normalizePlan(raw?.subscription), [raw]);
+
   // dv(número) = USD de hoy convertido con la tasa vigente (saldos, pendientes).
   // dv({usd,bcv,bin}) = valor guardado el día del movimiento, sin recalcular.
   const dv = useCallback(
@@ -139,7 +144,20 @@ export function DataProvider({ children }) {
   /* ---------- acciones (siempre refrescan el ledger) ---------- */
   const run = useCallback(
     async (fn) => {
-      const result = await fn();
+      let result;
+      try {
+        result = await fn();
+      } catch (err) {
+        // 402: la función es Premium. Se actualiza el plan y se abre «Mi plan» explicándola
+        if (isPlanError(err)) {
+          refresh();
+          if (navigationRef.isReady())
+            navigationRef.navigate("Plans", {
+              feature: err.response.data.feature,
+            });
+        }
+        throw err;
+      }
       await refresh();
       return result;
     },
@@ -200,6 +218,7 @@ export function DataProvider({ children }) {
     <DataContext.Provider
       value={{
         model,
+        plan,
         loading,
         error,
         refresh,

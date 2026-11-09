@@ -1,3 +1,5 @@
+import { usePlan } from "../../hooks/usePlan";
+import { LockedBlock, PremiumPill } from "../../components/PremiumLock";
 import React, { useEffect, useState } from "react";
 import { View, TouchableOpacity } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -36,6 +38,8 @@ const CHART_H = 120;
 export default function StatsScreen({ navigation }) {
   const { colors } = useTheme();
   const { model, disp, dv } = useData();
+  const { can } = usePlan();
+  const full = can("full_stats"); // Gratis: solo Balance, Ahorro/Brecha y Distribución del saldo
   const { fx } = model;
   // Período global de la app (botón «Filtros»)
   const {
@@ -343,6 +347,7 @@ export default function StatsScreen({ navigation }) {
         </Card>
       </View>
 
+      {full ? (
       <Card style={{ gap: 12 }}>
         <View
           style={{
@@ -475,7 +480,9 @@ export default function StatsScreen({ navigation }) {
           ))}
         </View>
       </Card>
+      ) : null}
 
+      {full ? (
       <Card style={{ gap: 14 }}>
         {title("Gastos por categoría")}
         <Txt
@@ -491,7 +498,9 @@ export default function StatsScreen({ navigation }) {
         </Txt>
         {bars(topExp, colors.gasto, colors.chartExpense, true, "gasto")}
       </Card>
+      ) : null}
 
+      {full ? (
       <Card style={{ gap: 14 }}>
         {title("Ingresos por fuente")}
         {topInc.length === 0 ? (
@@ -501,7 +510,9 @@ export default function StatsScreen({ navigation }) {
         ) : null}
         {bars(topInc, colors.ingreso, colors.chartIncome, true, "ingreso")}
       </Card>
+      ) : null}
 
+      {full ? (
       <Card style={{ gap: 12 }}>
         {title("Ítems más comprados")}
         <Txt
@@ -560,6 +571,14 @@ export default function StatsScreen({ navigation }) {
           </Txt>
         ) : null}
       </Card>
+      ) : null}
+
+      {!full ? (
+        <LockedBlock
+          feature="full_stats"
+          text="Flujo del período, gastos por categoría, ingresos por fuente, ítems más comprados y por cobrar y por pagar son del plan Premium."
+        />
+      ) : null}
 
       <View style={{ gap: 2, marginTop: 6 }}>
         <Txt style={{ fontSize: 16, fontWeight: "800" }}>Situación actual</Txt>
@@ -578,6 +597,7 @@ export default function StatsScreen({ navigation }) {
         ) : null}
       </Card>
 
+      {full ? (
       <Card style={{ gap: 12 }}>
         {title("Por cobrar y por pagar")}
         <View style={{ flexDirection: "row", gap: 10 }}>
@@ -640,6 +660,7 @@ export default function StatsScreen({ navigation }) {
           </Txt>
         </View>
       </Card>
+      ) : null}
     </Screen>
   );
 }

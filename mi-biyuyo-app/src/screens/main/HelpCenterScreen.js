@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Screen, Header, Txt, Card, Icon } from "../../components/ui";
+import { useData } from "../../contexts/DataContext";
 
 const TOPICS = [
   {
@@ -114,6 +115,16 @@ const TOPICS = [
     ],
   },
   {
+    title: "Planes: Gratis y Premium",
+    plans: true,
+    body: [
+      "Al crear tu cuenta tienes una prueba con todas las funciones Premium. En Inicio ves cuántos días te quedan, y en Ajustes > Mi plan ves qué incluye cada plan y sus precios.",
+      "El plan Gratis incluye 1 entidad, registrar ingresos y gastos, y en Estadísticas el Balance del período, el Ahorro / Brecha Binance y la Distribución del saldo.",
+      "Premium agrega más de una entidad y transferencias, por cobrar y por pagar con abonos y cuotas, gastos planificados, categorías propias, detalle de la compra con recibos, estadísticas completas y exportar a Excel.",
+      "Si tu prueba termina, no se borra nada: lo que no incluye el plan Gratis se sigue viendo, pero no se puede registrar de nuevo. Las entidades adicionales quedan en solo lectura y tus categorías propias dejan de poder elegirse al registrar. Al activar Premium todo vuelve a funcionar.",
+    ],
+  },
+  {
     title: "Seguridad de tu cuenta",
     body: [
       "Al registrarte confirmas tu correo con un código de 6 dígitos.",
@@ -140,6 +151,9 @@ const TOPICS = [
 export default function HelpCenterScreen({ navigation }) {
   const { colors } = useTheme();
   const [open, setOpen] = useState(0);
+  const { plan } = useData();
+  // El tema de planes solo aparece cuando los planes están activos en el servidor
+  const topics = TOPICS.filter((t) => !t.plans || plan.enabled);
 
   return (
     <Screen data={false} contentStyle={{ gap: 10, paddingTop: 16 }}>
@@ -147,7 +161,7 @@ export default function HelpCenterScreen({ navigation }) {
       <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
         Toca un tema para ver cómo funciona.
       </Txt>
-      {TOPICS.map((t, i) => {
+      {topics.map((t, i) => {
         const isOpen = open === i;
         return (
           <Card key={t.title} pad={0}>
