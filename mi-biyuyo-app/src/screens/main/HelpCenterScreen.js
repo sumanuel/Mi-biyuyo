@@ -121,6 +121,7 @@ const TOPICS = [
       "Al crear tu cuenta tienes una prueba con todas las funciones Premium. En Inicio ves cuántos días te quedan, y en Ajustes > Mi plan ves qué incluye cada plan y sus precios.",
       "El plan Gratis incluye 1 entidad, registrar ingresos y gastos, y en Estadísticas el Balance del período, el Ahorro / Brecha Binance y la Distribución del saldo.",
       "Premium agrega más de una entidad y transferencias, por cobrar y por pagar con abonos y cuotas, gastos planificados, categorías propias, detalle de la compra con recibos, estadísticas completas y exportar a Excel.",
+      "Para activar o renovar Premium, ve a Ajustes > Mi plan > Activar Premium: elige el plan y cómo pagar (Pago móvil, Zinli o PayPal), haz el pago con los datos que te mostramos, y toca «Ya pagué» con la referencia y, si quieres, una captura del comprobante. Revisaremos tu pago y te avisaremos; mientras tanto lo ves «En revisión» en Mi plan. Si tienes un código de canje, escríbelo en «¿Tienes un código?».",
       "Si tu prueba termina, no se borra nada: lo que no incluye el plan Gratis se sigue viendo, pero no se puede registrar de nuevo. Las entidades adicionales quedan en solo lectura y tus categorías propias dejan de poder elegirse al registrar. Al activar Premium todo vuelve a funcionar.",
     ],
   },

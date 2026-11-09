@@ -57,6 +57,7 @@ import TransferScreen from "./src/screens/main/TransferScreen";
 import AdjustBalanceScreen from "./src/screens/main/AdjustBalanceScreen";
 import PeriodFilterScreen from "./src/screens/main/PeriodFilterScreen";
 import PlansScreen from "./src/screens/main/PlansScreen";
+import SubscribeScreen from "./src/screens/main/SubscribeScreen";
 import ArchiveEntityScreen from "./src/screens/main/ArchiveEntityScreen";
 import ArchivedEntitiesScreen from "./src/screens/main/ArchivedEntitiesScreen";
 import ExchangeRateScreen from "./src/screens/main/ExchangeRateScreen";
@@ -304,6 +305,7 @@ function AppNavigator() {
                         component={PeriodFilterScreen}
                       />
                       <Stack.Screen name="Plans" component={PlansScreen} />
+                      <Stack.Screen name="Subscribe" component={SubscribeScreen} />
                       <Stack.Screen
                         name="AdjustBalance"
                         component={AdjustBalanceScreen}
