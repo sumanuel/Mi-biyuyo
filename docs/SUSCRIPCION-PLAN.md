@@ -10,6 +10,7 @@ Estado: **solo plan, nada implementado.** Este documento recoge las decisiones t
 | Mercado | **Solo Venezuela** por ahora |
 | Modelo | **Gratis + Premium**. Prueba gratis con todo el Premium; al terminar, el usuario pasa a Gratis salvo que pague |
 | Precio (de prueba) | **2,50 USD al mes** y **20 USD al año**. Son valores de prueba: tienen que poder cambiarse sin redesplegar (tabla en la base, no en el código) |
+| Días de prueba | **Los defines tú** en una tabla de configuración (`app_settings`) y puedes subirlos o bajarlos cuando quieras, sin redesplegar. Valor inicial: 14 días (ver §3.2 y §3.7) |
 | Moneda de los precios | USD (la base de la app). Los pagos en bolívares se calculan con la tasa BCV del momento |
 | Categorías propias | Si el usuario creó categorías propias, al acabar la prueba **ya no las puede usar** (los movimientos que ya registró se conservan) |
 
@@ -41,6 +42,8 @@ En `users` se agregan dos fechas:
 - `trial_ends_at`: fin de la prueba gratis.
 - `premium_until`: hasta cuándo tiene Premium pagado.
 
+`trial_ends_at` se fija **una sola vez**, al empezar la prueba del usuario: `inicio + trial_days`, con `trial_days` leído de la tabla de configuración en ese momento (§3.7).
+
 El plan **no se guarda como texto**, se calcula en el servidor cada vez:
 - `premium`, si `premium_until` es futuro;
 - `trial`, si `trial_ends_at` es futuro;
@@ -52,6 +55,7 @@ Así no hay un proceso que "venza" cuentas: basta comparar con la hora actual. U
 - `subscription_plans`: código (`monthly`, `annual`), precio en USD, días, activo. Se siembra con 2,50 y 20.
 - `subscription_payments`: usuario, plan, monto en USD, método, referencia, monto pagado y moneda, tasa usada, comprobante (opcional), estado (`pending`, `approved`, `rejected`), motivo de rechazo, fechas de solicitud y revisión.
 - `redeem_codes`: código único, plan o días que otorga, quién lo usó y cuándo, vencimiento del código.
+- `app_settings`: configuración que tú ajustas sin tocar código, en filas `clave` / `valor` (con quién y cuándo la cambió). Se siembra con `trial_days = 14` (prueba de un usuario nuevo) y `trial_days_existing = 14` (prueba de los usuarios que ya existen al activar la función, §3.5). Más adelante admite otros parámetros sin migrar.
 - `payment_receivers`: los datos de **tus** cuentas para cobrar (Pago Móvil, Binance Pay, Zinli, PayPal, etc.), editables sin redesplegar.
 
 Se guarda el **precio y la tasa del momento** en cada pago, para que un cambio de precio futuro no afecte lo ya cobrado.
@@ -92,10 +96,23 @@ Principio: **nunca se borra ni se oculta información del usuario.** Se congela 
 Ajustar saldo queda en Gratis porque es una corrección, no una función extra, y archivar una entidad ya requiere Premium porque en Gratis hay una sola.
 
 ### 3.5 Usuarios que ya existen
-Hoy todos tienen todo gratis. Propuesta: al activar la función, cada usuario existente recibe la **misma prueba que un usuario nuevo**, contada desde ese día, con un aviso claro en la app y por correo. Los usuarios nuevos reciben la prueba al verificar su correo.
+Hoy todos tienen todo gratis. Propuesta: al activar la función, cada usuario existente recibe una prueba de `trial_days_existing` días (por defecto la misma que un usuario nuevo), contada desde ese día, con un aviso claro en la app y por correo. Los usuarios nuevos reciben la prueba al verificar su correo.
 
 ### 3.6 Interruptor general
 Una variable `SUBSCRIPTIONS_ENABLED`. Apagada, la API trata a todos como Premium y la app no muestra planes: es lo que permite desplegar el código **sin cambiar nada para los usuarios** y encender el cobro cuando todo esté probado.
+
+### 3.7 Días de prueba ajustables
+Los días de prueba viven en la tabla `app_settings`, no en el código:
+
+| Clave | Para quién | Valor inicial |
+|---|---|---|
+| `trial_days` | Usuarios nuevos, al verificar su correo | 14 |
+| `trial_days_existing` | Usuarios que ya existen, una sola vez al activar la función | 14 |
+
+- **Cómo se cambia:** desde la página de administración (§4), con validación (entero entre 0 y 365; **0 = sin prueba**: el usuario nuevo entra directo en Gratis). Si la página no estuviera disponible, también se puede editar la fila a mano en la base.
+- **Qué afecta el cambio:** **solo a los usuarios que empiecen la prueba después**. Quien ya está en prueba conserva su fecha de fin (`trial_ends_at`) para que nadie vea que su plazo cambia de un día para otro. El valor usado queda guardado en el usuario (`trial_days_granted`), así se sabe qué prueba recibió cada uno.
+- **Para quien ya está en prueba:** en la misma página hay dos acciones aparte, con confirmación: *regalar o quitar días a un usuario* (por correo) y *ajustar la prueba de todos los que están en prueba ahora* (suma o resta N días a su `trial_ends_at`, sin pasar de hoy hacia atrás). Así puedes extender una prueba o cortarla de forma deliberada.
+- **Visible para el usuario:** el banner de Inicio y «Mi plan» leen `trial_ends_at`, así que muestran los días restantes reales sin importar cuántos días se hayan configurado.
 
 ## 4. Cómo se paga (APK, Venezuela)
 
@@ -112,7 +129,8 @@ Se propone una **página de administración mínima**, servida por la propia API
 - ver pagos pendientes con su comprobante, aprobar o rechazar;
 - generar códigos de canje;
 - regalar días a un usuario por su correo;
-- cambiar precios y los datos de cobro.
+- cambiar precios y los datos de cobro;
+- **cambiar los días de prueba** (`trial_days`, `trial_days_existing`) y, si se quiere, ajustar la prueba de quienes ya están en prueba (§3.7).
 
 Se prefiere a un script en terminal porque estos scripts se conectan directo a la base de producción, y esa conexión depende de tu IP (hoy mismo la migración está detenida por eso). La página usa la conexión que la API ya tiene desde el servidor.
 
@@ -121,12 +139,12 @@ Se prefiere a un script en terminal porque estos scripts se conectan directo a l
 Cada fase se trabaja en su rama, se prueba en local (API local + base local + Expo) y se fusiona solo cuando lo pidas.
 
 ### Fase 0: decisiones pendientes (§7)
-- [ ] Confirmar la duración de la prueba y los puntos de §7.
+- [ ] Confirmar el valor inicial de los días de prueba (hoy 14; luego lo ajustas tú, §3.7) y los demás puntos de §7.
 
 ### Fase 1: API (modelo y reglas)
-- [ ] Migración: `users.trial_ends_at` y `premium_until`; tablas `subscription_plans`, `subscription_payments`, `redeem_codes`, `payment_receivers`; siembra de los dos planes.
+- [ ] Migración: `users.trial_ends_at` y `premium_until`; tablas `subscription_plans`, `subscription_payments`, `redeem_codes`, `payment_receivers` y `app_settings`; siembra de los dos planes y de `trial_days` / `trial_days_existing`; columna `users.trial_days_granted`.
 - [ ] Utilidad que calcula el plan de un usuario y la lista de funciones permitidas.
-- [ ] Prueba gratis al verificar el correo; interruptor `SUBSCRIPTIONS_ENABLED`.
+- [ ] Prueba gratis al verificar el correo, con los días leídos de `app_settings` (0 = sin prueba); interruptor `SUBSCRIPTIONS_ENABLED`.
 - [ ] Estado del plan dentro de `/ledger`, `/auth/me` y el inicio de sesión; `GET /api/subscription`.
 - [ ] Aplicar las reglas de §3.3 en entidades, transferencias, deudas, abonos, planificados, categorías, movimientos (categoría propia, ítems, recibo) y estadísticas, con error `402 PLAN_REQUIRED`.
 - [ ] Reglas de §3.4 (entidades bloqueadas, categorías propias fuera de uso).
@@ -145,7 +163,7 @@ Cada fase se trabaja en su rama, se prueba en local (API local + base local + Ex
 ### Fase 3: pagos
 - [ ] Endpoints y pantalla para **solicitar pago** (método, referencia, monto, captura) y ver su estado.
 - [ ] **Códigos de canje.**
-- [ ] **Página de administración** con `ADMIN_KEY`: pagos pendientes, aprobar o rechazar, códigos, regalar días, precios y datos de cobro.
+- [ ] **Página de administración** con `ADMIN_KEY`: pagos pendientes, aprobar o rechazar, códigos, regalar días, precios, datos de cobro y **días de prueba** (con sus validaciones y las acciones sobre quienes ya están en prueba).
 - [ ] Correos: pago recibido, aprobado, rechazado y aviso de vencimiento próximo.
 - [ ] Pruebas del flujo completo y de seguridad (un usuario no ve pagos de otro, la página admin rechaza sin clave, un código no se usa dos veces).
 
@@ -166,13 +184,15 @@ Para cada plan (**prueba, premium, vencido**) comprobar en API y en app:
 - paso de premium a vencido: entidades en solo lectura, deudas visibles pero bloqueadas, categorías propias fuera del selector, nada borrado;
 - paso de vencido a premium (pago o código): todo vuelve;
 - pago: solicitud, aprobación, rechazo, doble aprobación, código usado dos veces, pago de un usuario que ya tiene Premium (suma, no reemplaza);
+- **días de prueba ajustables:** cambiar `trial_days` (subir, bajar, 0) y comprobar que un usuario nuevo recibe exactamente esos días, que quien ya estaba en prueba no cambia, que valores inválidos (negativos, texto, más de 365) se rechazan, y que las acciones de regalar/quitar días mueven `trial_ends_at` como se espera;
 - con `SUBSCRIPTIONS_ENABLED=false`: todo funciona como hoy.
 
 ## 7. Puntos abiertos (con lo que haré si no se dice otra cosa)
 
 | Punto | Propuesta por defecto |
 |---|---|
-| Duración de la prueba | **14 días** (parámetro, se cambia sin tocar código) |
+| Duración de la prueba | **14 días** de valor inicial; la defines tú en `app_settings` (§3.7). Un valor para nuevos y otro para existentes |
+| Efecto de cambiar los días | Solo a quienes empiecen la prueba después; para los que ya están en prueba hay acciones aparte y con confirmación |
 | Prueba para usuarios existentes | La misma que a nuevos, desde el día de activación |
 | Ítems del detalle de compra y recibos | Premium |
 | Ajustar saldo | Gratis |
@@ -190,7 +210,8 @@ Para cada plan (**prueba, premium, vencido**) comprobar en API y en app:
 - **Usuarios molestos por la congelación:** por eso nada se borra y el paso a Gratis es reversible pagando.
 - **Cambio de precios:** cada pago guarda el precio y la tasa del momento.
 - **Dependencia de la base de producción para administrar:** por eso la página de administración va dentro de la API.
-- **Migraciones en producción:** solo cuando lo ordenes; hoy hay dos pendientes (`balance_adjustments` y `entities.archived_at`) y esta función añadiría más.
+- **Migraciones en producción:** solo cuando lo ordenes. Las de ajustes de saldo y archivado ya se aplicaron; esta función añadirá nuevas (incluida `app_settings`).
+- **Cambiar los días de prueba a mitad de camino:** puede sentirse injusto si baja el plazo de alguien que ya estaba en prueba; por eso el cambio solo aplica a pruebas nuevas y ajustar las existentes es una acción explícita.
 - **Cumplimiento:** términos, privacidad y recibos; revisar con quien corresponda antes de cobrar.
 
 ## 9. Relación con otros trabajos
