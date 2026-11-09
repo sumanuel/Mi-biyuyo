@@ -417,6 +417,31 @@ export function buildModel(raw, ratesOverride) {
   const sumIn = (list, t, c) =>
     list.filter((m) => m.type === t).reduce((a, m) => a + m.val[c], 0);
   const sum = (list, t) => sumIn(list, t, "usd");
+  // Abonos de deudas a crédito (no se entregó/recibió dinero al registrarlas): cada abono es un
+  // gasto (por pagar) o un ingreso (por cobrar) en la fecha del abono, con la categoría de la deuda
+  // y el valor del día. Los préstamos con dinero (cash) no: devolverlos no es gasto ni ingreso.
+  const payFlows = [];
+  moves.forEach((m) => {
+    if (!isDebtType(m.type) || m.cash !== false) return;
+    (m.pays || []).forEach((p) =>
+      payFlows.push({
+        id: "pf" + p.id,
+        type: m.type === "pagar" ? "gasto" : "ingreso",
+        date: p.date,
+        d: p.d,
+        ts: p.ts,
+        val: p.val,
+        usd: p.usd,
+        ccy: p.ccy,
+        cat: m.cat,
+        title: (m.type === "pagar" ? "Pago · " : "Cobro · ") + (m.person || m.title),
+        pay: p,
+        debt: m,
+      }),
+    );
+  });
+  const payFlowsIn = (from, to) =>
+    payFlows.filter((f) => f.date >= from && f.date <= to);
   // Balance del historial (valores del día): suma de las entidades incluidas en Mi saldo
   const histBalance = (c) =>
     included.reduce((total, e) => {
@@ -596,6 +621,8 @@ export function buildModel(raw, ratesOverride) {
     isLow,
     sum,
     sumIn,
+    payFlows,
+    payFlowsIn,
     flows,
     dueText,
   };
@@ -756,6 +783,7 @@ export function feed(
   dv,
   range,
   saldoMode = "both",
+  extraPays = [],
 ) {
   const inRange = (date) =>
     !range ||
@@ -769,6 +797,11 @@ export function feed(
         out.push({ d: p.d, ts: p.ts, k: p.id, r: abonoRow(model, m, p, dv) });
     }),
   );
+  // Abonos de deudas a crédito que cuentan como gasto/ingreso (para los filtros Gastos e Ingresos)
+  extraPays.forEach((f) => {
+    if (inRange(f.date))
+      out.push({ d: f.pay.d, ts: f.pay.ts, k: f.pay.id, r: abonoRow(model, f.debt, f.pay, dv) });
+  });
   if (withTransfers) {
     model.transfers.forEach((t) => {
       if (inRange(t.date))

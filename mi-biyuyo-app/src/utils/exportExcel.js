@@ -260,14 +260,16 @@ export function buildWorkbook(model, { from, to }) {
   );
 
   /* ---------- Resumen ---------- */
+  // Ingresos y gastos incluyen los abonos de deudas a crédito (cuentan al pagarse; hoja «Abonos»)
+  const flow = moves.concat(model.payFlowsIn(from, to));
   const sumRow = (label, type) => [
     label,
-    num(model.sumIn(moves, type, "usd")),
-    num(model.sumIn(moves, type, "bcv")),
-    num(model.sumIn(moves, type, "bin"), FMT_USDT),
+    num(model.sumIn(flow, type, "usd")),
+    num(model.sumIn(flow, type, "bcv")),
+    num(model.sumIn(flow, type, "bin"), FMT_USDT),
   ];
-  const inc = model.sumIn(moves, "ingreso", "usd");
-  const exp = model.sumIn(moves, "gasto", "usd");
+  const inc = model.sumIn(flow, "ingreso", "usd");
+  const exp = model.sumIn(flow, "gasto", "usd");
   const wsSum = XLSX.utils.aoa_to_sheet([
     ["Mi Biyuyo · Exportación a Excel"],
     [],
@@ -276,8 +278,8 @@ export function buildWorkbook(model, { from, to }) {
     ["Movimientos en el período", moves.length],
     [],
     ["", "USD", "VES (BCV)", "USDT (Binance)"],
-    sumRow("Ingresos", "ingreso"),
-    sumRow("Gastos", "gasto"),
+    sumRow("Ingresos (incluye cobros de ventas a crédito)", "ingreso"),
+    sumRow("Gastos (incluye pagos de compras a crédito)", "gasto"),
     ["Balance (ingresos - gastos, USD)", num(inc - exp)],
     sumRow("Por cobrar registrado", "cobrar"),
     sumRow("Por pagar registrado", "pagar"),
