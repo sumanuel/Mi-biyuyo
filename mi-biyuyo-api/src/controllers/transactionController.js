@@ -2,6 +2,7 @@ const pool = require("../config/database");
 const { spawnNextRecurrence } = require("../utils/recurrence");
 const { convertToAll, toUsd } = require("../utils/currencyConverter");
 const { cleanQuantity } = require("../utils/quantity");
+const { getPlanState, need, needOpenEntity } = require("../utils/subscription");
 
 // Tipos de categoría que son deudas (por cobrar = loan_given, por pagar = debt)
 const DEBT_TYPES = ["loan_given", "debt"];
@@ -181,15 +182,25 @@ exports.create = async (req, res, next) => {
     const converted = convertToAll(amount, currency, rates);
     await assertEntity(req.user.id, entity_id);
 
-    // ¿La categoría es de por cobrar / por pagar?
+    // ¿La categoría es de por cobrar / por pagar? ¿Es una categoría propia?
     let isDebtCat = false;
+    let ownCat = false;
     if (category_id) {
       const { rows: cat } = await client.query(
-        `SELECT type FROM categories WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)`,
+        `SELECT type, user_id FROM categories WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)`,
         [category_id, req.user.id],
       );
       isDebtCat = cat.length > 0 && DEBT_TYPES.includes(cat[0].type);
+      ownCat = cat.length > 0 && cat[0].user_id !== null;
     }
+
+    // Reglas del plan (402 PLAN_REQUIRED): deudas, categorías propias, ítems, recibos y entidades bloqueadas
+    const plan = await getPlanState(req.user.id);
+    if (isDebtCat) need(plan, "debts");
+    if (ownCat) need(plan, "custom_categories");
+    if (Array.isArray(items) && items.length) need(plan, "items");
+    if (receipt_name || receipt_data) need(plan, "receipts");
+    needOpenEntity(plan, entity_id);
     const inst = cleanInstallments(installments, installment_days, isDebtCat);
 
     await client.query("BEGIN");
@@ -289,6 +300,23 @@ exports.update = async (req, res, next) => {
     }
 
     const isDebt = DEBT_TYPES.includes(cur.category_type);
+
+    // Reglas del plan (402 PLAN_REQUIRED). Lo que ya existía se conserva; lo nuevo exige Premium
+    const plan = await getPlanState(req.user.id);
+    if (isDebt) need(plan, "debts");
+    if (categoryId !== cur.category_id) {
+      const { rows: own } = await client.query(
+        `SELECT user_id FROM categories WHERE id = $1`,
+        [categoryId],
+      );
+      if (own.length && own[0].user_id !== null) need(plan, "custom_categories");
+    }
+    if (has("items") && Array.isArray(b.items) && b.items.length) need(plan, "items");
+    if (has("receipt_data") && b.receipt_data && b.receipt_data !== cur.receipt_data)
+      need(plan, "receipts");
+    if (has("entity_id") && b.entity_id && String(b.entity_id) !== String(cur.entity_id))
+      needOpenEntity(plan, b.entity_id);
+
     const amount = has("amount")
       ? parseFloat(b.amount)
       : parseFloat(cur.amount);

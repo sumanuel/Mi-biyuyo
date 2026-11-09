@@ -26,6 +26,7 @@ app.use("/api/transfers", require("./routes/transfers"));
 app.use("/api/adjustments", require("./routes/adjustments"));
 app.use("/api/ledger", require("./routes/ledger"));
 app.use("/api/planned", require("./routes/planned"));
+app.use("/api/subscription", require("./routes/subscription"));
 
 // /health?mail=check vuelve a comprobar el acceso SMTP (como mucho una vez por minuto)
 app.get("/health", async (req, res) => {

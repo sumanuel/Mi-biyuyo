@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const pool = require("../config/database");
 const { body } = require("express-validator");
 const { sendMail, mailConfigured, maskEmail } = require("../utils/mailer");
+const { startTrial, getPlanState } = require("../utils/subscription");
 
 const SALT_ROUNDS = 12;
 
@@ -180,7 +181,11 @@ exports.login = async (req, res, next) => {
 
     delete user.password_hash;
     delete user.email_verified;
-    res.json({ token: signToken(user.id), user });
+    res.json({
+      token: signToken(user.id),
+      user,
+      subscription: await getPlanState(user.id),
+    });
   } catch (err) {
     next(err);
   }
@@ -226,10 +231,15 @@ exports.verifyEmail = async (req, res, next) => {
         `UPDATE users SET email_verified = true, updated_at = NOW() WHERE id = $1`,
         [user.id],
       );
+      await startTrial(user.id, "new"); // la prueba gratis empieza al verificar el correo
     }
 
     delete user.email_verified;
-    res.json({ token: signToken(user.id), user });
+    res.json({
+      token: signToken(user.id),
+      user,
+      subscription: await getPlanState(user.id),
+    });
   } catch (err) {
     next(err);
   }
@@ -258,7 +268,7 @@ exports.me = async (req, res, next) => {
     );
     if (!rows.length)
       return res.status(404).json({ error: "Usuario no encontrado" });
-    res.json(rows[0]);
+    res.json({ ...rows[0], subscription: await getPlanState(req.user.id) });
   } catch (err) {
     next(err);
   }
@@ -305,11 +315,12 @@ exports.resetPassword = async (req, res, next) => {
     const { email, code, password } = req.body;
     const invalid = httpError(400, "Código incorrecto o vencido");
     const { rows: users } = await pool.query(
-      "SELECT id FROM users WHERE email = $1",
+      "SELECT id, email_verified FROM users WHERE email = $1",
       [email.toLowerCase()],
     );
     if (!users.length) throw invalid;
     const userId = users[0].id;
+    const wasVerified = users[0].email_verified;
 
     const { rows } = await pool.query(
       `SELECT id, code_hash, attempts FROM email_verification_codes
@@ -342,6 +353,7 @@ exports.resetPassword = async (req, res, next) => {
       `UPDATE email_verification_codes SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL`,
       [userId],
     );
+    if (!wasVerified) await startTrial(userId, "new");
     res.json({ message: "Contraseña actualizada correctamente" });
   } catch (err) {
     next(err);

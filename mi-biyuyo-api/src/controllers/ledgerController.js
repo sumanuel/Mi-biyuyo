@@ -1,5 +1,6 @@
 const pool = require("../config/database");
 const { SELECT: PLANNED_SELECT } = require("./plannedController");
+const { getPlanState } = require("../utils/subscription");
 
 // Devuelve todo lo necesario para calcular saldos, deudas y estadísticas en el cliente.
 exports.get = async (req, res, next) => {
@@ -87,6 +88,7 @@ exports.get = async (req, res, next) => {
       transfers: trs.rows,
       adjustments: adjs.rows,
       planned: planned.rows,
+      subscription: await getPlanState(uid),
       rates: rates.rows[0] || { usd_to_ves: 0, binance_to_ves: 0 },
     });
   } catch (err) {

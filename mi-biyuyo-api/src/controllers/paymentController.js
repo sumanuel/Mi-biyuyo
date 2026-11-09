@@ -1,6 +1,7 @@
 const pool = require("../config/database");
 const { spawnNextRecurrence } = require("../utils/recurrence");
 const { convertToAll, factorOf } = require("../utils/currencyConverter");
+const { requireFeature } = require("../utils/subscription");
 
 async function getUserRates(userId) {
   const { rows } = await pool.query(
@@ -33,6 +34,7 @@ exports.list = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
+    await requireFeature(req.user.id, "debts");
     const { id: transactionId } = req.params;
     const { amount, currency, date, notes, entity_id } = req.body;
     if (!amount || !currency)

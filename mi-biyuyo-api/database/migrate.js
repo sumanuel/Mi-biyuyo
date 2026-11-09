@@ -393,6 +393,99 @@ async function migrate() {
       `ALTER TABLE entities ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ`,
     );
 
+    // ── suscripción: plan Gratis / Premium (ver docs/SUSCRIPCION-PLAN.md) ──
+    // El plan no se guarda: se calcula con estas fechas (premium_until futuro → premium;
+    // trial_ends_at futuro → prueba; si no → gratis). trial_days_granted = días de prueba que
+    // recibió (NULL = aún no empezó su prueba).
+    await client.query(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS trial_ends_at     TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS premium_until     TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS trial_days_granted INTEGER
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS subscription_plans (
+        code       VARCHAR(20) PRIMARY KEY,
+        name       VARCHAR(40) NOT NULL,
+        price_usd  DECIMAL(10,2) NOT NULL,
+        days       INTEGER NOT NULL,
+        active     BOOLEAN NOT NULL DEFAULT TRUE,
+        sort_order INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+    await client.query(`
+      INSERT INTO subscription_plans (code, name, price_usd, days, sort_order) VALUES
+        ('monthly', 'Mensual', 2.50, 30, 1),
+        ('annual',  'Anual',  20.00, 365, 2)
+      ON CONFLICT (code) DO NOTHING
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS subscription_payments (
+        id            SERIAL PRIMARY KEY,
+        user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        plan_code     VARCHAR(20) NOT NULL REFERENCES subscription_plans(code),
+        amount_usd    DECIMAL(10,2) NOT NULL,
+        method        VARCHAR(30) NOT NULL,
+        reference     VARCHAR(80),
+        paid_amount   DECIMAL(15,4),
+        paid_currency VARCHAR(10),
+        rate_used     DECIMAL(15,4),
+        proof_data    TEXT,
+        status        VARCHAR(10) NOT NULL DEFAULT 'pending'
+                      CHECK (status IN ('pending','approved','rejected')),
+        reject_reason VARCHAR(255),
+        requested_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        reviewed_at   TIMESTAMPTZ
+      )
+    `);
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_sub_payments_user ON subscription_payments(user_id, requested_at DESC)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_sub_payments_status ON subscription_payments(status)`,
+    );
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS redeem_codes (
+        id         SERIAL PRIMARY KEY,
+        code       VARCHAR(40) NOT NULL UNIQUE,
+        plan_code  VARCHAR(20) REFERENCES subscription_plans(code),
+        days       INTEGER,
+        used_by    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        used_at    TIMESTAMPTZ,
+        expires_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CHECK (plan_code IS NOT NULL OR days IS NOT NULL)
+      )
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS payment_receivers (
+        id         SERIAL PRIMARY KEY,
+        method     VARCHAR(30) NOT NULL,
+        label      VARCHAR(80) NOT NULL,
+        details    JSONB NOT NULL DEFAULT '[]',
+        active     BOOLEAN NOT NULL DEFAULT TRUE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    // Configuración que se ajusta sin tocar código (clave / valor, con quién y cuándo la cambió)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key        VARCHAR(60) PRIMARY KEY,
+        value      TEXT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_by VARCHAR(80)
+      )
+    `);
+    // trial_days = prueba de un usuario nuevo; trial_days_existing = prueba de los usuarios que ya
+    // existían cuando se activó la función (0 = sin prueba)
+    await client.query(`
+      INSERT INTO app_settings (key, value) VALUES
+        ('trial_days', '14'),
+        ('trial_days_existing', '14')
+      ON CONFLICT (key) DO NOTHING
+    `);
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {
