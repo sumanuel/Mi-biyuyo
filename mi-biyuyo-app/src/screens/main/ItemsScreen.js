@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useData } from "../../contexts/DataContext";
@@ -12,21 +12,24 @@ import {
   Empty,
   Button,
 } from "../../components/ui";
-import DateRangeFilter from "../../components/DateRangeFilter";
+import PeriodBar from "../../components/PeriodBar";
+import { usePeriod } from "../../contexts/PeriodContext";
 import { itemAgg } from "../../utils/ledger";
 import { itemKey, qtyText } from "../../utils/text";
-import { endOfMonth, fullDate, nTxt, startOfMonth } from "../../utils/money";
+import { fullDate, nTxt } from "../../utils/money";
 import { go } from "../../navigation/helpers";
 
 const PAGE = 30;
 
 /** Todos los ítems comprados en un rango de fechas; al tocar uno, sus fechas de compra. */
-export default function ItemsScreen({ navigation, route }) {
+export default function ItemsScreen({ navigation }) {
   const { colors } = useTheme();
   const { model, disp } = useData();
-  const [from, setFrom] = useState(route.params?.from || startOfMonth());
-  const [to, setTo] = useState(route.params?.to || endOfMonth());
+  const {
+    period: { from, to },
+  } = usePeriod();
   const [limit, setLimit] = useState(PAGE);
+  useEffect(() => setLimit(PAGE), [from, to]);
   const [q, setQ] = useState("");
 
   const list = model.moves.filter((m) => m.date >= from && m.date <= to);
@@ -55,15 +58,7 @@ export default function ItemsScreen({ navigation, route }) {
           fontSize: 15,
         }}
       />
-      <DateRangeFilter
-        from={from}
-        to={to}
-        onChange={(f, t) => {
-          setFrom(f);
-          setTo(t);
-          setLimit(PAGE);
-        }}
-      />
+      <PeriodBar />
       <DispTabs height={40} />
       <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
         {nTxt(items.length, "ítem")} del {fullDate(from)} al {fullDate(to)}.

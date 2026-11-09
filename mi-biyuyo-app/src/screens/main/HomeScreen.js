@@ -29,7 +29,9 @@ import {
   feed,
   pillOf,
 } from "../../utils/ledger";
-import { addDays, grp, maskMoney, nTxt, todayStr } from "../../utils/money";
+import { grp, maskMoney, nTxt } from "../../utils/money";
+import PeriodBar from "../../components/PeriodBar";
+import { usePeriod } from "../../contexts/PeriodContext";
 import { useRateNotifications } from "../../contexts/RateNotificationsContext";
 import { useGuide } from "../../contexts/GuideContext";
 
@@ -54,15 +56,15 @@ export default function HomeScreen({ navigation }) {
   const shown = (text) => (hideBalance ? maskMoney(text) : text);
   const { fx } = model;
 
-  // Abre el historial en el tipo tocado y en los mismos 30 días del resumen
-  const last30 = (filter) =>
-    go(navigation, "History", {
-      filter,
-      from: addDays(todayStr(), -29),
-      to: todayStr(),
-      ts: Date.now(),
-    });
-  const m30 = model.moves.filter((m) => m.d < 30);
+  // Período global de la app (botón «Filtros»): el resumen y los últimos movimientos lo respetan
+  const { period } = usePeriod();
+  const range = { from: period.from, to: period.to };
+  // Abre el historial en el tipo tocado; el período es el mismo
+  const openHistory = (filter) =>
+    go(navigation, "History", { filter, ts: Date.now() });
+  const m30 = model.moves.filter(
+    (m) => m.date >= range.from && m.date <= range.to,
+  );
   const incomes = m30.filter((m) => m.type === "ingreso");
   const expenses = m30.filter((m) => m.type === "gasto");
   const cobr = model.moves.filter(
@@ -78,8 +80,10 @@ export default function HomeScreen({ navigation }) {
   const pc = pillOf(cobr.length, overdue(cobr));
   const pp = pillOf(pag.length, overdue(pag));
   const alerts = alertsOf(model, dv, threshold);
-  const sorted = model.moves.slice().sort(byRecent);
-  const recent = feed(model, sorted, true, dv, undefined, saldoMode).slice(
+  const sorted = model.moves
+    .filter((m) => m.date >= range.from && m.date <= range.to)
+    .sort(byRecent);
+  const recent = feed(model, sorted, true, dv, range, saldoMode).slice(
     0,
     MAX_MOVEMENTS,
   );
@@ -450,11 +454,7 @@ export default function HomeScreen({ navigation }) {
           action="Ver estadísticas"
           onAction={() => go(navigation, "Stats")}
         />
-        <Txt
-          style={{ fontSize: 12, color: colors.textSecondary, marginTop: -8 }}
-        >
-          Ingresos y gastos de los últimos 30 días
-        </Txt>
+        <PeriodBar />
         <View style={{ flexDirection: "row", gap: 10 }}>
           {stat(
             "Ingresos",
@@ -465,7 +465,7 @@ export default function HomeScreen({ navigation }) {
               fg={colors.ok.fg}
             />,
             null,
-            () => last30("ingreso"),
+            () => openHistory("ingreso"),
           )}
           {stat(
             "Gastos",
@@ -476,7 +476,7 @@ export default function HomeScreen({ navigation }) {
               fg={colors.gasto.fg}
             />,
             null,
-            () => last30("gasto"),
+            () => openHistory("gasto"),
           )}
         </View>
         <View style={{ flexDirection: "row", gap: 10 }}>
@@ -640,7 +640,9 @@ export default function HomeScreen({ navigation }) {
             <Txt
               style={{ padding: 16, fontSize: 13, color: colors.textSecondary }}
             >
-              Todavía no hay movimientos.
+              {model.moves.length
+                ? `Sin movimientos en el período (${period.label.toLowerCase()}).`
+                : "Todavía no hay movimientos."}
             </Txt>
           ) : (
             recent.map((r, i) => (

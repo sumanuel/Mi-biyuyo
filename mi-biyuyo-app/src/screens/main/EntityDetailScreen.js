@@ -23,15 +23,18 @@ import {
   CCY_LABEL,
   ENT_CCY,
   ENT_CCY_LABEL,
-  last30Range,
-  monthLabel,
 } from "../../utils/money";
+import PeriodBar from "../../components/PeriodBar";
+import { usePeriod } from "../../contexts/PeriodContext";
 import { go } from "../../navigation/helpers";
 import { confirm } from "../../utils/confirm";
+
+const PREVIEW = 10;
 
 export default function EntityDetailScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { model, dv, actions, showToast } = useData();
+  const { period } = usePeriod();
   const { fx } = model;
   const e = model.entById[route.params?.id];
 
@@ -50,8 +53,8 @@ export default function EntityDetailScreen({ navigation, route }) {
   const data = (e.pd || [])
     .map((v, i) => ({ label: pt.f[i] || "", value: v }))
     .filter((f) => f.value && f.label);
-  // Solo los últimos 30 días; el resto se ve en «Ver más movimientos» (con rango de fechas)
-  const ledger = ledgerOf(model, e.id, dv, last30Range());
+  // Movimientos del período global de la app; aquí se ven los más recientes y el resto en «Ver más movimientos»
+  const ledger = ledgerOf(model, e.id, dv, { from: period.from, to: period.to });
   const low = model.isLow(e);
 
   const copy = async () => {
@@ -333,10 +336,9 @@ export default function EntityDetailScreen({ navigation, route }) {
       </Card>
 
       <View style={{ gap: 10 }}>
-        <Txt style={{ fontSize: 15, fontWeight: "700" }}>
-          Movimientos de {monthLabel()}
-        </Txt>
-        {ledger.map((r) => (
+        <Txt style={{ fontSize: 15, fontWeight: "700" }}>Movimientos</Txt>
+        <PeriodBar />
+        {ledger.slice(0, PREVIEW).map((r) => (
           <MovRow
             key={r.key}
             row={r}
@@ -346,16 +348,18 @@ export default function EntityDetailScreen({ navigation, route }) {
         ))}
         {!ledger.length ? (
           <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
-            Sin movimientos en los últimos 30 días.
+            Sin movimientos en el período ({period.label.toLowerCase()}).
           </Txt>
         ) : null}
-        <Button
-          label="Ver más movimientos"
-          outline
-          height={46}
-          style={{ borderRadius: 14 }}
-          onPress={() => navigation.navigate("EntityMovements", { id: e.id })}
-        />
+        {ledger.length > PREVIEW ? (
+          <Button
+            label={`Ver los ${ledger.length} movimientos`}
+            outline
+            height={46}
+            style={{ borderRadius: 14 }}
+            onPress={() => navigation.navigate("EntityMovements", { id: e.id })}
+          />
+        ) : null}
       </View>
 
       {!e.archived ? (

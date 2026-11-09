@@ -19,14 +19,13 @@ import {
   compact,
   dayMonth,
   daysBetween,
-  endOfMonth,
   fullDate,
   grp,
   nTxt,
   parseDate,
-  startOfMonth,
 } from "../../utils/money";
-import DateRangeFilter from "../../components/DateRangeFilter";
+import PeriodBar from "../../components/PeriodBar";
+import { usePeriod } from "../../contexts/PeriodContext";
 import { itemAgg } from "../../utils/ledger";
 import { qtyText } from "../../utils/text";
 import { go } from "../../navigation/helpers";
@@ -38,13 +37,13 @@ export default function StatsScreen({ navigation }) {
   const { colors } = useTheme();
   const { model, disp, dv } = useData();
   const { fx } = model;
-  // Período elegido con calendarios (por defecto, el mes en curso)
-  const monthStart = startOfMonth();
-  const monthEnd = endOfMonth();
-  const [from, setFrom] = useState(monthStart);
-  const [to, setTo] = useState(monthEnd);
+  // Período global de la app (botón «Filtros»)
+  const {
+    period: { from, to },
+  } = usePeriod();
   const [sel, setSel] = useState(null);
   const { markStatsVisited } = useGuide();
+  useEffect(() => setSel(null), [from, to]); // la barra tocada era del período anterior
   useEffect(() => {
     markStatsVisited(); // paso 5 de la guía de primeros pasos
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -241,15 +240,7 @@ export default function StatsScreen({ navigation }) {
   return (
     <Screen pull>
       <H1>Estadísticas</H1>
-      <DateRangeFilter
-        from={from}
-        to={to}
-        onChange={(f, t) => {
-          setFrom(f);
-          setTo(t);
-          setSel(null);
-        }}
-      />
+      <PeriodBar />
       <DispTabs height={40} />
 
       {list.length === 0 ? (
