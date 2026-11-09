@@ -18,6 +18,7 @@ import { ThemeProvider, useTheme } from "./src/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { ExchangeRateProvider } from "./src/contexts/ExchangeRateContext";
 import { DataProvider } from "./src/contexts/DataContext";
+import { PeriodProvider } from "./src/contexts/PeriodContext";
 import { RateNotificationsProvider } from "./src/contexts/RateNotificationsContext";
 import DailyRateWatcher from "./src/components/DailyRateWatcher";
 import "./src/services/rateWatcher"; // define la tarea en segundo plano de la tasa diaria
@@ -53,6 +54,7 @@ import CategoryFormScreen from "./src/screens/main/CategoryFormScreen";
 import EntityMovementsScreen from "./src/screens/main/EntityMovementsScreen";
 import TransferScreen from "./src/screens/main/TransferScreen";
 import AdjustBalanceScreen from "./src/screens/main/AdjustBalanceScreen";
+import PeriodFilterScreen from "./src/screens/main/PeriodFilterScreen";
 import ArchiveEntityScreen from "./src/screens/main/ArchiveEntityScreen";
 import ArchivedEntitiesScreen from "./src/screens/main/ArchivedEntitiesScreen";
 import ExchangeRateScreen from "./src/screens/main/ExchangeRateScreen";
@@ -234,6 +236,7 @@ function AppNavigator() {
         {token ? (
           <ExchangeRateProvider>
             <DataProvider>
+              <PeriodProvider>
               <GuideProvider>
                 <RateNotificationsProvider>
                   <View style={{ flex: 1 }}>
@@ -295,6 +298,10 @@ function AppNavigator() {
                         component={TransferScreen}
                       />
                       <Stack.Screen
+                        name="PeriodFilter"
+                        component={PeriodFilterScreen}
+                      />
+                      <Stack.Screen
                         name="AdjustBalance"
                         component={AdjustBalanceScreen}
                       />
@@ -335,6 +342,7 @@ function AppNavigator() {
                   </View>
                 </RateNotificationsProvider>
               </GuideProvider>
+              </PeriodProvider>
             </DataProvider>
           </ExchangeRateProvider>
         ) : (

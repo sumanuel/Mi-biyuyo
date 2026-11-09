@@ -15,9 +15,10 @@ import {
   Empty,
   Button,
 } from "../../components/ui";
-import DateRangeFilter from "../../components/DateRangeFilter";
+import PeriodBar from "../../components/PeriodBar";
+import { usePeriod } from "../../contexts/PeriodContext";
 import { META, byRecent, feed } from "../../utils/ledger";
-import { fullDate, last30Range } from "../../utils/money";
+import { fullDate } from "../../utils/money";
 import { itemKey, textHas } from "../../utils/text";
 import { go } from "../../navigation/helpers";
 
@@ -36,24 +37,18 @@ export default function HistoryScreen({ navigation, route }) {
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const [limit, setLimit] = useState(PAGE);
-  const [from, setFrom] = useState(last30Range().from);
-  const [to, setTo] = useState(last30Range().to);
+  const {
+    period: { from, to },
+  } = usePeriod();
+  useEffect(() => setLimit(PAGE), [from, to]);
 
-  const setRange = (f, t) => {
-    setFrom(f);
-    setTo(t);
-    setLimit(PAGE);
-  };
-
-  // Desde el resumen de Inicio: tipo y rango ya elegidos
+  // Desde el resumen de Inicio: tipo ya elegido (el período es el global)
   useEffect(() => {
     const p = route.params;
     if (!p?.filter) return;
     setFilter(p.filter);
     setQ("");
     setLimit(PAGE);
-    setFrom(p.from || last30Range().from);
-    setTo(p.to || last30Range().to);
   }, [route.params?.filter, route.params?.ts]);
 
   // La búsqueda ignora tildes y mayúsculas; los ítems además ignoran el plural («jamones» encuentra «Jamón»)
@@ -106,7 +101,7 @@ export default function HistoryScreen({ navigation, route }) {
           fontSize: 15,
         }}
       />
-      <DateRangeFilter last30 from={from} to={to} onChange={setRange} />
+      <PeriodBar />
       <DispTabs height={40} />
       <ChipRow scroll>
         {FILTERS.map(([k, l]) => (

@@ -1,5 +1,5 @@
-import React from "react";
-import { View, TouchableOpacity } from "react-native";
+import React, { useRef, useState } from "react";
+import { View, TouchableOpacity, Share } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useData, errorMessage } from "../../contexts/DataContext";
@@ -23,16 +23,27 @@ import {
   CCY_LABEL,
   ENT_CCY,
   ENT_CCY_LABEL,
-  last30Range,
-  monthLabel,
 } from "../../utils/money";
+import PeriodBar from "../../components/PeriodBar";
+import { usePeriod } from "../../contexts/PeriodContext";
+import {
+  PaymentShareCard,
+  paymentText,
+  shareAsImage,
+} from "../../components/PaymentShareCard";
 import { go } from "../../navigation/helpers";
 import { confirm } from "../../utils/confirm";
+
+const PREVIEW = 10;
 
 export default function EntityDetailScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { model, dv, actions, showToast } = useData();
+  const { period } = usePeriod();
   const { fx } = model;
+  const [payOpen, setPayOpen] = useState(false); // datos de pago: acordeón cerrado por defecto
+  const [capturing, setCapturing] = useState(false); // dibuja la tarjeta con QR solo mientras se comparte
+  const cardRef = useRef(null);
   const e = model.entById[route.params?.id];
 
   if (!e) {
@@ -50,15 +61,24 @@ export default function EntityDetailScreen({ navigation, route }) {
   const data = (e.pd || [])
     .map((v, i) => ({ label: pt.f[i] || "", value: v }))
     .filter((f) => f.value && f.label);
-  // Solo los últimos 30 días; el resto se ve en «Ver más movimientos» (con rango de fechas)
-  const ledger = ledgerOf(model, e.id, dv, last30Range());
+  // Movimientos del período global de la app; aquí se ven los más recientes y el resto en «Ver más movimientos»
+  const ledger = ledgerOf(model, e.id, dv, { from: period.from, to: period.to });
   const low = model.isLow(e);
 
-  const copy = async () => {
-    await Clipboard.setStringAsync(
-      data.map((f) => `${f.label}: ${f.value}`).join("\n"),
-    );
-    showToast("Datos de pago copiados");
+  // Comparte los datos de pago como imagen (QR + datos). Si no se puede compartir una imagen, comparte
+  // el texto, y si tampoco se puede, lo copia.
+  const share = async () => {
+    const text = paymentText(e.name, data);
+    try {
+      setCapturing(true);
+      await new Promise((r) => setTimeout(r, 150)); // deja que se dibuje la tarjeta
+      if (!(await shareAsImage(cardRef))) await Share.share({ message: text });
+    } catch {
+      await Clipboard.setStringAsync(text);
+      showToast("Datos de pago copiados");
+    } finally {
+      setCapturing(false);
+    }
   };
 
   // Con movimientos no se elimina (se perdería su historial): se archiva
@@ -263,15 +283,23 @@ export default function EntityDetailScreen({ navigation, route }) {
       </Card>
 
       <Card pad={14} style={{ gap: 10 }}>
-        <View
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setPayOpen((o) => !o)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: payOpen }}
+          accessibilityLabel="Datos de pago"
           style={{
+            minHeight: 32,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: 8,
           }}
         >
           <Txt
             style={{
+              flex: 1,
               fontSize: 12,
               fontWeight: "700",
               letterSpacing: 0.5,
@@ -287,9 +315,19 @@ export default function EntityDetailScreen({ navigation, route }) {
               color: colors.textSecondary,
             }}
           >
-            {data.length ? pt.label : ""}
+            {data.length ? pt.label : "Sin datos"}
           </Txt>
-        </View>
+          <View style={{ transform: [{ rotate: payOpen ? "90deg" : "0deg" }] }}>
+            <Icon
+              name="chevronRight"
+              size={16}
+              color={colors.textSecondary}
+              stroke={2}
+            />
+          </View>
+        </TouchableOpacity>
+        {payOpen ? (
+          <>
         {data.map((f) => (
           <View
             key={f.label}
@@ -322,21 +360,25 @@ export default function EntityDetailScreen({ navigation, route }) {
             Aún no agregaste datos de pago.
           </Txt>
         ) : null}
+        {capturing ? (
+          <PaymentShareCard ref={cardRef} name={e.name} fields={data} />
+        ) : null}
         <Button
-          label="Copiar datos de pago"
+          label="Compartir datos de pago"
           outline
           height={46}
           style={{ borderRadius: 12 }}
           disabled={!data.length}
-          onPress={copy}
+          onPress={share}
         />
+          </>
+        ) : null}
       </Card>
 
       <View style={{ gap: 10 }}>
-        <Txt style={{ fontSize: 15, fontWeight: "700" }}>
-          Movimientos de {monthLabel()}
-        </Txt>
-        {ledger.map((r) => (
+        <Txt style={{ fontSize: 15, fontWeight: "700" }}>Movimientos</Txt>
+        <PeriodBar />
+        {ledger.slice(0, PREVIEW).map((r) => (
           <MovRow
             key={r.key}
             row={r}
@@ -346,16 +388,18 @@ export default function EntityDetailScreen({ navigation, route }) {
         ))}
         {!ledger.length ? (
           <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
-            Sin movimientos en los últimos 30 días.
+            Sin movimientos en el período ({period.label.toLowerCase()}).
           </Txt>
         ) : null}
-        <Button
-          label="Ver más movimientos"
-          outline
-          height={46}
-          style={{ borderRadius: 14 }}
-          onPress={() => navigation.navigate("EntityMovements", { id: e.id })}
-        />
+        {ledger.length > PREVIEW ? (
+          <Button
+            label={`Ver los ${ledger.length} movimientos`}
+            outline
+            height={46}
+            style={{ borderRadius: 14 }}
+            onPress={() => navigation.navigate("EntityMovements", { id: e.id })}
+          />
+        ) : null}
       </View>
 
       {!e.archived ? (
