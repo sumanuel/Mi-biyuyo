@@ -161,11 +161,11 @@ Cada fase se trabaja en su rama, se prueba en local (API local + base local + Ex
 - [ ] Textos de ayuda y «Acerca de».
 
 ### Fase 3: pagos
-- [ ] Endpoints y pantalla para **solicitar pago** (método, referencia, monto, captura) y ver su estado.
-- [ ] **Códigos de canje.**
-- [ ] **Página de administración** con `ADMIN_KEY`: pagos pendientes, aprobar o rechazar, códigos, regalar días, precios, datos de cobro y **días de prueba** (con sus validaciones y las acciones sobre quienes ya están en prueba).
-- [ ] Correos: pago recibido, aprobado, rechazado y aviso de vencimiento próximo.
-- [ ] Pruebas del flujo completo y de seguridad (un usuario no ve pagos de otro, la página admin rechaza sin clave, un código no se usa dos veces).
+- [x] Endpoints y pantalla para **solicitar pago** (método, referencia, monto, captura) y ver su estado.
+- [x] **Códigos de canje.**
+- [x] **Página de administración** con `ADMIN_KEY`: pagos pendientes, aprobar o rechazar, códigos, regalar días, precios, datos de cobro y **días de prueba** (con sus validaciones y las acciones sobre quienes ya están en prueba).
+- [x] Correos: pago recibido, aprobado, rechazado y aviso de vencimiento próximo.
+- [x] Pruebas del flujo completo y de seguridad (un usuario no ve pagos de otro, la página admin rechaza sin clave, un código no se usa dos veces).
 
 ### Fase 4: pruebas y publicación
 - [ ] Matriz de pruebas por estado (§6) en el teléfono con Expo Go.
