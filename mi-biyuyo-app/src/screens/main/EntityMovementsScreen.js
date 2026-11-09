@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useData } from "../../contexts/DataContext";
@@ -11,9 +11,9 @@ import {
   Button,
   Empty,
 } from "../../components/ui";
-import DateRangeFilter from "../../components/DateRangeFilter";
+import PeriodBar from "../../components/PeriodBar";
+import { usePeriod } from "../../contexts/PeriodContext";
 import { ledgerOf } from "../../utils/ledger";
-import { fullDate, last30Range } from "../../utils/money";
 import { go } from "../../navigation/helpers";
 
 const PAGE = 50;
@@ -24,9 +24,11 @@ export default function EntityMovementsScreen({ navigation, route }) {
   const { model, dv } = useData();
   const e = model.entById[route.params?.id];
 
-  const [from, setFrom] = useState(last30Range().from);
-  const [to, setTo] = useState(last30Range().to);
+  const {
+    period: { from, to },
+  } = usePeriod();
   const [limit, setLimit] = useState(PAGE);
+  useEffect(() => setLimit(PAGE), [from, to]);
 
   if (!e) {
     return (
@@ -40,12 +42,6 @@ export default function EntityMovementsScreen({ navigation, route }) {
   const rows = ledgerOf(model, e.id, dv, { from, to });
   const shown = rows.slice(0, limit);
 
-  const setRange = (f, t) => {
-    setFrom(f);
-    setTo(t);
-    setLimit(PAGE);
-  };
-
   return (
     <Screen data={false} contentStyle={{ paddingTop: 16 }}>
       <Header
@@ -53,11 +49,11 @@ export default function EntityMovementsScreen({ navigation, route }) {
         onBack={() => navigation.goBack()}
       />
 
-      <DateRangeFilter last30 from={from} to={to} onChange={setRange} />
+      <PeriodBar />
 
       <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
-        {rows.length === 1 ? "1 movimiento" : `${rows.length} movimientos`} del{" "}
-        {fullDate(from)} al {fullDate(to)}
+        {rows.length === 1 ? "1 movimiento" : `${rows.length} movimientos`} en
+        el período
       </Txt>
 
       <View style={{ gap: 8 }}>

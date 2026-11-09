@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, TouchableOpacity } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useData } from "../../contexts/DataContext";
@@ -16,9 +16,10 @@ import {
   TonePill,
   Empty,
 } from "../../components/ui";
-import DateRangeFilter from "../../components/DateRangeFilter";
+import PeriodBar from "../../components/PeriodBar";
+import { usePeriod } from "../../contexts/PeriodContext";
 import { META, debtStatus } from "../../utils/ledger";
-import { endOfMonth, fullDate, nTxt, startOfMonth } from "../../utils/money";
+import { fullDate, nTxt } from "../../utils/money";
 import { textHas } from "../../utils/text";
 import { go } from "../../navigation/helpers";
 
@@ -30,9 +31,11 @@ export default function DebtsScreen({ navigation, type: tab }) {
   const { model, dv } = useData();
   const [view, setView] = useState("pend");
   const [q, setQ] = useState("");
-  const [from, setFrom] = useState(startOfMonth());
-  const [to, setTo] = useState(endOfMonth());
+  const {
+    period: { from, to },
+  } = usePeriod();
   const [limit, setLimit] = useState(PAGE);
+  useEffect(() => setLimit(PAGE), [from, to]);
 
   const tint = colors[tab];
   const done = view === "done";
@@ -99,15 +102,7 @@ export default function DebtsScreen({ navigation, type: tab }) {
               fontSize: 15,
             }}
           />
-          <DateRangeFilter
-            from={from}
-            to={to}
-            onChange={(f, t) => {
-              setFrom(f);
-              setTo(t);
-              setLimit(PAGE);
-            }}
-          />
+          <PeriodBar />
         </>
       ) : null}
 
