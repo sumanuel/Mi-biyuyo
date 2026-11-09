@@ -10,7 +10,7 @@ import {
   Card,
   Empty,
 } from "../../components/ui";
-import { byRecent, itemAgg } from "../../utils/ledger";
+import { itemAgg } from "../../utils/ledger";
 import { fullDate, nTxt } from "../../utils/money";
 import { itemKey, qtyText } from "../../utils/text";
 import { go } from "../../navigation/helpers";
@@ -23,20 +23,14 @@ export default function ItemDatesScreen({ navigation, route }) {
 
   const list = model.moves.filter((m) => m.date >= from && m.date <= to);
   const item = itemAgg(list, disp).find((x) => x.key === itemKey(name));
-  const buys = item ? item.buys.slice().sort((a, b) => byRecent(a.m, b.m)) : [];
+  const buys = item ? item.rows : []; // de la compra más reciente a la más antigua
 
-  // Montos. Las compras sin monto se estiman con el último precio por unidad que tenga el ítem
-  // (la compra más reciente con monto: monto ÷ cantidad), y se marcan como estimadas.
+  // Montos: las compras sin monto se estiman en itemAgg con el último precio por unidad
   const money = (v) => model.fx.money(disp, v);
-  const lastPriced = buys.find((b) => b.amt > 0); // `buys` va de la más reciente a la más antigua
-  const lastUnit = lastPriced ? lastPriced.amt / lastPriced.qty : 0;
-  const rows = buys.map((b) =>
-    b.amt > 0
-      ? { ...b, est: false }
-      : { ...b, amt: lastUnit * b.qty, est: lastUnit > 0 },
-  );
+  const rows = buys;
+  const lastUnit = item ? item.lastUnit : 0;
   const withAmt = rows.filter((r) => r.amt > 0);
-  const nEst = rows.filter((r) => r.est).length;
+  const nEst = item ? item.nEst : 0;
   const total = withAmt.reduce((a, r) => a + r.amt, 0);
   const qtyAmt = withAmt.reduce((a, r) => a + r.qty, 0);
   const stats = [];
