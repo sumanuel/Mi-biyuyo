@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { useData } from "../../contexts/DataContext";
-import { Screen, Header, Txt, Card, Button, Icon } from "../../components/ui";
+import { useData, errorMessage } from "../../contexts/DataContext";
+import { Screen, Header, Txt, Card, Button, Field, Icon } from "../../components/ui";
 import { COMPARE_ROWS, FEATURE_TEXT } from "../../utils/plan";
 import { fullDate } from "../../utils/money";
 import * as subscriptionService from "../../services/api/subscriptionService";
@@ -17,9 +17,12 @@ const dateOf = (iso) => (iso ? fullDate(String(iso).slice(0, 10)) : "");
 export default function PlansScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { token } = useAuth();
-  const { plan } = useData();
+  const { plan, refresh, showToast } = useData();
   const feature = route.params?.feature;
   const [plans, setPlans] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [code, setCode] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
 
   useEffect(() => {
     if (!plan.enabled) return;
@@ -28,6 +31,39 @@ export default function PlansScreen({ navigation, route }) {
       .then((s) => setPlans(s.plans || []))
       .catch(() => {});
   }, [token, plan.enabled]);
+
+  // Mis pagos: se recargan cada vez que se vuelve a esta pantalla (p. ej. tras enviar uno)
+  useEffect(() => {
+    if (!plan.enabled) return;
+    const load = () =>
+      subscriptionService
+        .getPayments(token)
+        .then(setPayments)
+        .catch(() => {});
+    load();
+    return navigation.addListener("focus", load);
+  }, [token, plan.enabled, navigation]);
+
+  const redeem = async () => {
+    if (!code.trim() || redeeming) return;
+    setRedeeming(true);
+    try {
+      const r = await subscriptionService.redeemCode(token, code.trim());
+      showToast(`Premium activado: +${r.days} días`);
+      setCode("");
+      await refresh();
+    } catch (err) {
+      showToast(errorMessage(err, "No se pudo canjear el código"));
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
+  const STATUS = {
+    pending: ["En revisión", colors.textSecondary],
+    approved: ["Aprobado", colors.ok.fg],
+    rejected: ["Rechazado", colors.danger.fg],
+  };
 
   const monthly = plans.find((p) => p.code === "monthly");
   const annual = plans.find((p) => p.code === "annual");
@@ -185,13 +221,59 @@ export default function PlansScreen({ navigation, route }) {
         </View>
       ) : null}
 
-      {plan.enabled && plan.plan !== "premium" ? (
+      {plan.enabled ? (
         <View style={{ gap: 8 }}>
-          <Button label="Activar Premium (próximamente)" height={54} disabled />
-          <Txt style={{ fontSize: 12, lineHeight: 17, color: colors.textSecondary, textAlign: "center" }}>
-            Muy pronto podrás pagar y activar Premium desde aquí.
-          </Txt>
+          <Button
+            label={plan.plan === "premium" ? "Renovar Premium" : "Activar Premium"}
+            height={54}
+            onPress={() => navigation.navigate("Subscribe")}
+          />
         </View>
+      ) : null}
+
+      {plan.enabled && payments.length ? (
+        <View style={{ gap: 8 }}>
+          <Txt style={{ fontSize: 15, fontWeight: "700" }}>Mis pagos</Txt>
+          {payments.map((p) => {
+            const [label, color] = STATUS[p.status] || STATUS.pending;
+            return (
+              <Card key={p.id} pad={14} style={{ gap: 2 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Txt style={{ flex: 1, fontSize: 14, fontWeight: "700" }}>
+                    {p.plan_code === "annual" ? "Anual" : "Mensual"} · ref. {p.reference}
+                  </Txt>
+                  <Txt style={{ fontSize: 12, fontWeight: "800", color }}>{label}</Txt>
+                </View>
+                <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+                  {dateOf(p.requested_at)}
+                  {p.status === "rejected" && p.reject_reason ? ` · ${p.reject_reason}` : ""}
+                </Txt>
+              </Card>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {plan.enabled ? (
+        <Card style={{ gap: 10 }}>
+          <Txt style={{ fontSize: 15, fontWeight: "700" }}>¿Tienes un código?</Txt>
+          <Field
+            value={code}
+            onChangeText={setCode}
+            placeholder="XXXX-XXXX-XXXX"
+            autoCapitalize="characters"
+            autoCorrect={false}
+          />
+          <Button
+            label="Canjear código"
+            outline
+            height={46}
+            style={{ borderRadius: 12 }}
+            disabled={!code.trim()}
+            loading={redeeming}
+            onPress={redeem}
+          />
+        </Card>
       ) : null}
     </Screen>
   );

@@ -486,6 +486,27 @@ async function migrate() {
       ON CONFLICT (key) DO NOTHING
     `);
 
+    // ── suscripción, fase 3 (pagos): lo que se esperaba cobrar, avisos de vencimiento y referencia única ──
+    await client.query(`
+      ALTER TABLE subscription_payments
+        ADD COLUMN IF NOT EXISTS plan_days         INTEGER,
+        ADD COLUMN IF NOT EXISTS expected_amount   DECIMAL(15,4),
+        ADD COLUMN IF NOT EXISTS expected_currency VARCHAR(10),
+        ADD COLUMN IF NOT EXISTS proof_name        VARCHAR(120)
+    `);
+    // La misma referencia no puede registrarse dos veces con el mismo método (salvo si se rechazó)
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_sub_payments_reference
+        ON subscription_payments (method, lower(reference))
+        WHERE status <> 'rejected' AND reference IS NOT NULL
+    `);
+    // Último vencimiento ya avisado por correo (para no repetir el aviso)
+    await client.query(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS expiry_notice_for TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS trial_notice_for  TIMESTAMPTZ
+    `);
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {
