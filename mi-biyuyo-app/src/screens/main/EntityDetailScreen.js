@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { View, TouchableOpacity, Share } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -26,6 +26,11 @@ import {
   last30Range,
   monthLabel,
 } from "../../utils/money";
+import {
+  PaymentShareCard,
+  paymentText,
+  shareAsImage,
+} from "../../components/PaymentShareCard";
 import { go } from "../../navigation/helpers";
 import { confirm } from "../../utils/confirm";
 
@@ -34,6 +39,8 @@ export default function EntityDetailScreen({ navigation, route }) {
   const { model, dv, actions, showToast } = useData();
   const { fx } = model;
   const [payOpen, setPayOpen] = useState(false); // datos de pago: acordeón cerrado por defecto
+  const [capturing, setCapturing] = useState(false); // dibuja la tarjeta con QR solo mientras se comparte
+  const cardRef = useRef(null);
   const e = model.entById[route.params?.id];
 
   if (!e) {
@@ -55,16 +62,19 @@ export default function EntityDetailScreen({ navigation, route }) {
   const ledger = ledgerOf(model, e.id, dv, last30Range());
   const low = model.isLow(e);
 
-  // Comparte los datos de pago como texto (WhatsApp, etc.); si el dispositivo no puede compartir, los copia
+  // Comparte los datos de pago como imagen (QR + datos). Si no se puede compartir una imagen, comparte
+  // el texto, y si tampoco se puede, lo copia.
   const share = async () => {
-    const text =
-      `Datos de ${e.name}:\n\n` +
-      data.map((f) => `${f.label}: ${f.value}`).join("\n");
+    const text = paymentText(e.name, data);
     try {
-      await Share.share({ message: text });
+      setCapturing(true);
+      await new Promise((r) => setTimeout(r, 150)); // deja que se dibuje la tarjeta
+      if (!(await shareAsImage(cardRef))) await Share.share({ message: text });
     } catch {
       await Clipboard.setStringAsync(text);
       showToast("Datos de pago copiados");
+    } finally {
+      setCapturing(false);
     }
   };
 
@@ -346,6 +356,9 @@ export default function EntityDetailScreen({ navigation, route }) {
           <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
             Aún no agregaste datos de pago.
           </Txt>
+        ) : null}
+        {capturing ? (
+          <PaymentShareCard ref={cardRef} name={e.name} fields={data} />
         ) : null}
         <Button
           label="Compartir datos de pago"
