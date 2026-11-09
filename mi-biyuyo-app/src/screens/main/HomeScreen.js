@@ -33,6 +33,7 @@ import { grp, maskMoney, nTxt } from "../../utils/money";
 import PeriodBar from "../../components/PeriodBar";
 import { usePeriod } from "../../contexts/PeriodContext";
 import { useRateNotifications } from "../../contexts/RateNotificationsContext";
+import PlanBanner from "../../components/PlanBanner";
 import { useGuide } from "../../contexts/GuideContext";
 
 const MAX_ENTITIES = 2;
@@ -444,6 +445,8 @@ export default function HomeScreen({ navigation }) {
           ))}
         </View>
       ) : null}
+
+      <PlanBanner />
 
       <View style={{ gap: 10 }}>
         {rateCard("Tasa BCV", "VES " + grp(fx.rate, ".", ","))}

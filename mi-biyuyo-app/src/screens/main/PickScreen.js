@@ -10,6 +10,8 @@ import {
 import { useTheme } from "../../contexts/ThemeContext";
 import { useData } from "../../contexts/DataContext";
 import { Screen, Txt, H1, Tile, Icon } from "../../components/ui";
+import { usePlan } from "../../hooks/usePlan";
+import { LockedBlock, PremiumPill } from "../../components/PremiumLock";
 import { nTxt } from "../../utils/money";
 import { META, TYPES } from "../../utils/ledger";
 
@@ -34,6 +36,7 @@ function moveTo(ids, id, to) {
 export default function PickScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { model, actions, showToast } = useData();
+  const { can, gate } = usePlan();
   const { width, fontScale } = useWindowDimensions();
   const [type, setType] = useState(route.params?.type || "gasto");
 
@@ -49,9 +52,15 @@ export default function PickScreen({ navigation, route }) {
 
   const meta = META[type];
   const t = colors[type];
+  // Sin Premium las categorías propias no se pueden usar al registrar
   const cats = model.cats.filter(
-    (c) => c.type === type && c.active && !c.hidden,
+    (c) =>
+      c.type === type &&
+      c.active &&
+      !c.hidden &&
+      (!c.own || can("custom_categories")),
   );
+  const lockedDebts = (type === "cobrar" || type === "pagar") && !can("debts");
 
   // Orden local mientras se arrastra y hasta que llegue el guardado del servidor
   const [order, setOrder] = useState(null);
@@ -279,7 +288,7 @@ export default function PickScreen({ navigation, route }) {
         {type === "gasto" ? (
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => navigation.navigate("Planned")}
+            onPress={() => gate("planned") && navigation.navigate("Planned")}
             accessibilityLabel="Gastos planificados"
             style={{
               flexDirection: "row",
@@ -304,15 +313,27 @@ export default function PickScreen({ navigation, route }) {
                   : "Prepara tu lista de compras con anticipación"}
               </Txt>
             </View>
-            <Icon
-              name="chevronRight"
-              size={18}
-              color={colors.textSecondary}
-              stroke={2}
-            />
+            {can("planned") ? (
+              <Icon
+                name="chevronRight"
+                size={18}
+                color={colors.textSecondary}
+                stroke={2}
+              />
+            ) : (
+              <PremiumPill />
+            )}
           </TouchableOpacity>
         ) : null}
       </View>
+      {lockedDebts ? (
+        <View style={{ paddingHorizontal: 16 }}>
+          <LockedBlock
+            feature="debts"
+            text="Registrar por cobrar y por pagar es una función Premium. Lo que ya registraste se conserva y lo puedes consultar."
+          />
+        </View>
+      ) : (
       <ScrollView
         ref={scrollRef}
         scrollEnabled={scrollOn}
@@ -376,7 +397,10 @@ export default function PickScreen({ navigation, route }) {
         </View>
         <TouchableOpacity
           activeOpacity={0.8}
-          onPress={() => navigation.navigate("CategoryForm", { type })}
+          onPress={() =>
+            gate("custom_categories") &&
+            navigation.navigate("CategoryForm", { type })
+          }
           accessibilityLabel={`Crear una categoría de ${meta.plural.toLowerCase()}`}
           style={{
             marginTop: 14,
@@ -402,6 +426,7 @@ export default function PickScreen({ navigation, route }) {
           </Txt>
         ) : null}
       </ScrollView>
+      )}
     </Screen>
   );
 }

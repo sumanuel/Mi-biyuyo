@@ -19,6 +19,7 @@ import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { ExchangeRateProvider } from "./src/contexts/ExchangeRateContext";
 import { DataProvider } from "./src/contexts/DataContext";
 import { PeriodProvider } from "./src/contexts/PeriodContext";
+import { navigationRef } from "./src/navigation/ref";
 import { RateNotificationsProvider } from "./src/contexts/RateNotificationsContext";
 import DailyRateWatcher from "./src/components/DailyRateWatcher";
 import "./src/services/rateWatcher"; // define la tarea en segundo plano de la tasa diaria
@@ -55,6 +56,7 @@ import EntityMovementsScreen from "./src/screens/main/EntityMovementsScreen";
 import TransferScreen from "./src/screens/main/TransferScreen";
 import AdjustBalanceScreen from "./src/screens/main/AdjustBalanceScreen";
 import PeriodFilterScreen from "./src/screens/main/PeriodFilterScreen";
+import PlansScreen from "./src/screens/main/PlansScreen";
 import ArchiveEntityScreen from "./src/screens/main/ArchiveEntityScreen";
 import ArchivedEntitiesScreen from "./src/screens/main/ArchivedEntitiesScreen";
 import ExchangeRateScreen from "./src/screens/main/ExchangeRateScreen";
@@ -231,7 +233,7 @@ function AppNavigator() {
   // pantalla en la que estabas se conservan intactos al desbloquear.
   return (
     <View style={{ flex: 1 }}>
-      <NavigationContainer theme={navTheme}>
+      <NavigationContainer ref={navigationRef} theme={navTheme}>
         <StatusBar style={isDark ? "light" : "dark"} />
         {token ? (
           <ExchangeRateProvider>
@@ -301,6 +303,7 @@ function AppNavigator() {
                         name="PeriodFilter"
                         component={PeriodFilterScreen}
                       />
+                      <Stack.Screen name="Plans" component={PlansScreen} />
                       <Stack.Screen
                         name="AdjustBalance"
                         component={AdjustBalanceScreen}
