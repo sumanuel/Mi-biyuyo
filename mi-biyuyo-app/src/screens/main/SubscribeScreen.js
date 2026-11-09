@@ -315,6 +315,15 @@ export default function SubscribeScreen({ navigation }) {
           Revisaremos tu pago y activaremos Premium. Si algo no cuadra, te diremos el motivo en «Mi
           plan».
         </Txt>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Terms")}
+          style={{ minHeight: 44, justifyContent: "center" }}
+          accessibilityRole="link"
+        >
+          <Txt style={{ fontSize: 12, lineHeight: 17, color: colors.link, fontWeight: "700" }}>
+            Al pagar aceptas los términos de uso y la política de reembolsos
+          </Txt>
+        </TouchableOpacity>
       </View>
     </Screen>
   );

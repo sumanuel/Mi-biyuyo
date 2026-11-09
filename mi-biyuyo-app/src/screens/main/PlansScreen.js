@@ -275,6 +275,16 @@ export default function PlansScreen({ navigation, route }) {
           />
         </Card>
       ) : null}
+
+      {plan.enabled ? (
+        <Button
+          label="Términos y política de reembolsos"
+          outline
+          height={44}
+          style={{ borderRadius: 12 }}
+          onPress={() => navigation.navigate("Terms")}
+        />
+      ) : null}
     </Screen>
   );
 }
