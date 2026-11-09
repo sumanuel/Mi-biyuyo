@@ -84,6 +84,14 @@ export default function AboutScreen({ navigation }) {
         ))}
       </Card>
 
+      <Button
+        label="Términos, privacidad y reembolsos"
+        outline
+        height={48}
+        style={{ borderRadius: 14 }}
+        onPress={() => navigation.navigate("Terms")}
+      />
+
       {plan.enabled ? (
         <Card style={{ gap: 6 }}>
           <Txt style={{ fontSize: 14, fontWeight: "700" }}>

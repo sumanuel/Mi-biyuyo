@@ -168,10 +168,10 @@ Cada fase se trabaja en su rama, se prueba en local (API local + base local + Ex
 - [x] Pruebas del flujo completo y de seguridad (un usuario no ve pagos de otro, la página admin rechaza sin clave, un código no se usa dos veces).
 
 ### Fase 4: pruebas y publicación
-- [ ] Matriz de pruebas por estado (§6) en el teléfono con Expo Go.
-- [ ] Probar el vencimiento moviendo fechas en la base local.
-- [ ] Publicar en este orden, **solo cuando lo ordenes**: respaldo → `migrate:prod` → desplegar la API con `SUBSCRIPTIONS_ENABLED=false` → compilar el APK → verificar → encender la función y avisar a los usuarios.
-- [ ] Términos de uso y política de reembolsos escritos antes de cobrar.
+- [ ] Matriz de pruebas por estado (§6) en el teléfono con Expo Go. *Lista en `docs/SUSCRIPCION-PRUEBAS.md`; falta correrla en el teléfono.*
+- [x] Probar el vencimiento moviendo fechas en la base local (automatizado en `npm run test:pagos` y `npm run plan:set` para probar a mano).
+- [ ] Publicar (manual completo en `docs/SUSCRIPCION-PUBLICACION.md`) en este orden, **solo cuando lo ordenes**: respaldo → `migrate:prod` → desplegar la API con `SUBSCRIPTIONS_ENABLED=false` → compilar el APK → verificar → encender la función y avisar a los usuarios.
+- [x] Términos de uso y política de reembolsos escritos antes de cobrar (borrador en la app y en `docs/TERMINOS-Y-REEMBOLSOS.md`; **falta tu revisión**).
 
 ### Fase 5: más adelante (no ahora)
 - Automatizar la conciliación (Binance Pay u otra API) para no aprobar a mano.

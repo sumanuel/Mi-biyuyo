@@ -12,6 +12,7 @@
     "seed:demo": "node database/seed_demo.js",
     "test:suscripcion": "node test/suscripcion.test.js",
     "test:pagos": "node test/pagos.test.js",
+    "plan:set": "node test/plan_set.js",
     "receivers:import": "node database/import_receivers.js",
     "setup": "node database/migrate.js && node database/seed.js"
   },

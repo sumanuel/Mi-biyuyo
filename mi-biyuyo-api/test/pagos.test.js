@@ -308,6 +308,39 @@ async function main() {
   await runExpiryNotices({ sendFn: fake, configured: true });
   ok("avisos: no se repiten", sentTo.length === n1);
 
+  /* ---------- Premium vence y vuelve (entidades, deudas y categorías propias) ---------- */
+  const uV = await newUser("v");
+  await sql(`UPDATE users SET premium_until = NOW() + INTERVAL '30 days' WHERE id = $1`, [uV.id]);
+  const entV = async (name) => api(uV, "POST", "/api/entities", { name, kind: "banco", currency: "usd", initial_amount: 50 });
+  const eA = await entV("QA V1");
+  const eB = await entV("QA V2");
+  const LV = (await api(uV, "GET", "/api/ledger")).j;
+  const catV = (t) => LV.categories.find((c) => c.type === t && !c.own);
+  const ownV = await api(uV, "POST", "/api/categories", { type: "expense", name: "QA propia V", icon: "more" });
+  const debtV = await api(uV, "POST", "/api/transactions", { category_id: catV("debt").id, amount: 40, currency: "USD", cash: false });
+  ok("premium: crea 2 entidades, categoría propia y una deuda", eA.s === 201 && eB.s === 201 && ownV.s === 201 && debtV.s === 201);
+  await sql(`UPDATE users SET premium_until = NOW() - INTERVAL '1 day', trial_ends_at = NOW() - INTERVAL '10 days' WHERE id = $1`, [uV.id]);
+  const sv = (await api(uV, "GET", "/api/subscription")).j;
+  ok("vence: pasa a gratis y la 2.ª entidad queda en solo lectura", sv.plan === "free" && sv.locked_entity_ids.join() === String(eB.j.id), sv);
+  const Lv = (await api(uV, "GET", "/api/ledger")).j;
+  ok("vence: no se borra nada (2 entidades, deuda y categoría propia)", Lv.entities.length === 2 && Lv.transactions.some((t) => t.id === debtV.j.id) && Lv.categories.some((c) => c.id === ownV.j.id));
+  ok("vence: no puede abonar la deuda", (await api(uV, "POST", `/api/transactions/${debtV.j.id}/payments`, { amount: 1, currency: "USD", entity_id: eA.j.id })).s === 402);
+  ok("vence: no puede usar su categoría propia", (await api(uV, "POST", "/api/transactions", { category_id: ownV.j.id, amount: 1, currency: "USD", entity_id: eA.j.id })).s === 402);
+  ok("vence: no registra en la entidad bloqueada", (await api(uV, "POST", "/api/transactions", { category_id: catV("expense").id, amount: 1, currency: "USD", entity_id: eB.j.id })).s === 402);
+  // vuelve con un código de canje
+  const back = (await adm("POST", "/codes", { plan_code: "monthly" })).j.codes[0];
+  ok("canje: Premium vuelve", (await api(uV, "POST", "/api/subscription/redeem", { code: back })).s === 200);
+  const sv2 = (await api(uV, "GET", "/api/subscription")).j;
+  ok("vuelve: plan premium y sin entidades bloqueadas", sv2.plan === "premium" && sv2.locked_entity_ids.length === 0, sv2);
+  ok("vuelve: abona la deuda", (await api(uV, "POST", `/api/transactions/${debtV.j.id}/payments`, { amount: 5, currency: "USD", entity_id: eA.j.id })).s === 201);
+  ok("vuelve: usa su categoría propia", (await api(uV, "POST", "/api/transactions", { category_id: ownV.j.id, amount: 1, currency: "USD", entity_id: eB.j.id })).s === 201);
+  // vence otra vez y vuelve por un pago aprobado
+  await sql(`UPDATE users SET premium_until = NOW() - INTERVAL '1 hour' WHERE id = $1`, [uV.id]);
+  ok("vence de nuevo → gratis", (await api(uV, "GET", "/api/subscription")).j.plan === "free");
+  const pv = await pay(uV);
+  await adm("POST", `/payments/${pv.j.id}/approve`);
+  ok("vuelve con un pago aprobado", (await api(uV, "GET", "/api/subscription")).j.plan === "premium");
+
   /* ---------- fuerza bruta de la clave (al final: bloquea la IP) ---------- */
   const codes = [];
   for (let i = 0; i < 12; i++) codes.push((await adm("GET", "/plans", null, "mala-" + i)).s);
