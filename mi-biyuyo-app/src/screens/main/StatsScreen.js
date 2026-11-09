@@ -128,7 +128,7 @@ export default function StatsScreen({ navigation }) {
   const itemsTop = aggArr.slice(0, 3).map((x) => ({
     name: x.name,
     meta: nTxt(x.n, "compra") + " · Cantidad total: " + qtyText(x.qty),
-    val: x.amt > 0 ? dd(x.amt) : "Sin monto",
+    val: x.total > 0 ? (x.nEst ? "≈ " : "") + dd(x.total) : "Sin monto",
     w: Math.max(4, Math.round((x.n / aggMax) * 100)),
   }));
 
@@ -512,8 +512,9 @@ export default function StatsScreen({ navigation }) {
             marginTop: -6,
           }}
         >
-          Del que más compras al que menos. El monto suma solo los ítems con
-          monto asignado. Toca uno para ver las fechas en que lo compraste.
+          Del que más compras al que menos. Las compras sin monto se estiman
+          con el último precio por unidad (≈). Toca uno para ver las fechas en
+          que lo compraste.
         </Txt>
         {itemsTop.map((r) => (
           <TouchableOpacity

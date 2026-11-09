@@ -62,8 +62,9 @@ export default function ItemsScreen({ navigation }) {
       <DispTabs height={40} />
       <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
         {nTxt(items.length, "ítem")} del {fullDate(from)} al {fullDate(to)}.
-        Ordenados del que más compras al que menos. Toca uno para ver las fechas
-        en que lo compraste.
+        Ordenados del que más compras al que menos. Las compras sin monto se
+        estiman con el último precio por unidad (≈). Toca uno para ver las
+        fechas en que lo compraste.
       </Txt>
       <View style={{ gap: 8 }}>
         {items.slice(0, limit).map((r) => (
@@ -99,7 +100,9 @@ export default function ItemsScreen({ navigation }) {
                 </Txt>
               </View>
               <Txt style={{ fontSize: 14, fontWeight: "700" }}>
-                {r.amt > 0 ? model.fx.money(disp, r.amt) : "Sin monto"}
+                {r.total > 0
+                  ? (r.nEst ? "≈ " : "") + model.fx.money(disp, r.total)
+                  : "Sin monto"}
               </Txt>
             </View>
             <ProgressBar
