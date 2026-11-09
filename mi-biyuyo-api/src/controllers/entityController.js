@@ -1,6 +1,7 @@
 const pool = require("../config/database");
 const { toUsd } = require("../utils/currencyConverter");
 const { insertAdjustment } = require("./adjustmentController");
+const { requireFeature, requireNewEntity } = require("../utils/subscription");
 
 const KINDS = ["efectivo", "banco", "digital", "otro"];
 const PTYPES = ["none", "pm", "acct", "email", "id"];
@@ -81,6 +82,7 @@ exports.list = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
+    await requireNewEntity(req.user.id); // Gratis: una sola entidad activa
     const d = clean(req.body);
     let initialUsd = d.initialAmount;
     if (d.currency !== "usd" && d.initialAmount > 0) {
@@ -215,6 +217,7 @@ exports.remove = async (req, res, next) => {
 exports.archive = async (req, res, next) => {
   const client = await pool.connect();
   try {
+    await requireFeature(req.user.id, "multi_entity");
     await client.query("BEGIN");
     const { rows: ents } = await client.query(
       `SELECT id, currency, archived_at FROM entities WHERE id = $1 AND user_id = $2 FOR UPDATE`,
@@ -254,6 +257,7 @@ exports.archive = async (req, res, next) => {
 
 exports.restore = async (req, res, next) => {
   try {
+    await requireFeature(req.user.id, "multi_entity");
     const { rows } = await pool.query(
       `UPDATE entities SET archived_at = NULL WHERE id = $1 AND user_id = $2 RETURNING ${cols}`,
       [req.params.id, req.user.id],

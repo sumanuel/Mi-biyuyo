@@ -1,5 +1,6 @@
 const pool = require("../config/database");
 const { cleanQuantity } = require("../utils/quantity");
+const { requireFeature } = require("../utils/subscription");
 
 // Gastos planificados: plantillas reutilizables (nombre, categoría, fecha prevista opcional,
 // monto estimado opcional e ítems con monto opcional). No son movimientos: no afectan saldos
@@ -87,6 +88,7 @@ async function saveItems(client, planId, items) {
 exports.create = async (req, res, next) => {
   const client = await pool.connect();
   try {
+    await requireFeature(req.user.id, "planned");
     const p = await clean(client, req.user.id, req.body);
     await client.query("BEGIN");
     const { rows } = await client.query(
@@ -109,6 +111,7 @@ exports.create = async (req, res, next) => {
 exports.update = async (req, res, next) => {
   const client = await pool.connect();
   try {
+    await requireFeature(req.user.id, "planned");
     const { id } = req.params;
     const { rows: own } = await client.query(
       `SELECT id FROM planned_expenses WHERE id = $1 AND user_id = $2`,

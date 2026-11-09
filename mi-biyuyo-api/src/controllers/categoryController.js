@@ -1,4 +1,5 @@
 const pool = require("../config/database");
+const { requireFeature } = require("../utils/subscription");
 
 // Returns parent categories with nested children for this user + system defaults
 exports.list = async (req, res, next) => {
@@ -86,6 +87,7 @@ async function ownCategory(db, userId, id) {
 
 exports.create = async (req, res, next) => {
   try {
+    await requireFeature(req.user.id, "custom_categories");
     const type = String(req.body.type || "");
     if (!TYPES.includes(type)) throw fail(422, "Tipo de categoría inválido");
     const name = cleanName(req.body.name);
@@ -119,6 +121,7 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
+    await requireFeature(req.user.id, "custom_categories");
     const cur = await ownCategory(pool, req.user.id, req.params.id);
     const has = (k) => Object.prototype.hasOwnProperty.call(req.body, k);
     // El tipo no se puede cambiar: sus movimientos dejarían de tener sentido

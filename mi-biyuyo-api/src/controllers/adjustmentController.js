@@ -1,4 +1,5 @@
 const pool = require("../config/database");
+const { getPlanState, needOpenEntity } = require("../utils/subscription");
 const { convertToAll } = require("../utils/currencyConverter");
 
 const API_CCY = { usd: "USD", ves: "VES", usdt: "BINANCE" };
@@ -42,6 +43,7 @@ exports.insertAdjustment = insertAdjustment;
 exports.create = async (req, res, next) => {
   try {
     const { entity_id, amount, date, note } = req.body;
+    needOpenEntity(await getPlanState(req.user.id), entity_id);
     const n = parseFloat(amount);
     if (!entity_id || !Number.isFinite(n))
       return res.status(422).json({ error: "Faltan datos del ajuste" });

@@ -1,4 +1,5 @@
 const pool = require("../config/database");
+const { requireFeature } = require("../utils/subscription");
 
 exports.summary = async (req, res, next) => {
   try {
@@ -54,6 +55,7 @@ exports.summary = async (req, res, next) => {
 
 exports.byCategory = async (req, res, next) => {
   try {
+    await requireFeature(req.user.id, "full_stats");
     const userId = req.user.id;
     const month = parseInt(req.query.month) || new Date().getMonth() + 1;
     const year = parseInt(req.query.year) || new Date().getFullYear();
@@ -86,6 +88,7 @@ exports.byCategory = async (req, res, next) => {
 
 exports.trend = async (req, res, next) => {
   try {
+    await requireFeature(req.user.id, "full_stats");
     const userId = req.user.id;
     const months = Math.min(parseInt(req.query.months) || 6, 12);
 

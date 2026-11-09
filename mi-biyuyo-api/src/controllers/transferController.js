@@ -1,8 +1,10 @@
 const pool = require("../config/database");
 const { convertToAll } = require("../utils/currencyConverter");
+const { requireFeature } = require("../utils/subscription");
 
 exports.create = async (req, res, next) => {
   try {
+    await requireFeature(req.user.id, "transfers");
     const { from_entity_id, to_entity_id, amount, fee, currency, date } =
       req.body;
     if (!from_entity_id || !to_entity_id || !amount || !currency)

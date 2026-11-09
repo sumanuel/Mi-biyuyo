@@ -96,7 +96,7 @@ Principio: **nunca se borra ni se oculta información del usuario.** Se congela 
 Ajustar saldo queda en Gratis porque es una corrección, no una función extra, y archivar una entidad ya requiere Premium porque en Gratis hay una sola.
 
 ### 3.5 Usuarios que ya existen
-Hoy todos tienen todo gratis. Propuesta: al activar la función, cada usuario existente recibe una prueba de `trial_days_existing` días (por defecto la misma que un usuario nuevo), contada desde ese día, con un aviso claro en la app y por correo. Los usuarios nuevos reciben la prueba al verificar su correo.
+Hoy todos tienen todo gratis. Propuesta: al activar la función, cada usuario existente recibe una prueba de `trial_days_existing` días (por defecto la misma que un usuario nuevo), contada desde **la primera vez que el usuario entra después de activar la función** (se concede al calcular su plan por primera vez; no hay que correr ningún proceso masivo), con un aviso claro en la app y por correo. Los usuarios nuevos reciben la prueba al verificar su correo.
 
 ### 3.6 Interruptor general
 Una variable `SUBSCRIPTIONS_ENABLED`. Apagada, la API trata a todos como Premium y la app no muestra planes: es lo que permite desplegar el código **sin cambiar nada para los usuarios** y encender el cobro cuando todo esté probado.
@@ -142,13 +142,13 @@ Cada fase se trabaja en su rama, se prueba en local (API local + base local + Ex
 - [ ] Confirmar el valor inicial de los días de prueba (hoy 14; luego lo ajustas tú, §3.7) y los demás puntos de §7.
 
 ### Fase 1: API (modelo y reglas)
-- [ ] Migración: `users.trial_ends_at` y `premium_until`; tablas `subscription_plans`, `subscription_payments`, `redeem_codes`, `payment_receivers` y `app_settings`; siembra de los dos planes y de `trial_days` / `trial_days_existing`; columna `users.trial_days_granted`.
-- [ ] Utilidad que calcula el plan de un usuario y la lista de funciones permitidas.
-- [ ] Prueba gratis al verificar el correo, con los días leídos de `app_settings` (0 = sin prueba); interruptor `SUBSCRIPTIONS_ENABLED`.
-- [ ] Estado del plan dentro de `/ledger`, `/auth/me` y el inicio de sesión; `GET /api/subscription`.
-- [ ] Aplicar las reglas de §3.3 en entidades, transferencias, deudas, abonos, planificados, categorías, movimientos (categoría propia, ítems, recibo) y estadísticas, con error `402 PLAN_REQUIRED`.
-- [ ] Reglas de §3.4 (entidades bloqueadas, categorías propias fuera de uso).
-- [ ] Pruebas automáticas (`npm run test:suscripcion`) con usuarios en cada estado: prueba, premium, vencido, y fechas movidas a mano.
+- [x] Migración: `users.trial_ends_at` y `premium_until`; tablas `subscription_plans`, `subscription_payments`, `redeem_codes`, `payment_receivers` y `app_settings`; siembra de los dos planes y de `trial_days` / `trial_days_existing`; columna `users.trial_days_granted`.
+- [x] Utilidad que calcula el plan de un usuario y la lista de funciones permitidas.
+- [x] Prueba gratis al verificar el correo, con los días leídos de `app_settings` (0 = sin prueba); interruptor `SUBSCRIPTIONS_ENABLED`.
+- [x] Estado del plan dentro de `/ledger`, `/auth/me` y el inicio de sesión; `GET /api/subscription`.
+- [x] Aplicar las reglas de §3.3 en entidades, transferencias, deudas, abonos, planificados, categorías, movimientos (categoría propia, ítems, recibo) y estadísticas, con error `402 PLAN_REQUIRED`.
+- [x] Reglas de §3.4 (entidades bloqueadas, categorías propias fuera de uso).
+- [x] Pruebas automáticas (`npm run test:suscripcion`) con usuarios en cada estado: prueba, premium, vencido, y fechas movidas a mano.
 
 ### Fase 2: app
 - [ ] Contexto del plan en `DataContext` y utilidad `can("función")`.
