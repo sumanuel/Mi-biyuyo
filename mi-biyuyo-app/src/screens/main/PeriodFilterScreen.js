@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { View, TouchableOpacity } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
-import { usePeriod, resolvePeriod } from "../../contexts/PeriodContext";
+import { usePeriod, resolvePeriod, FREE_KINDS } from "../../contexts/PeriodContext";
+import { usePlan } from "../../hooks/usePlan";
+import { PremiumPill } from "../../components/PremiumLock";
 import { Screen, Footer, Header, Txt, Card, Button, Icon } from "../../components/ui";
 import DateField from "../../components/DateField";
 import {
@@ -31,6 +33,7 @@ const shiftMonth = (str, n) => {
 export default function PeriodFilterScreen({ navigation }) {
   const { colors } = useTheme();
   const { sel, period, setPeriod } = usePeriod();
+  const { can, gate } = usePlan();
 
   // Borrador: al abrir muestra lo que está seleccionado en la app
   const [kind, setKind] = useState(sel.kind);
@@ -50,6 +53,8 @@ export default function PeriodFilterScreen({ navigation }) {
   };
 
   const pick = (k) => {
+    // Mes anterior, mes específico y rangos libres son Premium: llevan a «Mi plan»
+    if (!FREE_KINDS.includes(k) && !gate("period_range")) return;
     setKind(k);
     // Al pasar a «Desde / Hasta» se parte del período que ya se estaba viendo
     if (k === "custom") {
@@ -121,6 +126,9 @@ export default function PeriodFilterScreen({ navigation }) {
                 <Txt style={{ flex: 1, fontSize: 15, fontWeight: "700" }}>
                   {label}
                 </Txt>
+                {!FREE_KINDS.includes(k) && !can("period_range") ? (
+                  <PremiumPill />
+                ) : null}
               </TouchableOpacity>
 
               {active && k === "spec" ? (

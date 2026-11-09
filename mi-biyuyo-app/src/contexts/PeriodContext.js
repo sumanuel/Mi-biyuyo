@@ -1,4 +1,6 @@
 import React, { createContext, useCallback, useContext, useState } from "react";
+import { useData } from "./DataContext";
+import { canUse } from "../utils/plan";
 import {
   MONTH_NAMES,
   endOfMonth,
@@ -19,6 +21,9 @@ import {
 const PeriodContext = createContext(null);
 
 export const DEFAULT_PERIOD = { kind: "30d" };
+
+// El plan Gratis solo puede usar estos períodos; el resto (mes anterior, mes específico, rangos) es Premium
+export const FREE_KINDS = ["30d", "month"];
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -50,8 +55,14 @@ export function resolvePeriod(sel) {
 }
 
 export function PeriodProvider({ children }) {
-  const [sel, setSel] = useState(DEFAULT_PERIOD);
-  const apply = useCallback((next) => setSel(next), []);
+  const { plan } = useData();
+  const [chosen, setChosen] = useState(DEFAULT_PERIOD);
+  const apply = useCallback((next) => setChosen(next), []);
+  // Si el plan ya no incluye el período elegido (p. ej. vence Premium), se vuelve a «Últimos 30 días»
+  const sel =
+    canUse(plan, "period_range") || FREE_KINDS.includes(chosen.kind)
+      ? chosen
+      : DEFAULT_PERIOD;
   const period = resolvePeriod(sel);
   return (
     <PeriodContext.Provider value={{ sel, period, setPeriod: apply }}>
