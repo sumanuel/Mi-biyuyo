@@ -64,14 +64,26 @@ export default function HistoryScreen({ navigation, route }) {
     .filter((m) => m.date >= from && m.date <= to)
     .filter(matchQ);
   // Historial: valores del día de cada movimiento, en la moneda elegida
-  const flInc = model.sumIn(fl, "ingreso", disp);
-  const flExp = model.sumIn(fl, "gasto", disp);
+  // Abonos de deudas a crédito que cuentan como ingreso/gasto en este filtro
+  const extra = model
+    .payFlowsIn(from, to)
+    .filter((f) => filter === "all" || f.type === filter)
+    .filter((f) => ["all", "ingreso", "gasto"].includes(filter))
+    .filter(
+      (f) =>
+        !q.trim() ||
+        textHas([f.debt.title, f.cat.name, f.debt.person || ""].join(" "), q),
+    );
+  const flInc = model.sumIn(fl.concat(extra), "ingreso", disp);
+  const flExp = model.sumIn(fl.concat(extra), "gasto", disp);
   const label =
     filter === "all"
       ? "Balance del período"
       : "Total " + META[filter].plural.toLowerCase();
   const histVal =
-    filter === "all" ? flInc - flExp : fl.reduce((a, m) => a + m.val[disp], 0);
+    filter === "all"
+      ? flInc - flExp
+      : fl.concat(extra).reduce((a, m) => a + m.val[disp], 0);
   const money = (n) => model.fx.money(disp, n);
   const all = feed(
     model,
@@ -80,6 +92,7 @@ export default function HistoryScreen({ navigation, route }) {
     dv,
     { from, to },
     saldoMode,
+    filter === "all" ? [] : extra,
   );
   const rows = all.slice(0, limit);
 
