@@ -957,7 +957,25 @@ export function itemAgg(list, disp) {
           (a[1].last < b[1].last ? 1 : -1),
       )[0][0];
       const { forms, ...rest } = g;
-      return { ...rest, name: best };
+      // Las compras sin monto se estiman con el último precio por unidad del ítem (la compra más
+      // reciente con monto: monto ÷ cantidad) y se marcan como estimadas. `amt` es solo lo
+      // registrado; `total` incluye los estimados.
+      const buys = g.buys.slice().sort((a, b) => byRecent(a.m, b.m));
+      const lastPriced = buys.find((b) => b.amt > 0);
+      const lastUnit = lastPriced ? lastPriced.amt / lastPriced.qty : 0;
+      const rows = buys.map((b) =>
+        b.amt > 0
+          ? { ...b, est: false }
+          : { ...b, amt: lastUnit * b.qty, est: lastUnit > 0 },
+      );
+      return {
+        ...rest,
+        name: best,
+        rows,
+        lastUnit,
+        nEst: rows.filter((r) => r.est).length,
+        total: rows.reduce((a, r) => a + r.amt, 0),
+      };
     })
-    .sort((a, b) => b.n - a.n || b.qty - a.qty || b.amt - a.amt);
+    .sort((a, b) => b.n - a.n || b.qty - a.qty || b.total - a.total);
 }
