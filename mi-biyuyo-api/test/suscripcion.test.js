@@ -158,6 +158,8 @@ async function main() {
   ok("gratis: ninguna función Premium", Object.values(f.features).every((v) => v === false), f.features);
   ok("gratis: la 2.ª entidad queda bloqueada", JSON.stringify(f.locked_entity_ids) === JSON.stringify([e2.j.id]), f.locked_entity_ids);
   ok("gratis: tope de 1 entidad", f.max_entities === 1);
+  ok("gratis: sin rangos de fechas libres (period_range)", f.features.period_range === false, f.features);
+  ok("prueba: con rangos de fechas libres", u0.sub.features.period_range === true, u0.sub.features);
 
   ok("gratis: no crea 2.ª entidad", isPlan402(await ent(u0, "QA Tres"), "multi_entity"));
   ok("gratis: no transfiere", isPlan402(await api(u0, "POST", "/api/transfers", { from_entity_id: e1.j.id, to_entity_id: e2.j.id, amount: 1, currency: "USD" }), "transfers"));

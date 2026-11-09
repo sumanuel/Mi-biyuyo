@@ -14,6 +14,7 @@ export const FEATURE_TEXT = {
   items: "Detalle de la compra",
   receipts: "Recibos adjuntos",
   full_stats: "Estadísticas completas",
+  period_range: "Mes anterior y rangos de fechas",
   export: "Exportar a Excel",
   locked_entity: "Entidades adicionales",
 };
@@ -23,6 +24,8 @@ export const COMPARE_ROWS = [
   { text: "Ingresos y gastos", free: true },
   { text: "1 entidad", free: true },
   { text: "Balance, ahorro y distribución del saldo", free: true },
+  { text: "Historial y estadísticas de los últimos 30 días y este mes", free: true },
+  { text: "Cualquier mes o rango de fechas", free: false },
   { text: "Más de una entidad y transferencias", free: false },
   { text: "Por cobrar y por pagar, con abonos y cuotas", free: false },
   { text: "Gastos planificados", free: false },
@@ -60,7 +63,8 @@ export function normalizePlan(sub) {
     trialDaysLeft: sub.trial_days_left || 0,
     trialEndsAt: sub.trial_ends_at || null,
     premiumUntil: sub.premium_until || null,
-    features: sub.features || {},
+    // Si la API no manda una función (versión anterior), se deduce del plan
+    features: { period_range: plan !== "free", ...(sub.features || {}) },
     maxEntities: sub.max_entities ?? null,
     lockedIds: sub.locked_entity_ids || [],
   };

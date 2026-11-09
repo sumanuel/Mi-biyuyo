@@ -26,8 +26,8 @@ export const LEGAL_SECTIONS = [
   {
     title: "3. Planes Gratis y Premium",
     body: [
-      "Mi Biyuyo tiene un plan Gratis y un plan Premium. El plan Gratis incluye 1 entidad, el registro de ingresos y gastos y las estadísticas básicas (Balance del período, Ahorro / Brecha Binance y Distribución del saldo).",
-      "Premium agrega más de una entidad y transferencias, por cobrar y por pagar, gastos planificados, categorías propias, detalle de la compra con recibos, estadísticas completas y exportar a Excel.",
+      "Mi Biyuyo tiene un plan Gratis y un plan Premium. El plan Gratis incluye 1 entidad, el registro de ingresos y gastos y las estadísticas básicas (Balance del período, Ahorro / Brecha Binance y Distribución del saldo), con el historial de los últimos 30 días y del mes en curso.",
+      "Premium agrega más de una entidad y transferencias, por cobrar y por pagar, gastos planificados, categorías propias, detalle de la compra con recibos, estadísticas completas, consultar cualquier mes o rango de fechas y exportar a Excel. Los movimientos más antiguos se siguen guardando y sumando a tus saldos; para consultarlos necesitas Premium.",
       "Al crear tu cuenta recibes un período de prueba con todas las funciones Premium. Su duración se muestra en la app y puede cambiar para cuentas nuevas.",
     ],
   },
