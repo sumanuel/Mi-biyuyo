@@ -1,5 +1,5 @@
-import React from "react";
-import { View, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import { View, TouchableOpacity, Share } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useData, errorMessage } from "../../contexts/DataContext";
@@ -33,6 +33,7 @@ export default function EntityDetailScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { model, dv, actions, showToast } = useData();
   const { fx } = model;
+  const [payOpen, setPayOpen] = useState(false); // datos de pago: acordeón cerrado por defecto
   const e = model.entById[route.params?.id];
 
   if (!e) {
@@ -54,11 +55,17 @@ export default function EntityDetailScreen({ navigation, route }) {
   const ledger = ledgerOf(model, e.id, dv, last30Range());
   const low = model.isLow(e);
 
-  const copy = async () => {
-    await Clipboard.setStringAsync(
-      data.map((f) => `${f.label}: ${f.value}`).join("\n"),
-    );
-    showToast("Datos de pago copiados");
+  // Comparte los datos de pago como texto (WhatsApp, etc.); si el dispositivo no puede compartir, los copia
+  const share = async () => {
+    const text =
+      `Datos de ${e.name}:\n\n` +
+      data.map((f) => `${f.label}: ${f.value}`).join("\n");
+    try {
+      await Share.share({ message: text });
+    } catch {
+      await Clipboard.setStringAsync(text);
+      showToast("Datos de pago copiados");
+    }
   };
 
   // Con movimientos no se elimina (se perdería su historial): se archiva
@@ -263,15 +270,23 @@ export default function EntityDetailScreen({ navigation, route }) {
       </Card>
 
       <Card pad={14} style={{ gap: 10 }}>
-        <View
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setPayOpen((o) => !o)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: payOpen }}
+          accessibilityLabel="Datos de pago"
           style={{
+            minHeight: 32,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: 8,
           }}
         >
           <Txt
             style={{
+              flex: 1,
               fontSize: 12,
               fontWeight: "700",
               letterSpacing: 0.5,
@@ -287,9 +302,19 @@ export default function EntityDetailScreen({ navigation, route }) {
               color: colors.textSecondary,
             }}
           >
-            {data.length ? pt.label : ""}
+            {data.length ? pt.label : "Sin datos"}
           </Txt>
-        </View>
+          <View style={{ transform: [{ rotate: payOpen ? "90deg" : "0deg" }] }}>
+            <Icon
+              name="chevronRight"
+              size={16}
+              color={colors.textSecondary}
+              stroke={2}
+            />
+          </View>
+        </TouchableOpacity>
+        {payOpen ? (
+          <>
         {data.map((f) => (
           <View
             key={f.label}
@@ -323,13 +348,15 @@ export default function EntityDetailScreen({ navigation, route }) {
           </Txt>
         ) : null}
         <Button
-          label="Copiar datos de pago"
+          label="Compartir datos de pago"
           outline
           height={46}
           style={{ borderRadius: 12 }}
           disabled={!data.length}
-          onPress={copy}
+          onPress={share}
         />
+          </>
+        ) : null}
       </Card>
 
       <View style={{ gap: 10 }}>
