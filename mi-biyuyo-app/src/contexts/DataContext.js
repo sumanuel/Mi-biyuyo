@@ -21,6 +21,7 @@ const THRESHOLD_KEY = "@mb_threshold";
 const HIDE_KEY = "@mb_hide_balance";
 const DISP_KEY = "@mb_default_disp";
 const SALDO_KEY = "@mb_saldo_mode";
+const CONV_KEY = "@mb_conv_open"; // «Equivalencias» del formulario de movimiento: abiertas (1) o cerradas (0)
 const DISP_OPTS = ["usd", "bcv", "bin"];
 const SALDO_OPTS = ["both", "ent", "tot", "none"];
 const DataContext = createContext(null);
@@ -41,6 +42,7 @@ export function DataProvider({ children }) {
   const [saldoMode, setSaldoModeState] = useState("both");
   const [threshold, setThresholdState] = useState(50);
   const [hideBalance, setHideBalance] = useState(false);
+  const [convOpen, setConvOpenState] = useState(true); // abiertas por defecto; se recuerda lo que elija el usuario
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
 
@@ -70,6 +72,16 @@ export function DataProvider({ children }) {
 
   useEffect(() => {
     AsyncStorage.getItem(HIDE_KEY).then((v) => setHideBalance(v === "1"));
+    AsyncStorage.getItem(CONV_KEY)
+      .then((v) => {
+        if (v === "0") setConvOpenState(false);
+      })
+      .catch(() => {});
+  }, []);
+
+  const setConvOpen = useCallback((open) => {
+    setConvOpenState(open);
+    AsyncStorage.setItem(CONV_KEY, open ? "1" : "0").catch(() => {});
   }, []);
 
   // Preferencias: la moneda con la que se muestran los montos al abrir la app y el saldo en los movimientos
@@ -233,6 +245,8 @@ export function DataProvider({ children }) {
         setThreshold,
         hideBalance,
         toggleHideBalance,
+        convOpen,
+        setConvOpen,
         toast,
         showToast,
         hideToast,

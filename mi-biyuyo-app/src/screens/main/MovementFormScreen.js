@@ -60,7 +60,7 @@ const INST_DAYS = 15;
 export default function MovementFormScreen({ navigation, route }) {
   const chain = useFocusChain();
   const { colors } = useTheme();
-  const { model, actions, showToast } = useData();
+  const { model, actions, showToast, convOpen, setConvOpen } = useData();
   const { can, gate } = usePlan();
   const canItems = can("items");
   const canReceipts = can("receipts");
@@ -511,7 +511,14 @@ export default function MovementFormScreen({ navigation, route }) {
           />
         </View>
         <View style={{ height: 1, backgroundColor: colors.divider }} />
-        <ConvRows title="EQUIVALENCIAS" rows={convRows} tint={tint} />
+        <ConvRows
+          title="EQUIVALENCIAS"
+          rows={convRows}
+          tint={tint}
+          collapsible
+          open={convOpen}
+          onToggle={setConvOpen}
+        />
       </Card>
 
       {isDebt ? (
