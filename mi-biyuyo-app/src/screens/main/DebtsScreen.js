@@ -187,12 +187,22 @@ export default function DebtsScreen({ navigation, type: tab }) {
                   >
                     {m.person || m.title}
                   </Txt>
-                  <Txt
-                    numberOfLines={1}
-                    style={{ fontSize: 12, color: colors.textSecondary }}
-                  >
-                    {m.cat.name} · {m.title}
-                  </Txt>
+                  {/* Sin persona ni descripción el título ya es la categoría: no se repite */}
+                  {m.person || m.hasDesc ? (
+                    <Txt
+                      numberOfLines={1}
+                      style={{ fontSize: 12, color: colors.textSecondary }}
+                    >
+                      {m.cat.name}
+                    </Txt>
+                  ) : null}
+                  {m.person && m.hasDesc ? (
+                    <Txt
+                      style={{ fontSize: 12, color: colors.textSecondary }}
+                    >
+                      {m.title}
+                    </Txt>
+                  ) : null}
                 </View>
                 <View style={{ alignItems: "flex-end", gap: 3 }}>
                   <Txt style={{ fontSize: 15, fontWeight: "800" }}>
