@@ -213,7 +213,12 @@ export default function TransferScreen({ navigation, route }) {
           </View>
         ) : null}
         <View style={{ height: 1, backgroundColor: colors.divider }} />
-        <ConvRows title="EQUIVALENCIAS" rows={rows} tint={tint} />
+        <ConvRows
+          title="EQUIVALENCIAS"
+          rows={rows}
+          tint={tint}
+          collapsible
+        />
       </Card>
 
       <View style={{ gap: 8 }}>

@@ -312,7 +312,7 @@ export default function EntityDetailScreen({ navigation, route }) {
       <DispTabs height={40} />
 
       <Card pad={14}>
-        <ConvRows title="SALDO EN LAS 3 MONEDAS" rows={rows} />
+        <ConvRows title="SALDO EN LAS 3 MONEDAS" rows={rows} collapsible />
       </Card>
 
       <Card pad={14} style={{ gap: 10 }}>
