@@ -704,14 +704,15 @@ export function ConvRows({
   tint,
   title,
   collapsible = false, // acordeón: el título se toca para abrir o cerrar las filas
-  defaultOpen = false,
-  open: openProp, // si se pasa `open` + `onToggle`, el estado lo lleva quien lo usa (para recordarlo)
+  open: openProp, // opcional: si se pasa `open` + `onToggle`, el estado lo lleva quien lo usa
   onToggle,
 }) {
   const { colors } = useTheme();
-  const [openState, setOpenState] = React.useState(!collapsible || defaultOpen);
-  const open = openProp !== undefined ? openProp : openState;
-  const toggle = () => (onToggle ? onToggle(!open) : setOpenState((o) => !o));
+  // Todas las equivalencias comparten una sola preferencia (abiertas por defecto; se recuerda
+  // lo que elija el usuario, incluso al cerrar y volver a abrir la app)
+  const { convOpen, setConvOpen } = useData();
+  const open = !collapsible ? true : openProp !== undefined ? openProp : convOpen;
+  const toggle = () => (onToggle ? onToggle(!open) : setConvOpen(!open));
   return (
     <View style={{ gap: 8 }}>
       {title && collapsible ? (

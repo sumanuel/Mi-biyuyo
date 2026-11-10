@@ -60,7 +60,7 @@ const INST_DAYS = 15;
 export default function MovementFormScreen({ navigation, route }) {
   const chain = useFocusChain();
   const { colors } = useTheme();
-  const { model, actions, showToast, convOpen, setConvOpen } = useData();
+  const { model, actions, showToast } = useData();
   const { can, gate } = usePlan();
   const canItems = can("items");
   const canReceipts = can("receipts");
@@ -516,8 +516,6 @@ export default function MovementFormScreen({ navigation, route }) {
           rows={convRows}
           tint={tint}
           collapsible
-          open={convOpen}
-          onToggle={setConvOpen}
         />
       </Card>
 
