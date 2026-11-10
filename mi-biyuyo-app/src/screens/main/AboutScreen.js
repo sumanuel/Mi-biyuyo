@@ -11,10 +11,12 @@ const FEATURES = [
   "Entidades (efectivo, bancos, billeteras) con transferencias entre ellas, ordenadas como prefieras",
   "Cada movimiento conserva la tasa del día en que se registró",
   "Tus propias categorías: créalas, ocúltalas o elimínalas",
-  "Detalle de las compras con cantidad y monto por ítem, y qué es lo que más compras",
+  "Detalle de las compras con cantidad y costo por ítem, y qué es lo que más compras",
   "Gastos planificados: prepara tu lista y regístrala cuando llegue el momento",
   "Cuánto te queda en cada entidad y en Mi saldo después de cada movimiento",
-  "Estadísticas por rango de fechas, con el detalle de cada categoría, y alertas de saldo bajo",
+  "Un filtro de fechas único para toda la app, estadísticas con el detalle de cada categoría y alertas de saldo bajo",
+  "Corrige el saldo de una entidad con un ajuste y archiva las que ya no uses, sin perder su historial",
+  "Comparte tus datos de pago como imagen con código QR",
   "Bloqueo con tu huella para proteger tus datos",
 ];
 

@@ -22,12 +22,15 @@ const TOPICS = [
       "Elige su moneda (USD, VES o USDT) y su saldo inicial. El saldo inicial se registra como el primer movimiento de la entidad.",
       "«Sumar a Mi saldo» decide si el saldo de esa entidad cuenta en tu saldo total. Si lo desmarcas, la entidad sigue funcionando pero no suma.",
       "Con «Transferir» mueves dinero entre entidades, con comisión opcional. También puedes definir una alerta de saldo bajo.",
+      "Los «Datos de pago» de una entidad (por ejemplo, tu Pago móvil) están en un acordeón que empieza cerrado: tócalo para verlos. «Compartir datos de pago» genera una imagen con un código QR y los datos, lista para enviarla por WhatsApp u otra app.",
       "Si el saldo de una entidad no coincide con lo que tienes de verdad, ábrela y toca «Ajustar saldo»: escribe el saldo real y la app registra la diferencia como un ajuste. No cuenta como ingreso ni gasto, y tus movimientos anteriores no cambian. Puedes deshacer un ajuste tocándolo en la lista de movimientos de la entidad.",
       "Si te equivocaste al crear una entidad y todavía no tiene movimientos, puedes corregir su saldo inicial desde «Editar». Cuando ya tiene movimientos, el saldo inicial queda fijo y se corrige con «Ajustar saldo».",
       "Para dejar de usar una entidad, ábrela y toca al final «Eliminar entidad» (si nunca tuvo movimientos) o «Archivar entidad» (si ya tiene). Archivada, no suma a Mi saldo ni aparece al registrar o transferir, pero su historial y tus estadísticas se conservan. Si aún tiene saldo, puedes transferirlo a otra entidad o cerrarla con un ajuste que lo deja en 0. Las archivadas están en Entidades > «Entidades archivadas», donde puedes abrirlas y restaurarlas cuando quieras.",
       "Para ordenar tus entidades, mantén presionada una, arrástrala al lugar que prefieras y suéltala. El orden se guarda en tu cuenta.",
       "En Últimos movimientos y en el Historial, cada movimiento muestra debajo cuánto te quedó justo después de hacerlo: el saldo de la entidad que usaste (por ejemplo, «Banesco USD 831.30») y «Mi saldo», el total de tus entidades que suman. Así sigues cómo evoluciona tu dinero. Las transferencias muestran solo Mi saldo, y si la entidad no suma a Mi saldo, solo ves el de la entidad. Los saldos se valoran con la tasa de hoy, igual que Mi saldo, así que el más reciente coincide con lo que ves arriba. En Ajustes > Apariencia, «Saldo en los movimientos», eliges qué ver: Ambos, solo el de la Entidad, solo Mi saldo o Ninguno. Los saldos van alineados a la derecha, bajo el monto.",
     ],
+    premium:
+      "Con el plan Gratis tienes 1 entidad activa; las demás quedan en solo lectura (se ven y suman a Mi saldo, pero no reciben movimientos). Transferir, archivar y restaurar entidades son funciones Premium.",
   },
   {
     title: "Registrar ingresos y gastos",
@@ -38,6 +41,7 @@ const TOPICS = [
       "¿No encuentras la categoría que necesitas? Al final de la lista de categorías está el botón «Nueva categoría»: crea una del tipo que tengas abierto (ingreso, gasto, por cobrar o por pagar) sin salir de Registrar.",
       "Puedes adjuntar un recibo con foto o archivo.",
     ],
+    premium: "Adjuntar recibos es una función Premium.",
   },
   {
     title: "Gastos planificados",
@@ -46,6 +50,7 @@ const TOPICS = [
       "Cuando llegue el momento, toca «Registrar»: se abre el formulario de gasto ya relleno con el monto estimado y los ítems. Ajusta lo que haga falta (por ejemplo, los precios reales) y guarda.",
       "Un plan no afecta tu saldo hasta que lo registras, y se conserva para volver a usarlo cuantas veces quieras. Puedes tener todos los que necesites; para cambiarlo o borrarlo, tócalo en la lista.",
     ],
+    premium: "Los gastos planificados son una función Premium.",
   },
   {
     title: "Mis categorías",
@@ -55,6 +60,8 @@ const TOPICS = [
       "Si la categoría que eliminas tiene movimientos, la app te pide a cuál otra categoría del mismo tipo quieres pasarlos, y los mueve antes de eliminarla.",
       "El interruptor de cada categoría decide si aparece al registrar un movimiento. Es solo para ver lo que realmente usas: una categoría oculta con movimientos se sigue mostrando en el historial, las estadísticas y los detalles. Las predeterminadas no se pueden editar ni eliminar, pero sí ocultar.",
     ],
+    premium:
+      "Crear, editar y usar categorías propias es Premium. Si vuelves al plan Gratis no se borran, pero dejan de poder elegirse al registrar; ocultar o mostrar las predeterminadas sigue libre.",
   },
   {
     title: "Ordenar tus categorías",
@@ -69,6 +76,7 @@ const TOPICS = [
     body: [
       "Por cobrar es lo que te deben (por ejemplo, un préstamo que hiciste). Por pagar es lo que tú debes.",
       "Escribe la persona y el vencimiento (7, 15, 30 días o sin fecha). En Por pagar, «¿Recibiste el dinero?» es Sí si fue un préstamo que entró a una entidad, y No para servicios, cuotas o compras a crédito.",
+      "Cuándo cuenta como gasto o ingreso: si en «Por pagar» respondes No a «¿Recibiste el dinero?» (una compra o servicio a crédito), cada pago que hagas cuenta como gasto en la fecha del pago, con la categoría de la deuda. Igual en «Por cobrar» cuando todavía no entregaste dinero: cada cobro cuenta como ingreso. Los préstamos con dinero no cuentan: devolverlos o cobrarlos no es gasto ni ingreso, solo mueve el saldo de tus entidades.",
       "Para cobrar o pagar de a poco, abre la deuda y toca «Registrar cobro» o «Registrar pago». Cuando se salda pasa a la pestaña Canceladas.",
       "Si te equivocas en un cobro o un pago, abre la deuda y toca «Eliminar» junto a ese abono en el «Historial de abonos». Es irreversible, pero la deuda recupera ese saldo pendiente (si estaba saldada vuelve a Pendientes) y el dinero vuelve a la entidad con la que lo registraste. Después puedes registrarlo de nuevo con el monto correcto.",
       "En una deuda por cuotas, cada abono del historial indica a qué cuota corresponde: «Cuota 1 de 3», «Cuotas 1 a 2 de 3», «abono a la cuota 2» si solo cubre una parte, o «completa la cuota 2» si termina de pagar una que ya tenía abono.",
@@ -77,25 +85,31 @@ const TOPICS = [
       "Si el comercio cobra en cuotas, elige 3, 6, 9 o 12 cuotas: se reparte el monto en partes iguales, una cada 15 días desde la fecha de la primera cuota. En el detalle de la deuda ves cada cuota; tus pagos las van cubriendo en orden y el vencimiento que se muestra es el de la próxima cuota.",
       "Al registrar un pago de una deuda en cuotas, en «Cuotas a pagar» eliges cuántas pagar: 1 cuota, 2, 3… o todas. El monto se llena solo con lo que falta de esas cuotas (y se recalcula si cambias la moneda). Si ya habías abonado algo a la siguiente cuota, se paga lo que falta. También puedes escribir el monto que quieras, o usar «Saldo total» y «Mitad».",
     ],
+    premium:
+      "Registrar por cobrar y por pagar, y sus abonos, es una función Premium. Si vuelves al plan Gratis tus deudas se siguen viendo, pero no se pueden registrar abonos ni crear nuevas.",
   },
   {
     title: "Detalle de las compras",
     body: [
-      "En un gasto abre «Detalle de la compra» y agrega los ítems: pan, queso, vino… Es opcional, pero muy útil.",
-      "Cada ítem tiene su casilla «Cantidad» (empieza en 1; puedes poner 2, 0,5, 1,25…). El monto del ítem sigue siendo el total de esa línea: si compraste 3 quesos por 15, pones cantidad 3 y monto 15.",
-      "Si activas «Asignar monto a cada ítem», cada uno lleva su monto (la suma no puede pasar del total).",
-      "Con eso, en Estadísticas > Ítems más comprados (ordenados del que más compras al que menos, tengan monto o no) ves qué compras más y en qué fechas compraste cada cosa. También ves la cantidad total del período: por ejemplo, si compraste jamón 2, 3 y 1 vez, aparece «Cantidad total: 6». Los ítems sin cantidad (por ejemplo, los registrados antes de existir esta casilla) cuentan como 1. Al tocar el ítem ves la cantidad y el monto de cada compra, además del monto total y los promedios por compra y por unidad cuando hay montos asignados. Las compras de ese ítem que no tienen monto se estiman con el último precio por unidad que tenga (monto ÷ cantidad de su compra más reciente con monto) y aparecen marcadas como «Estimado»; si el ítem nunca tuvo monto, no se calcula nada.",
+      "En un gasto abre «Detalle de la compra» y agrega los ítems: queso, harina, café… Es opcional, pero muy útil.",
+      "Cada ítem lleva su nombre, la cantidad (empieza en 1; puedes poner 2, 0,5, 1,25…) y el costo unitario, que es opcional. El subtotal de cada línea es cantidad × costo, y abajo ves cuánto llevas detallado frente al total del gasto: la suma de los ítems no puede pasar del total. Si no pones costo, el ítem queda solo como una cantidad comprada y el total del gasto no cambia.",
+      "Con eso, en Estadísticas > Ítems más comprados (ordenados del que más compras al que menos) ves qué compras más y en qué fechas compraste cada cosa, además de la cantidad total del período: por ejemplo, si compraste jamón 2, 3 y 1 vez, aparece «Cantidad total: 6». Los ítems sin cantidad (por ejemplo, los registrados antes de existir esta casilla) cuentan como 1.",
+      "Las compras de un ítem que no tienen monto se estiman con el último precio por unidad que tenga (monto ÷ cantidad de su compra más reciente con monto). Cuando el total de un ítem incluye estimados lo ves con «≈» delante, igual en la lista, en «Ver todos» y en el detalle del ítem (donde esas compras salen marcadas como «Estimado»). Si el ítem nunca tuvo monto, dice «Sin monto». Estas estimaciones solo sirven para esa lista: tus gastos y categorías usan únicamente lo que registraste.",
       "No te preocupes por cómo escribes cada ítem: «Jamón», «jamon» y «jamones» cuentan como el mismo (se ignoran mayúsculas, tildes y el plural). Se muestra con la forma que más has usado. Las búsquedas del Historial funcionan igual.",
     ],
+    premium: "El detalle de la compra y «Ítems más comprados» son funciones Premium.",
   },
   {
     title: "Estadísticas e historial",
     body: [
-      "En Estadísticas elige Este mes, Mes anterior, Últimos 3 meses o tus propias fechas Desde/Hasta. Verás ingresos, gastos, categorías con más gasto e ítems más comprados.",
+      "Toca «Filtros» (arriba en Inicio, Estadísticas, Historial, Por cobrar y Por pagar, Ítems más comprados y en los movimientos de cada entidad) para elegir el período: Últimos 30 días, Este mes, Mes anterior, Mes específico o Desde / Hasta. Lo que elijas se usa en toda la app, y arriba de cada pantalla ves qué período estás mirando. Exportar a Excel tiene su propio selector de fechas.",
+      "En Estadísticas verás ingresos, gastos, categorías con más gasto e ítems más comprados del período. Los pagos de deudas a crédito cuentan como gasto en la fecha en que pagas, y los cobros de ventas a crédito como ingreso; los préstamos con dinero no.",
       "Toca una categoría de «Gastos por categoría» o «Ingresos por fuente» para ver todos sus movimientos del período; desde ahí puedes abrir cualquiera.",
       "«Situación actual» (distribución del saldo y deudas) siempre muestra cómo estás hoy, sin importar el período.",
-      "En el Historial filtras por tipo y fechas, y buscas por ítem, categoría o persona.",
+      "En el Historial filtras por tipo y buscas por ítem, categoría o persona, dentro del período elegido.",
     ],
+    premium:
+      "En el plan Gratis ves el Balance del período, el Ahorro / Brecha Binance y la Distribución del saldo, y solo puedes elegir Últimos 30 días o Este mes. Mes anterior, Mes específico, Desde / Hasta y el resto de las estadísticas son Premium.",
   },
   {
     title: "Editar o eliminar un movimiento",
@@ -111,8 +125,9 @@ const TOPICS = [
     body: [
       "Ve a Ajustes > Sistema > Exportar a Excel. Elige el período (Este mes, Mes anterior, Últimos 3 meses, fechas a tu gusto o «Todo el historial») y toca «Exportar a Excel».",
       "Se genera un archivo .xlsx con varias hojas: Resumen (totales del período y tasas de hoy), Movimientos (ingresos, gastos, por cobrar y por pagar, con el monto en USD, VES y USDT), Abonos, Transferencias, Ajustes (correcciones de saldo), Ítems (con su cantidad y monto) y Entidades (los saldos de hoy).",
-      "Al terminar, el teléfono te deja guardarlo (Archivos, Drive), abrirlo con Excel o enviarlo por WhatsApp o correo. Los montos son números, así que puedes sumarlos, filtrarlos y hacer tus propios cuadros en Excel.",
+      "Al terminar, el teléfono te deja guardarlo (Archivos, Drive), abrirlo con Excel o enviarlo por WhatsApp o correo. Los montos son números, así que puedes sumarlos, filtrarlos y hacer tus propios cuadros en Excel. En el Resumen, los ingresos y gastos incluyen los pagos y cobros de deudas a crédito.",
     ],
+    premium: "Exportar a Excel es una función Premium.",
   },
   {
     title: "Planes: Gratis y Premium",
@@ -122,6 +137,8 @@ const TOPICS = [
       "El plan Gratis incluye 1 entidad, registrar ingresos y gastos, y en Estadísticas el Balance del período, el Ahorro / Brecha Binance y la Distribución del saldo. El historial y las estadísticas se ven por Últimos 30 días o Este mes.",
       "Premium agrega más de una entidad y transferencias, por cobrar y por pagar con abonos y cuotas, gastos planificados, categorías propias, detalle de la compra con recibos, estadísticas completas, cualquier mes o rango de fechas (Mes anterior, Mes específico y Desde / Hasta) y exportar a Excel. Los movimientos de hace más de 30 días se siguen guardando y sumando a tus saldos; se consultan con Premium.",
       "Para activar o renovar Premium, ve a Ajustes > Mi plan > Activar Premium: elige el plan y cómo pagar (Pago móvil, Zinli o PayPal), haz el pago con los datos que te mostramos, y toca «Ya pagué» con la referencia y, si quieres, una captura del comprobante. Revisaremos tu pago y te avisaremos; mientras tanto lo ves «En revisión» en Mi plan. Si tienes un código de canje, escríbelo en «¿Tienes un código?».",
+      "Junto a tu nombre en Inicio verás una corona dorada si tienes Premium; durante la prueba aparece solo con contorno y la palabra «Prueba».",
+      "Los términos de uso, la privacidad y la política de reembolsos están en Ajustes > Acerca de.",
       "Si tu prueba termina, no se borra nada: lo que no incluye el plan Gratis se sigue viendo, pero no se puede registrar de nuevo. Las entidades adicionales quedan en solo lectura y tus categorías propias dejan de poder elegirse al registrar. Al activar Premium todo vuelve a funcionar.",
     ],
   },
@@ -210,6 +227,18 @@ export default function HelpCenterScreen({ navigation }) {
                     {p}
                   </Txt>
                 ))}
+                {t.premium && plan.enabled ? (
+                  <Txt
+                    style={{
+                      fontSize: 13,
+                      lineHeight: 19,
+                      fontWeight: "700",
+                      color: colors.text,
+                    }}
+                  >
+                    {t.premium}
+                  </Txt>
+                ) : null}
               </View>
             ) : null}
           </Card>
