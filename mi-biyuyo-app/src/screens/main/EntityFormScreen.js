@@ -234,7 +234,7 @@ export default function EntityFormScreen({ navigation, route }) {
             />
           </View>
           <View style={{ height: 1, backgroundColor: colors.divider }} />
-          <ConvRows rows={rows} />
+          <ConvRows title="EQUIVALENCIAS" rows={rows} collapsible />
           {vesNeedsRate ? (
             <Txt style={{ fontSize: 12, color: colors.danger.fg }}>
               {ccy === "usdt"

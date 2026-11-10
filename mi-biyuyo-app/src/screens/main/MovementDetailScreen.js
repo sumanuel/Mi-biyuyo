@@ -151,7 +151,7 @@ export default function MovementDetailScreen({ navigation, route }) {
       <DispTabs height={40} />
 
       <Card pad={14}>
-        <ConvRows title="MONTO EN LAS 3 MONEDAS" rows={rows} />
+        <ConvRows title="MONTO EN LAS 3 MONEDAS" rows={rows} collapsible />
       </Card>
 
       {/* Solo los gastos y las deudas por pagar llevan ítems; en ingresos y por cobrar no aplica */}

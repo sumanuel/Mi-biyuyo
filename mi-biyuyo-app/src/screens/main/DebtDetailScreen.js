@@ -374,7 +374,11 @@ Después podrás registrar el ${what} de nuevo.`,
       <DispTabs height={40} />
 
       <Card pad={14}>
-        <ConvRows title="SALDO PENDIENTE EN LAS 3 MONEDAS" rows={rows} />
+        <ConvRows
+          title="SALDO PENDIENTE EN LAS 3 MONEDAS"
+          rows={rows}
+          collapsible
+        />
       </Card>
 
       {debt.sched ? (

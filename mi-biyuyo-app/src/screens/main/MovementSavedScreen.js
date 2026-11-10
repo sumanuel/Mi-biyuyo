@@ -98,7 +98,12 @@ export default function MovementSavedScreen({ navigation, route }) {
         </Txt>
       </View>
       <Card style={{ alignSelf: "stretch" }} pad={14}>
-        <ConvRows title="MONTO EN LAS 3 MONEDAS" rows={rows} tint={tint} />
+        <ConvRows
+          title="MONTO EN LAS 3 MONEDAS"
+          rows={rows}
+          tint={tint}
+          collapsible
+        />
       </Card>
       <View
         style={{
