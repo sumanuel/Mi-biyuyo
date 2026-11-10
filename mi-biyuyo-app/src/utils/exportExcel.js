@@ -117,6 +117,13 @@ export function buildWorkbook(model, { from, to }) {
         [
           dateCell(p.date),
           m.type === "cobrar" ? "Cobro" : "Pago",
+          m.cat.name,
+          // Igual que en Estadísticas: solo cuenta en las deudas a crédito; un préstamo con dinero no
+          m.cash === false
+            ? m.type === "pagar"
+              ? "Gasto"
+              : "Ingreso"
+            : "No cuenta (préstamo)",
           m.person || m.cat.name,
           m.hasDesc ? m.title : m.cat.name,
           p.ent ? model.entName(p.ent) : "",
@@ -135,6 +142,8 @@ export function buildWorkbook(model, { from, to }) {
     [
       "Fecha",
       "Tipo",
+      "Categoría",
+      "Cuenta como",
       "Persona",
       "Deuda",
       "Entidad",
@@ -146,7 +155,7 @@ export function buildWorkbook(model, { from, to }) {
       "Detalle",
     ],
     payRows.map((r) => r[1]),
-    [12, 8, 18, 28, 16, 16, 22, 14, 18, 20, 18],
+    [12, 8, 20, 20, 18, 28, 16, 16, 22, 14, 18, 20, 18],
   );
 
   /* ---------- Transferencias ---------- */
@@ -281,6 +290,10 @@ export function buildWorkbook(model, { from, to }) {
     sumRow("Ingresos (incluye cobros de ventas a crédito)", "ingreso"),
     sumRow("Gastos (incluye pagos de compras a crédito)", "gasto"),
     ["Balance (ingresos - gastos, USD)", num(inc - exp)],
+    [
+      "Nota",
+      "Ingresos y Gastos suman también los pagos y cobros de deudas a crédito; en la hoja «Abonos», la columna «Cuenta como» dice cuáles.",
+    ],
     sumRow("Por cobrar registrado", "cobrar"),
     sumRow("Por pagar registrado", "pagar"),
     [],
