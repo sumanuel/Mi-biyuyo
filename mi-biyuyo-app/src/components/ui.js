@@ -699,12 +699,50 @@ export function CcyOptions({ options, tint }) {
 }
 
 /** Filas de equivalencias en las 3 monedas. rows: [{label, sub, value, active}] */
-export function ConvRows({ rows, tint, title }) {
+export function ConvRows({
+  rows,
+  tint,
+  title,
+  collapsible = false, // acordeón: el título se toca para abrir o cerrar las filas
+  defaultOpen = false,
+  open: openProp, // si se pasa `open` + `onToggle`, el estado lo lleva quien lo usa (para recordarlo)
+  onToggle,
+}) {
   const { colors } = useTheme();
+  const [openState, setOpenState] = React.useState(!collapsible || defaultOpen);
+  const open = openProp !== undefined ? openProp : openState;
+  const toggle = () => (onToggle ? onToggle(!open) : setOpenState((o) => !o));
   return (
     <View style={{ gap: 8 }}>
-      {title ? <Eyebrow>{title}</Eyebrow> : null}
-      {rows.map((r) => (
+      {title && collapsible ? (
+        <TouchableOpacity
+          onPress={toggle}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: open }}
+          accessibilityLabel={title}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            minHeight: 32,
+          }}
+        >
+          <Eyebrow>{title}</Eyebrow>
+          <View style={{ transform: [{ rotate: open ? "90deg" : "0deg" }] }}>
+            <Icon
+              name="chevronRight"
+              size={16}
+              color={colors.textSecondary}
+              stroke={2}
+            />
+          </View>
+        </TouchableOpacity>
+      ) : title ? (
+        <Eyebrow>{title}</Eyebrow>
+      ) : null}
+      {(open ? rows : []).map((r) => (
         <View
           key={r.label}
           style={{
