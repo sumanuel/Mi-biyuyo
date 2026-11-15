@@ -2075,6 +2075,15 @@ expo-background-task@~58.0.12:
   dependencies:
     expo-task-manager "~58.0.13"
 
+expo-build-properties@~58.0.12:
+  version "58.0.12"
+  resolved "https://registry.npmjs.org/expo-build-properties/-/expo-build-properties-58.0.12.tgz"
+  integrity sha512-Wrs1X1iz0kigrBBDs3qILxvXmANccvbsjpR937KqX0Qq7ON6ISk2uJyfz7Tb7/GFhDuJ6MAfW0jR+oryYdOhcg==
+  dependencies:
+    "@expo/schema-utils" "^58.0.3"
+    resolve-from "^5.0.0"
+    semver "^7.7.4"
+
 expo-clipboard@~58.0.4:
   version "58.0.4"
   resolved "https://registry.npmjs.org/expo-clipboard/-/expo-clipboard-58.0.4.tgz"
