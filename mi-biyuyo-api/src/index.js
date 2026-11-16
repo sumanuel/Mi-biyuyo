@@ -64,12 +64,16 @@ app.listen(PORT, () => {
       : "Administración: desactivada (falta ADMIN_KEY de al menos 16 caracteres)",
   );
   // Avisos por correo de pruebas y Premium que vencen pronto: una vez al arrancar y cada 6 horas
-  if (subscriptionsEnabled()) {
-    const notices = () =>
-      runExpiryNotices().catch((e) => console.error("[Avisos]", e.message));
-    setTimeout(notices, 60 * 1000).unref();
-    setInterval(notices, 6 * 60 * 60 * 1000).unref();
-  }
+  // (el interruptor se revisa en cada vuelta: puede encenderse desde /admin sin reiniciar)
+  const notices = async () => {
+    try {
+      if (await subscriptionsEnabled()) await runExpiryNotices();
+    } catch (e) {
+      console.error("[Avisos]", e.message);
+    }
+  };
+  setTimeout(notices, 60 * 1000).unref();
+  setInterval(notices, 6 * 60 * 60 * 1000).unref();
   verifyMail().then((r) =>
     console.log(
       r.ok

@@ -1,5 +1,5 @@
 const pool = require("../config/database");
-const { getPlanState } = require("../utils/subscription");
+const { getPlanState, resetEnabledCache } = require("../utils/subscription");
 const {
   extendPremium,
   makeCode,
@@ -231,7 +231,7 @@ exports.bulkTrial = async (req, res, next) => {
 };
 
 /* ---------- configuración ---------- */
-const SETTING_KEYS = ["trial_days", "trial_days_existing", "bcv_rate_override"];
+const SETTING_KEYS = ["trial_days", "trial_days_existing", "bcv_rate_override", "subscriptions_enabled"];
 
 exports.getSettings = async (req, res, next) => {
   try {
@@ -260,6 +260,16 @@ exports.putSettings = async (req, res, next) => {
         const n = Number(v);
         if (!(n > 0 && n < 1e6)) throw fail(422, "La tasa BCV debe ser un número mayor a 0");
         await upsertSetting(key, String(n));
+      } else if (key === "subscriptions_enabled") {
+        const v = String(raw ?? "").trim();
+        if (v === "") {
+          await pool.query(`DELETE FROM app_settings WHERE key = $1`, [key]);
+        } else if (v === "true" || v === "false") {
+          await upsertSetting(key, v);
+        } else {
+          throw fail(422, "El interruptor debe ser true, false o vacío");
+        }
+        resetEnabledCache();
       } else {
         await upsertSetting(key, String(int(raw, 0, 365, "Los días de prueba")));
       }

@@ -6,7 +6,37 @@ const pool = require("../config/database");
  * Con SUBSCRIPTIONS_ENABLED apagado todos son Premium y nada se limita.
  */
 
-const enabled = () => process.env.SUBSCRIPTIONS_ENABLED === "true";
+/**
+ * ¿Están encendidas las suscripciones? Manda la clave `subscriptions_enabled` de app_settings
+ * ('true' / 'false', se cambia desde /admin sin reiniciar). Si no existe, se usa la variable de
+ * entorno SUBSCRIPTIONS_ENABLED. Si la base falla, se considera apagado (todos Premium: lado seguro).
+ * El valor se guarda 5 s en memoria para no consultar la base en cada petición.
+ */
+const ENABLED_TTL_MS = 5000;
+let enabledCache = { at: 0, value: false };
+
+const envEnabled = () => process.env.SUBSCRIPTIONS_ENABLED === "true";
+
+async function enabled() {
+  if (Date.now() - enabledCache.at < ENABLED_TTL_MS) return enabledCache.value;
+  let value;
+  try {
+    const { rows } = await pool.query(
+      `SELECT value FROM app_settings WHERE key = 'subscriptions_enabled'`,
+    );
+    const v = rows[0]?.value;
+    value = v === "true" ? true : v === "false" ? false : envEnabled();
+  } catch {
+    value = false;
+  }
+  enabledCache = { at: Date.now(), value };
+  return value;
+}
+
+/** Olvida el valor guardado (tras cambiar el interruptor) */
+const resetEnabledCache = () => {
+  enabledCache = { at: 0, value: false };
+};
 
 // Funciones que Gratis no tiene (prueba y Premium las tienen todas)
 const FEATURES = [
@@ -49,7 +79,7 @@ async function getTrialDays(key, fallback = 14) {
  * Solo actúa con la función encendida; es seguro llamarla varias veces.
  */
 async function startTrial(userId, kind = "new") {
-  if (!enabled()) return;
+  if (!(await enabled())) return;
   const days = await getTrialDays(
     kind === "existing" ? "trial_days_existing" : "trial_days",
   );
@@ -78,7 +108,7 @@ function planOf(u, now = new Date()) {
  * trial_days_left, features, max_entities, locked_entity_ids }.
  */
 async function getPlanState(userId) {
-  if (!enabled()) {
+  if (!(await enabled())) {
     return {
       enabled: false,
       plan: "premium",
@@ -189,6 +219,7 @@ async function listPlans() {
 module.exports = {
   FEATURES,
   enabled,
+  resetEnabledCache,
   planOf,
   getPlanState,
   startTrial,
