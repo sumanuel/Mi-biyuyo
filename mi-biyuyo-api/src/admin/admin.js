@@ -211,16 +211,19 @@
   /* ---------- configuración y planes ---------- */
   function viewSettings() {
     clear(view);
-    var f = { trial_days: h("input", { type: "number", min: 0, max: 365, style: "width:100px" }), trial_days_existing: h("input", { type: "number", min: 0, max: 365, style: "width:100px" }), bcv_rate_override: h("input", { placeholder: "vacío = automática", style: "width:160px" }) };
+    var f = { trial_days: h("input", { type: "number", min: 0, max: 365, style: "width:100px" }), trial_days_existing: h("input", { type: "number", min: 0, max: 365, style: "width:100px" }), bcv_rate_override: h("input", { placeholder: "vacío = automática", style: "width:160px" }), subscriptions_enabled: h("select", null, h("option", { value: "" }, "Según el servidor (SUBSCRIPTIONS_ENABLED)"), h("option", { value: "true" }, "Encendidas"), h("option", { value: "false" }, "Apagadas (todos Premium)")) };
     api("GET", "/settings").then(function (rows) { rows.forEach(function (r) { if (f[r.key]) f[r.key].value = r.value; }); });
     view.appendChild(h("div", { class: "card" },
+      h("b", null, "Suscripciones"),
+      h("span", { class: "mut" }, "Interruptor general. Apagadas: todos son Premium y no se limita nada. Al encender, cada usuario empieza su prueba al abrir la app. Se aplica en unos 5 segundos."),
+      h("div", { class: "row" }, "Estado:", f.subscriptions_enabled),
       h("b", null, "Días de prueba"),
       h("span", { class: "mut" }, "Solo afecta a quienes empiecen su prueba después del cambio. 0 = sin prueba."),
       h("div", { class: "row" }, "Usuarios nuevos:", f.trial_days, "Usuarios que ya existían:", f.trial_days_existing),
       h("b", null, "Tasa BCV para cobros en bolívares"),
       h("div", { class: "row" }, "Fijar tasa (VES por USD):", f.bcv_rate_override),
       h("button", { class: "pri", onclick: function () {
-        run(api("PUT", "/settings", { trial_days: f.trial_days.value, trial_days_existing: f.trial_days_existing.value, bcv_rate_override: f.bcv_rate_override.value }), "Configuración guardada");
+        run(api("PUT", "/settings", { trial_days: f.trial_days.value, trial_days_existing: f.trial_days_existing.value, bcv_rate_override: f.bcv_rate_override.value, subscriptions_enabled: f.subscriptions_enabled.value }), "Configuración guardada");
       } }, "Guardar")));
     var plans = h("div", { class: "card" }, h("b", null, "Planes y precios"));
     view.appendChild(plans);
