@@ -242,9 +242,10 @@ export default function MovementFormScreen({ navigation, route }) {
   const addNamed = (name) => {
     const n = String(name || "").trim();
     if (!n) return;
+    // El último agregado queda de primero, junto al campo de nombre: no hay que bajar al final
     setItems((prev) => [
-      ...prev,
       { id: `i${Date.now()}-${prev.length}`, name: n, qty: "1", cost: "" },
+      ...prev,
     ]);
     setIName("");
   };
