@@ -79,6 +79,7 @@ export function buildWorkbook(model, { from, to }) {
       debt ? num(model.pendOf(m)) : null,
       debt && m.dueDate ? dateCell(m.dueDate) : null,
       debt && m.inst ? m.inst : null,
+      debt && m.down ? num(m.down, m.ccy === "bin" ? FMT_USDT : FMT_MONEY) : null,
       m.items.length || null,
       text(m.notes),
     ];
@@ -100,11 +101,12 @@ export function buildWorkbook(model, { from, to }) {
       "Pendiente USD (tasa de hoy)",
       "Vencimiento",
       "Cuotas",
+      "Inicial (moneda de la deuda)",
       "Ítems",
       "Notas",
     ],
     movRows,
-    [12, 12, 20, 30, 18, 16, 18, 20, 14, 18, 20, 16, 22, 13, 8, 8, 24],
+    [12, 12, 20, 30, 18, 16, 18, 20, 14, 18, 20, 16, 22, 13, 8, 16, 8, 24],
   );
 
   /* ---------- Abonos ---------- */

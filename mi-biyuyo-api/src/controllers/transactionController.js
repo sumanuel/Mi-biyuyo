@@ -1,6 +1,6 @@
 const pool = require("../config/database");
 const { spawnNextRecurrence } = require("../utils/recurrence");
-const { convertToAll, toUsd } = require("../utils/currencyConverter");
+const { convertToAll, toUsd, factorOf } = require("../utils/currencyConverter");
 const { cleanQuantity } = require("../utils/quantity");
 const { getPlanState, need, needOpenEntity } = require("../utils/subscription");
 
@@ -168,6 +168,8 @@ exports.create = async (req, res, next) => {
       due_date,
       installments,
       installment_days,
+      down_payment,
+      down_entity_id,
       recurring,
       items,
       receipt_name,
@@ -203,13 +205,26 @@ exports.create = async (req, res, next) => {
     needOpenEntity(plan, entity_id);
     const inst = cleanInstallments(installments, installment_days, isDebtCat);
 
+    // Inicial: solo con cuotas. Es menor que el total y sale de una entidad; se guarda como un abono
+    const down = parseFloat(down_payment) > 0 ? parseFloat(down_payment) : 0;
+    if (down) {
+      if (!inst.installments)
+        return res.status(422).json({ error: "La inicial solo aplica a compras en cuotas" });
+      if (down >= parseFloat(amount) - 0.005)
+        return res.status(422).json({ error: "La inicial debe ser menor al total" });
+      if (!down_entity_id)
+        return res.status(422).json({ error: "Elige la entidad de la que sale la inicial" });
+      await assertEntity(req.user.id, down_entity_id);
+      needOpenEntity(plan, down_entity_id);
+    }
+
     await client.query("BEGIN");
     const { rows } = await client.query(
       `INSERT INTO transactions
          (user_id, category_id, amount, currency, amount_usd, amount_ves, amount_binance,
           description, date, counterpart_name, notes, entity_id, cash, due_date,
-          receipt_name, receipt_data, installments, installment_days, recurring)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
+          receipt_name, receipt_data, installments, installment_days, recurring, down_payment)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
       [
         req.user.id,
         category_id || null,
@@ -230,8 +245,29 @@ exports.create = async (req, res, next) => {
         inst.installments,
         inst.installment_days,
         isDebtCat && recurring === true,
+        down || null,
       ],
     );
+    if (down) {
+      const dc = convertToAll(down, currency, rates);
+      await client.query(
+        `INSERT INTO transaction_payments
+           (transaction_id, amount, currency, amount_usd, amount_ves, amount_binance, date, notes, entity_id, rate)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [
+          rows[0].id,
+          down,
+          currency,
+          dc.amount_usd,
+          dc.amount_ves,
+          dc.amount_binance,
+          date || new Date().toISOString().slice(0, 10),
+          "Inicial",
+          down_entity_id,
+          factorOf(currency, rates),
+        ],
+      );
+    }
     await replaceItems(client, rows[0].id, items, currency, rates);
     await client.query("COMMIT");
     res.status(201).json(rows[0]);
@@ -375,7 +411,9 @@ exports.update = async (req, res, next) => {
          description = $7, date = $8, counterpart_name = $9, notes = $10,
          entity_id = $11, cash = $12, due_date = $13, status = $14,
          receipt_name = $15, receipt_data = $16, installments = $17,
-         installment_days = $18, recurring = $19, updated_at = NOW()
+         installment_days = $18, recurring = $19,
+         down_payment = CASE WHEN $17::int IS NULL THEN NULL ELSE down_payment END,
+         updated_at = NOW()
        WHERE id = $20 RETURNING *`,
       [
         categoryId,
