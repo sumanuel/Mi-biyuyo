@@ -155,6 +155,9 @@ export default function MovementFormScreen({ navigation, route }) {
     editing?.dueBase || addDays(editing ? editing.date : todayStr(), 30),
   );
   const [inst, setInst] = useState(editing?.inst || 0);
+  // Inicial de una compra a cuotas (solo al crear) y la entidad de la que sale cuando la deuda no tiene una
+  const [down, setDown] = useState("");
+  const [downEnt, setDownEnt] = useState(null);
   const [rec, setRec] = useState(!!editing?.recurring);
   const [cashPagar, setCashPagar] = useState(editing ? editing.cash : false);
   const [items, setItems] = useState(initItems);
@@ -230,8 +233,21 @@ export default function MovementFormScreen({ navigation, route }) {
   const lastDue =
     inst && firstDue ? addDays(firstDue, INST_DAYS * (inst - 1)) : null;
 
+  // Inicial: se paga al registrar la compra y las cuotas se reparten sobre el resto
+  const downNum = !editing && isDebt && inst ? parseNum(down) : 0;
+  const downBad = downNum > 0 && amtNum > 0 && downNum >= amtNum - 0.005;
+  const downEntId = cash
+    ? entSel
+    : downEnt && model.entById[downEnt]
+      ? downEnt
+      : pickable[0]?.id;
+  const downNoEnt = downNum > 0 && !downEntId;
+  const financed = Math.max(0, amtNum - (editing ? editing.down || 0 : downNum));
+
   const canSave =
     amtNum > 0 &&
+    !downBad &&
+    !downNoEnt &&
     !dueBad &&
     !itemsInvalid &&
     !rateMissing &&
@@ -276,6 +292,10 @@ export default function MovementFormScreen({ navigation, route }) {
         installments: isDebt && inst ? inst : null,
         installment_days: isDebt && inst ? INST_DAYS : null,
       };
+      if (downNum > 0) {
+        body.down_payment = downNum;
+        body.down_entity_id = downEntId;
+      }
       if (!showItems) body.items = [];
       else if (canItems)
         body.items = items.map((it) => ({
@@ -1000,12 +1020,68 @@ export default function MovementFormScreen({ navigation, route }) {
               }}
             >
               {amtNum > 0
-                ? `${inst} cuotas de ${fx.money(ccy, amtNum / inst)}, una cada ${INST_DAYS} días.`
+                ? `${inst} cuotas de ${fx.money(ccy, financed / inst)}${downNum > 0 || editing?.down ? " (sobre el resto)" : ""}, una cada ${INST_DAYS} días.`
                 : `${inst} cuotas, una cada ${INST_DAYS} días.`}
               {firstDue && lastDue
                 ? ` Primera: ${fullDate(firstDue)} · Última: ${fullDate(lastDue)}.`
                 : ""}
             </Txt>
+          ) : null}
+          {inst && editing?.down ? (
+            <Txt style={{ fontSize: 12, color: colors.textSecondary, lineHeight: 17 }}>
+              {`Inicial pagada: ${fx.money(ccy, editing.down)}. Las cuotas se reparten sobre el resto.`}
+            </Txt>
+          ) : null}
+          {inst && !editing ? (
+            <View style={{ gap: 6 }}>
+              <Label>Inicial (opcional)</Label>
+              <Input
+                value={down}
+                onChangeText={setDown}
+                keyboardType="decimal-pad"
+                placeholder="0,00"
+                accessibilityLabel="Inicial de la compra"
+                style={{
+                  minHeight: 44,
+                  borderWidth: 1,
+                  borderColor: downBad ? colors.danger.border : colors.border,
+                  borderRadius: 12,
+                  backgroundColor: colors.surface,
+                  paddingHorizontal: 14,
+                  fontSize: 15,
+                }}
+              />
+              {downBad ? (
+                <Txt style={{ fontSize: 12, color: colors.danger.fg }}>
+                  La inicial debe ser menor al total.
+                </Txt>
+              ) : downNum > 0 ? (
+                <Txt style={{ fontSize: 12, color: colors.textSecondary, lineHeight: 17 }}>
+                  {`Se registra hoy como un abono de ${fx.money(ccy, downNum)} y quedan ${fx.money(ccy, financed)} para las cuotas.`}
+                </Txt>
+              ) : null}
+              {downNum > 0 && !cash && !noEnts ? (
+                <>
+                  <Label>¿De qué entidad sale la inicial?</Label>
+                  <ChipRow>
+                    {pickable.map((e) => (
+                      <Chip
+                        key={e.id}
+                        label={e.name}
+                        active={e.id === downEntId}
+                        color={tint.strong}
+                        onPress={() => setDownEnt(e.id)}
+                      />
+                    ))}
+                  </ChipRow>
+                </>
+              ) : null}
+              {downNoEnt ? (
+                <Txt style={{ fontSize: 12, color: colors.danger.fg }}>
+                  Necesitas una entidad para pagar la inicial.
+                </Txt>
+              ) : null}
+            </View>
           ) : null}
         </View>
       ) : null}
