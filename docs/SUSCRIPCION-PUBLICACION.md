@@ -50,7 +50,7 @@ Verificación: en el panel aparecen Pago móvil, Zinli y PayPal con sus datos.
 Solo cuando 1 a 5 estén verificados:
 1. Ajustar `trial_days_existing` en el panel si quieres darles a los usuarios actuales una prueba distinta.
 2. **Avisar a los usuarios** antes (ver el mensaje de abajo).
-3. Poner `SUBSCRIPTIONS_ENABLED=true` y reiniciar la API.
+3. Encender en `/admin` → Configuración → Suscripciones → «Encendidas» (sin reiniciar; alternativa: `SUBSCRIPTIONS_ENABLED=true` y reiniciar).
 
 Qué pasa al encender: cada usuario existente recibe su prueba **la primera vez que entra** a partir de ese momento; los nuevos la reciben al verificar su correo. Nadie pierde datos.
 
@@ -60,7 +60,7 @@ Qué pasa al encender: cada usuario existente recibe su prueba **la primera vez 
 - Revisar el panel cada día: pagos pendientes.
 
 ## Si algo sale mal (marcha atrás)
-- **Apagar la función:** `SUBSCRIPTIONS_ENABLED=false` y reiniciar. Todos vuelven a tener todo, sin tocar datos. Es inmediato y seguro.
+- **Apagar la función:** en `/admin` → Configuración → «Apagadas (todos Premium)» (se aplica en unos 5 segundos, sin reiniciar). Todos vuelven a tener todo, sin tocar datos. Es inmediato y seguro.
 - Los datos de pagos y códigos se conservan; las columnas y tablas nuevas no estorban, así que **no hace falta deshacer la migración**.
 - Un pago aprobado por error: se puede corregir quitando días desde el panel (Usuarios) o directamente en la base.
 

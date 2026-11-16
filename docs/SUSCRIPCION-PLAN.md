@@ -101,7 +101,7 @@ Ajustar saldo queda en Gratis porque es una corrección, no una función extra, 
 Hoy todos tienen todo gratis. Propuesta: al activar la función, cada usuario existente recibe una prueba de `trial_days_existing` días (por defecto la misma que un usuario nuevo), contada desde **la primera vez que el usuario entra después de activar la función** (se concede al calcular su plan por primera vez; no hay que correr ningún proceso masivo), con un aviso claro en la app y por correo. Los usuarios nuevos reciben la prueba al verificar su correo.
 
 ### 3.6 Interruptor general
-Una variable `SUBSCRIPTIONS_ENABLED`. Apagada, la API trata a todos como Premium y la app no muestra planes: es lo que permite desplegar el código **sin cambiar nada para los usuarios** y encender el cobro cuando todo esté probado.
+Un interruptor: la clave `subscriptions_enabled` de `app_settings` (se cambia en `/admin` → Configuración, sin reiniciar; manda sobre todo) o, si no existe, la variable `SUBSCRIPTIONS_ENABLED`. Si la base falla se considera apagado. Apagado, la API trata a todos como Premium y la app no muestra planes: es lo que permite desplegar el código **sin cambiar nada para los usuarios** y encender el cobro cuando todo esté probado.
 
 ### 3.7 Días de prueba ajustables
 Los días de prueba viven en la tabla `app_settings`, no en el código:

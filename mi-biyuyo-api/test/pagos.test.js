@@ -273,6 +273,17 @@ async function main() {
   ok("ajustes: la tasa se puede quitar", (await adm("PUT", "/settings", { bcv_rate_override: "" })).s === 200
     && (await sql(`SELECT 1 FROM app_settings WHERE key = 'bcv_rate_override'`)).rows.length === 0);
   await setSetting("bcv_rate_override", 100);
+  /* interruptor general (app_settings manda sobre la variable de entorno) */
+  ok("interruptor: valor inválido → 422", (await adm("PUT", "/settings", { subscriptions_enabled: "si" })).s === 422);
+  ok("interruptor: sin clave usa el entorno (encendido)", (await api(u1, "GET", "/api/subscription")).j.enabled === true);
+  ok("interruptor: se apaga desde la base", (await adm("PUT", "/settings", { subscriptions_enabled: "false" })).s === 200
+    && (await api(u1, "GET", "/api/subscription")).j.enabled === false
+    && (await api(u1, "GET", "/api/subscription")).j.plan === "premium");
+  ok("interruptor: se enciende desde la base", (await adm("PUT", "/settings", { subscriptions_enabled: "true" })).s === 200
+    && (await api(u1, "GET", "/api/subscription")).j.enabled === true);
+  ok("interruptor: vacío vuelve al entorno", (await adm("PUT", "/settings", { subscriptions_enabled: "" })).s === 200
+    && (await sql(`SELECT 1 FROM app_settings WHERE key = 'subscriptions_enabled'`)).rows.length === 0
+    && (await api(u1, "GET", "/api/subscription")).j.enabled === true);
   ok("planes: precio inválido → 422", (await adm("PUT", "/plans/monthly", { price_usd: 0, days: 30 })).s === 422);
   ok("planes: días inválidos → 422", (await adm("PUT", "/plans/monthly", { price_usd: 3, days: 0 })).s === 422);
   ok("planes: plan inexistente → 404", (await adm("PUT", "/plans/zzz", { price_usd: 3, days: 30 })).s === 404);
