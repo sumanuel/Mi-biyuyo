@@ -214,6 +214,7 @@ export function buildModel(raw, ratesOverride) {
       // Cuotas: nº de cuotas, cada cuántos días y fecha de la primera (dueDate pasa a ser la próxima sin pagar)
       inst: t.installments || 0,
       instDays: t.installment_days || 0,
+      down: t.installment_days && t.down_payment > 0 ? t.down_payment : 0, // inicial (en la moneda de la deuda)
       dueBase: t.due_date || null,
       recurring: !!t.recurring, // se repite cada mes: al saldarse se crea la siguiente
       notes: t.notes || null,
@@ -325,15 +326,15 @@ export function buildModel(raw, ratesOverride) {
   };
   const totalOf = (m) => curUsd(m, totalNative(m));
 
-  // Calendario de cuotas: el monto se reparte en partes iguales (la última absorbe el redondeo)
-  // y los abonos las van cubriendo en orden. El vencimiento de la deuda pasa a ser el de la
+  // Calendario de cuotas: el monto (menos la inicial, si hay) se reparte en partes iguales (la última
+  // absorbe el redondeo) y los abonos —descontada la inicial— las van cubriendo en orden. El vencimiento de la deuda pasa a ser el de la
   // próxima cuota sin pagar (así listas, alertas y «vencida» funcionan igual que sin cuotas).
   moves.forEach((m) => {
     if (!m.inst || !m.dueBase) return;
     const dec = m.ccy === "bin" ? 1000 : 100;
-    const total = totalNative(m);
+    const total = Math.max(0, totalNative(m) - m.down);
     const each = Math.floor((total / m.inst) * dec) / dec;
-    let left = paidNative(m);
+    let left = Math.max(0, paidNative(m) - m.down);
     m.sched = Array.from({ length: m.inst }, (_, i) => {
       const amt =
         i === m.inst - 1
@@ -911,7 +912,7 @@ export function pillOf(n, over) {
 }
 
 /**
- * Ítems comprados (gastos) agrupados por nombre, del que más se compra al que menos: por número de
+ * Ítems comprados (gastos y compras a crédito por pagar) agrupados por nombre, del que más se compra al que menos: por número de
  * compras, luego por cantidad total y luego por monto (tengan monto o no).
  * El nombre se compara sin mayúsculas, tildes ni plural: «Jamón», «jamon» y «jamones» son el
  * mismo ítem. Se muestra la forma que el usuario escribió más veces (si empatan, la más reciente).
@@ -921,7 +922,8 @@ export function pillOf(n, over) {
 export function itemAgg(list, disp) {
   const agg = {};
   list
-    .filter((m) => m.type === "gasto")
+    // Una compra a crédito («Por pagar» sin dinero recibido, p. ej. a cuotas) cuenta en su fecha y por su monto completo
+    .filter((m) => m.type === "gasto" || (m.type === "pagar" && m.cash === false))
     .forEach((m) =>
       m.items.forEach((it) => {
         const label = it.name.trim();

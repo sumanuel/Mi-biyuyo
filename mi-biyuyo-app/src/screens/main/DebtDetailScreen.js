@@ -138,10 +138,20 @@ Después podrás registrar el ${what} de nuevo.`,
   // Deuda en cuotas: qué cuotas cubre cada abono (los abonos las van cubriendo en orden)
   const tol = debt.ccy === "bin" ? 0.005 : 0.01;
   let cum = 0;
+  let downLeft = debt.down || 0; // la inicial se descuenta primero y no cubre cuotas
   const instLabel = (p) => {
     if (!debt.sched) return null;
+    let val = p.val[debt.ccy];
+    let isDown = false;
+    if (downLeft > tol) {
+      const take = Math.min(downLeft, val);
+      downLeft -= take;
+      val -= take;
+      isDown = true;
+      if (val <= tol) return "Inicial";
+    }
     const from = cum;
-    cum += p.val[debt.ccy];
+    cum += val;
     let start = 0;
     const full = [];
     const completes = [];
@@ -170,7 +180,7 @@ Después podrás registrar el ${what} de nuevo.`,
         `completa la ${completes.length === 1 ? "cuota" : "cuotas"} ${list(completes)}`,
       );
     if (partial.length) parts.push(`abono a la cuota ${list(partial)}`);
-    const text = parts.join(" · ");
+    const text = (isDown ? ["Inicial", ...parts.map((x) => x.charAt(0).toLowerCase() + x.slice(1))] : parts).join(" · ");
     return text ? text.charAt(0).toUpperCase() + text.slice(1) : null;
   };
   const timeline = pays
@@ -386,6 +396,13 @@ Después podrás registrar el ${what} de nuevo.`,
           <Txt style={{ fontSize: 15, fontWeight: "700" }}>
             Cuotas · una cada {debt.instDays} días
           </Txt>
+          {debt.down > 0 ? (
+            <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+              {"Inicial pagada: " +
+                fx.money(debt.ccy, debt.down) +
+                ". Las cuotas se reparten sobre el resto."}
+            </Txt>
+          ) : null}
           <Card pad={0} style={{ paddingVertical: 4, paddingHorizontal: 14 }}>
             {debt.sched.map((c, i) => {
               const tone = c.done

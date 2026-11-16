@@ -302,6 +302,12 @@ async function migrate() {
         ADD COLUMN IF NOT EXISTS installment_days INTEGER
     `);
 
+    // ── inicial de una compra a cuotas: monto (en la moneda de la deuda) pagado al registrarla.
+    //    Se guarda además como un abono; las cuotas se reparten sobre (monto − inicial) ──
+    await client.query(
+      `ALTER TABLE transactions ADD COLUMN IF NOT EXISTS down_payment DECIMAL(15,2)`,
+    );
+
     // ── deudas recurrentes: al saldarse se crea la del mes siguiente (recurrence_source = la que la originó) ──
     await client.query(`
       ALTER TABLE transactions
