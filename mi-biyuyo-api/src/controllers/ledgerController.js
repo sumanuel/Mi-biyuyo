@@ -6,7 +6,7 @@ const { getPlanState } = require("../utils/subscription");
 exports.get = async (req, res, next) => {
   try {
     const uid = req.user.id;
-    const [cats, ents, txs, trs, rates, planned, adjs] = await Promise.all([
+    const [cats, ents, txs, trs, rates, planned, adjs, fees] = await Promise.all([
       pool.query(
         `SELECT c.id, c.code, c.name, c.type, c.icon, c.color, c.active,
                 (c.user_id IS NOT NULL) AS own,
@@ -23,7 +23,7 @@ exports.get = async (req, res, next) => {
       pool.query(
         `SELECT id, name, kind, currency, initial_usd::float AS initial_usd,
                 initial_amount::float AS initial_amount,
-                payment_type, payment_data, alert_usd::float AS alert_usd,
+                payment_type, payment_data, alert_usd::float AS alert_usd, fee_rules,
                 include_in_balance, (archived_at IS NOT NULL) AS archived,
                 to_char(created_at,'YYYY-MM-DD') AS created,
                 (EXTRACT(EPOCH FROM created_at) * 1000)::float AS ts
@@ -80,6 +80,14 @@ exports.get = async (req, res, next) => {
          FROM balance_adjustments WHERE user_id = $1 ORDER BY date DESC, id DESC`,
         [uid],
       ),
+      pool.query(
+        `SELECT id, entity_id, transaction_id, payment_id, method, amount::float AS amount, currency,
+                amount_usd::float AS amount_usd, amount_ves::float AS amount_ves,
+                amount_binance::float AS amount_binance, to_char(date,'YYYY-MM-DD') AS date,
+                (EXTRACT(EPOCH FROM created_at) * 1000)::float AS ts
+         FROM bank_fees WHERE user_id = $1 ORDER BY date DESC, id DESC`,
+        [uid],
+      ),
     ]);
     res.json({
       categories: cats.rows,
@@ -87,6 +95,7 @@ exports.get = async (req, res, next) => {
       transactions: txs.rows,
       transfers: trs.rows,
       adjustments: adjs.rows,
+      fees: fees.rows,
       planned: planned.rows,
       subscription: await getPlanState(uid),
       rates: rates.rows[0] || { usd_to_ves: 0, binance_to_ves: 0 },

@@ -2,6 +2,7 @@ const pool = require("../config/database");
 const { spawnNextRecurrence } = require("../utils/recurrence");
 const { convertToAll, factorOf } = require("../utils/currencyConverter");
 const { requireFeature } = require("../utils/subscription");
+const { cleanFee, insertFee, fail } = require("../utils/bankFees");
 
 async function getUserRates(userId) {
   const { rows } = await pool.query(
@@ -46,6 +47,7 @@ exports.create = async (req, res, next) => {
     // cada abono descuenta su valor del día (guardado al registrarse) convertido a esa moneda.
     const { rows: txRows } = await pool.query(
       `SELECT t.id, t.amount, t.currency,
+              (SELECT c.type FROM categories c WHERE c.id = t.category_id) AS category_type,
               COALESCE((SELECT SUM(CASE t.currency
                           WHEN 'USD' THEN p.amount_usd
                           WHEN 'VES' THEN p.amount_ves
@@ -64,6 +66,21 @@ exports.create = async (req, res, next) => {
       );
       if (!en.length)
         return res.status(404).json({ error: "Entidad no encontrada" });
+    }
+
+    // Comisión bancaria (solo pagos de por pagar): sale de la entidad del pago. Premium.
+    const fee = cleanFee(req.body.fee);
+    let feeEntity = null;
+    if (fee) {
+      if (txRows[0].category_type !== "debt")
+        throw fail(422, "La comisión solo aplica a los pagos de por pagar");
+      if (!entity_id) throw fail(422, "Elige la entidad para registrar la comisión");
+      await requireFeature(req.user.id, "fees");
+      const { rows: en } = await pool.query(
+        `SELECT id, currency FROM entities WHERE id = $1 AND user_id = $2`,
+        [entity_id, req.user.id],
+      );
+      feeEntity = en[0];
     }
 
     const rates = await getUserRates(req.user.id);
@@ -96,6 +113,16 @@ exports.create = async (req, res, next) => {
         factorOf(currency, rates),
       ],
     );
+
+    if (fee)
+      await insertFee(pool, {
+        userId: req.user.id,
+        entity: feeEntity,
+        paymentId: rows[0].id,
+        fee,
+        date: rows[0].date,
+        rates,
+      });
 
     let next = null;
     if (pending - payNative <= tol) {

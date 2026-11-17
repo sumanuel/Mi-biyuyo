@@ -50,6 +50,7 @@ const FEATURES = [
   "full_stats", // estadísticas completas (solo la app lo aplica, salvo los endpoints del servidor)
   "period_range", // mes anterior, mes específico y rangos de fechas (solo la app lo aplica)
   "export", // Excel (solo la app)
+  "fees", // comisiones por entidad (pago móvil / transferencia / otro)
 ];
 
 const FREE_MAX_ENTITIES = 1;
