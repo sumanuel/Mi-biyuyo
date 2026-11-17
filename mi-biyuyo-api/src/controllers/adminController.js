@@ -6,6 +6,7 @@ const {
   formatCode,
   mailPaymentApproved,
   mailPaymentRejected,
+  mailGift,
 } = require("../utils/billing");
 
 /** Panel de administración: pagos, códigos, usuarios, configuración, planes y datos de cobro. */
@@ -204,13 +205,24 @@ exports.gift = async (req, res, next) => {
   try {
     const email = String(req.body?.email || "").trim().toLowerCase();
     const target = req.body?.target === "trial" ? "trial" : "premium";
-    const { rows } = await pool.query(`SELECT id FROM users WHERE email = $1`, [email]);
+    const { rows } = await pool.query(`SELECT id, name, email FROM users WHERE email = $1`, [email]);
     if (!rows.length) throw fail(404, "No hay un usuario con ese correo");
     const id = rows[0].id;
+    // Aviso por correo (solo si se pide: notify === true). Si el correo falla, el regalo se guarda igual.
+    const notify = req.body?.notify === true;
+    const message = String(req.body?.message || "").trim().slice(0, 300);
+    const tell = async (kind, days, until) => {
+      if (!notify) return "skipped";
+      const r = await mailGift(rows[0], { kind, days, until, message });
+      return r && r.sent ? "sent" : "not_sent";
+    };
 
     if (target === "premium") {
       const days = int(req.body?.days, 1, 3650, "Los días");
-      return res.json({ premium_until: await extendPremium(pool, id, days) });
+      const until = await extendPremium(pool, id, days);
+      const notified = await tell("premium", days, until);
+      res.locals.adminLog = `regalo de ${days} días de Premium (aviso: ${notified})`;
+      return res.json({ premium_until: until, notified });
     }
     const days = int(req.body?.days, -365, 365, "Los días");
     if (days === 0) throw fail(422, "Los días no pueden ser 0");
@@ -222,7 +234,10 @@ exports.gift = async (req, res, next) => {
        WHERE id = $1 RETURNING trial_ends_at`,
       [id, days],
     );
-    res.json({ trial_ends_at: r.rows[0].trial_ends_at });
+    // Solo se avisa cuando se SUMAN días (restar no se notifica para no alarmar)
+    const notified = days > 0 ? await tell("trial", days, r.rows[0].trial_ends_at) : "skipped";
+    res.locals.adminLog = `prueba ${days > 0 ? "+" : ""}${days} días (aviso: ${notified})`;
+    res.json({ trial_ends_at: r.rows[0].trial_ends_at, notified });
   } catch (err) {
     next(err);
   }
