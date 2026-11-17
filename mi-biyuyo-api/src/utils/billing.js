@@ -98,6 +98,35 @@ const mailPaymentRejected = (u, p, reason) =>
     ]),
   );
 
+/** Texto y HTML del aviso de un regalo (Premium o días de prueba). El mensaje del administrador se escapa. */
+function giftMail(u, { kind, days, until, message }) {
+  const n = `${days} ${days === 1 ? "día" : "días"}`;
+  const msg = String(message || "").trim().slice(0, 300);
+  const first =
+    kind === "premium"
+      ? `¡Te regalamos ${n} de Premium!`
+      : `Te sumamos ${n} a tu prueba de Premium.`;
+  const second =
+    kind === "premium"
+      ? `Tu plan Premium está activo hasta el ${dateEs(until)}.`
+      : `Tu prueba de Premium dura hasta el ${dateEs(until)}.`;
+  const subject =
+    kind === "premium" ? "Te regalamos Premium — Mi Biyuyo" : "Te sumamos días a tu prueba — Mi Biyuyo";
+  const lines = [esc(first), `${esc(second).replace(dateEs(until), `<b>${dateEs(until)}</b>`)}`];
+  if (msg) lines.push(`<i>«${esc(msg)}»</i>`);
+  return {
+    subject,
+    text: `${first} ${second}${msg ? ` Mensaje: ${msg}` : ""}`,
+    html: wrap(u.name, lines),
+  };
+}
+
+/** Avisa por correo de un regalo. Devuelve { sent } (false si no hay correo configurado o falla). */
+const mailGift = (u, opts) => {
+  const m = giftMail(u, opts);
+  return send(u.email, m.subject, m.text, m.html);
+};
+
 /** Avisa al administrador de que hay un pago por revisar (si ADMIN_NOTIFY_EMAIL está configurado). */
 const mailAdminNewPayment = (u, p) =>
   send(
@@ -167,5 +196,7 @@ module.exports = {
   mailPaymentApproved,
   mailPaymentRejected,
   mailAdminNewPayment,
+  giftMail,
+  mailGift,
   runExpiryNotices,
 };

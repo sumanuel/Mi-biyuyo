@@ -118,7 +118,8 @@ async function adminGuard(req, res, next) {
       res.on("finish", () => {
         const path = req.originalUrl.split("?")[0].replace(/^\/api\/admin/, "");
         const who = req.body && typeof req.body.email === "string" ? req.body.email : "";
-        logAdmin(req.admin.email, `${req.method} ${path}`, who, req.ip, res.statusCode < 400);
+        const extra = res.locals.adminLog ? (who ? `${who} · ` : "") + res.locals.adminLog : who;
+        logAdmin(req.admin.email, `${req.method} ${path}`, extra, req.ip, res.statusCode < 400);
       });
     }
     next();

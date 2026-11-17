@@ -6,7 +6,7 @@ require("../src/config/loadEnv");
 const { spawn } = require("child_process");
 const path = require("path");
 const pool = require("../src/config/database");
-const { runExpiryNotices } = require("../src/utils/billing");
+const { runExpiryNotices, giftMail } = require("../src/utils/billing");
 
 if (!["localhost", "127.0.0.1", "::1"].includes(process.env.DB_HOST)) {
   console.log("ABORTO: la base no es local (" + process.env.DB_HOST + ")");
@@ -249,7 +249,23 @@ async function main() {
   ok("usuarios: listar no inicia la prueba de nadie", (await sql(`SELECT COUNT(*)::int n FROM users WHERE trial_days_granted IS NULL AND email_verified`)).rows[0].n === noTrial);
   const u9 = await newUser("i");
   ok("regalar: correo inexistente → 404", (await adm("POST", "/gift", { email: "nadie@x.test", days: 5 })).s === 404);
-  ok("regalar Premium +10 días", (await adm("POST", "/gift", { email: u9.email, target: "premium", days: 10 })).s === 200 && near(await premiumUntil(u9), 10 * DAY, DAY));
+  // Aviso por correo del regalo (en la prueba no hay correo configurado: pedirlo da "not_sent", el regalo se guarda igual)
+  const g0 = await adm("POST", "/gift", { email: u9.email, target: "premium", days: 3 });
+  ok("regalar sin pedir aviso → skipped", g0.s === 200 && g0.j.notified === "skipped", g0.j);
+  const g1 = await adm("POST", "/gift", { email: u9.email, target: "premium", days: 3, notify: true, message: "Gracias por ayudarnos" });
+  ok("regalar con aviso y sin correo configurado → not_sent y el regalo se guarda", g1.s === 200 && g1.j.notified === "not_sent" && near(await premiumUntil(u9), 6 * DAY, DAY), g1.j);
+  const g2 = await adm("POST", "/gift", { email: u9.email, target: "trial", days: 4, notify: true });
+  ok("sumar días a la prueba con aviso → intenta avisar", g2.s === 200 && g2.j.notified === "not_sent", g2.j);
+  const g3 = await adm("POST", "/gift", { email: u9.email, target: "trial", days: -1, notify: true });
+  ok("restar días a la prueba nunca avisa", g3.s === 200 && g3.j.notified === "skipped", g3.j);
+  await new Promise((r) => setTimeout(r, 400));
+  const lg = (await sql(`SELECT detail FROM admin_log WHERE action = 'POST /gift' ORDER BY id DESC LIMIT 4`)).rows.map((r) => r.detail || "");
+  ok("el registro anota el regalo y el estado del aviso", lg.some((d) => d.includes("aviso: not_sent")) && lg.some((d) => d.includes("aviso: skipped")), lg);
+  const gm = giftMail({ name: "Ana <b>" }, { kind: "premium", days: 1, until: new Date("2026-12-17T12:00:00Z"), message: "<script>alert(1)</script> hola" });
+  ok("correo del regalo: escapa el mensaje y el nombre", !gm.html.includes("<script>") && !gm.html.includes("<b>Ana") && gm.html.includes("&lt;script&gt;") && gm.text.includes("1 día de Premium"), gm.html);
+  const gt = giftMail({ name: "Ana" }, { kind: "trial", days: 5, until: new Date("2026-12-17T12:00:00Z"), message: "" });
+  ok("correo de prueba extendida y sin mensaje", gt.subject.includes("prueba") && gt.text.includes("5 días") && !gt.html.includes("«"), gt);
+  ok("regalar Premium +10 días (se suman a los 6 de antes)", (await adm("POST", "/gift", { email: u9.email, target: "premium", days: 10 })).s === 200 && near(await premiumUntil(u9), 16 * DAY, DAY));
   ok("regalar Premium: días inválidos → 422", (await adm("POST", "/gift", { email: u9.email, target: "premium", days: -5 })).s === 422);
   const t0 = (await sql(`SELECT trial_ends_at FROM users WHERE id = $1`, [u9.id])).rows[0].trial_ends_at.getTime();
   await adm("POST", "/gift", { email: u9.email, target: "trial", days: 5 });

@@ -304,16 +304,23 @@
   }
   function userCard(u) {
     var days = h("input", { type: "number", value: 30, style: "width:90px" });
+    var notify = h("input", { type: "checkbox", checked: true });
+    var note = h("input", { placeholder: "Mensaje opcional para el correo", maxLength: 300, style: "min-width:260px;flex:1" });
+    // Regala y, si la casilla está marcada, avisa al usuario por correo
+    var gift = function (target, okText) {
+      run(api("POST", "/gift", { email: u.email, target: target, days: Number(days.value), notify: notify.checked, message: note.value }), okText).then(function (r) {
+        var t = { sent: " Se avisó al usuario por correo.", not_sent: " No se pudo enviar el correo (el regalo sí se guardó).", skipped: "" }[r.notified] || "";
+        say(okText + "." + t, r.notified === "not_sent");
+        viewUsers();
+      });
+    };
     return h("div", { class: "card" },
       h("div", { class: "row" }, h("b", null, u.email), h("span", { class: "tag" }, u.plan), !u.trial_assigned && u.plan === "free" && h("span", { class: "tag" }, "sin prueba asignada"), !u.email_verified && h("span", { class: "tag" }, "correo sin verificar"), h("span", { class: "mut" }, u.name)),
       h("div", { class: "mut" }, "Prueba hasta: " + fmt(u.trial_ends_at) + " · Premium hasta: " + fmt(u.premium_until)),
       h("div", { class: "row" }, "Días:", days,
-        h("button", { class: "pri", onclick: function () {
-          run(api("POST", "/gift", { email: u.email, target: "premium", days: Number(days.value) }), "Premium extendido").then(viewUsers);
-        } }, "Regalar Premium"),
-        h("button", { onclick: function () {
-          run(api("POST", "/gift", { email: u.email, target: "trial", days: Number(days.value) }), "Prueba ajustada").then(viewUsers);
-        } }, "Sumar/restar a la prueba")));
+        h("button", { class: "pri", onclick: function () { gift("premium", "Premium extendido"); } }, "Regalar Premium"),
+        h("button", { onclick: function () { gift("trial", "Prueba ajustada"); } }, "Sumar/restar a la prueba")),
+      h("div", { class: "row" }, h("label", null, notify, " Avisar por correo (al regalar Premium o sumar días a la prueba)"), note));
   }
 
   /* ---------- administradores ---------- */
