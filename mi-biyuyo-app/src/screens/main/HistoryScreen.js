@@ -72,7 +72,10 @@ export default function HistoryScreen({ navigation, route }) {
     .filter(
       (f) =>
         !q.trim() ||
-        textHas([f.debt.title, f.cat.name, f.debt.person || ""].join(" "), q),
+        textHas(
+          [f.debt?.title || f.title, f.cat.name, f.debt?.person || ""].join(" "),
+          q,
+        ),
     );
   const flInc = model.sumIn(fl.concat(extra), "ingreso", disp);
   const flExp = model.sumIn(fl.concat(extra), "gasto", disp);

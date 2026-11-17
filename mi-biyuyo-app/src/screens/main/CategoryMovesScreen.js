@@ -52,9 +52,13 @@ export default function CategoryMovesScreen({ navigation, route }) {
             key={m.id}
             activeOpacity={0.8}
             onPress={() =>
-              m.pay
-                ? go(navigation, "DebtDetail", { id: m.debt.id })
-                : go(navigation, "MovementDetail", { id: m.id })
+              m.fee
+                ? m.fee.src
+                  ? go(navigation, m.fee.isPay ? "DebtDetail" : "MovementDetail", { id: m.fee.src.id })
+                  : null
+                : m.pay
+                  ? go(navigation, "DebtDetail", { id: m.debt.id })
+                  : go(navigation, "MovementDetail", { id: m.id })
             }
             accessibilityLabel={`Ver movimiento del ${fullDate(m.date)}`}
             style={{

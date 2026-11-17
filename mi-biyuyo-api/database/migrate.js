@@ -308,6 +308,33 @@ async function migrate() {
       `ALTER TABLE transactions ADD COLUMN IF NOT EXISTS down_payment DECIMAL(15,2)`,
     );
 
+    // ── comisiones bancarias: reglas por entidad (pago móvil / transferencia) y las comisiones
+    //    cobradas en un gasto o en un pago de por pagar (se borran junto con su movimiento) ──
+    await client.query(
+      `ALTER TABLE entities ADD COLUMN IF NOT EXISTS fee_rules JSONB`,
+    );
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS bank_fees (
+        id              SERIAL PRIMARY KEY,
+        user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        entity_id       INTEGER NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+        transaction_id  INTEGER REFERENCES transactions(id) ON DELETE CASCADE,
+        payment_id      INTEGER REFERENCES transaction_payments(id) ON DELETE CASCADE,
+        method          VARCHAR(20) NOT NULL,
+        amount          DECIMAL(15,2) NOT NULL,
+        currency        VARCHAR(10) NOT NULL,
+        amount_usd      DECIMAL(15,4) NOT NULL DEFAULT 0,
+        amount_ves      DECIMAL(15,4) NOT NULL DEFAULT 0,
+        amount_binance  DECIMAL(15,4) NOT NULL DEFAULT 0,
+        date            DATE NOT NULL,
+        created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
+        CHECK ((transaction_id IS NOT NULL) <> (payment_id IS NOT NULL))
+      )
+    `);
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_bank_fees_user ON bank_fees(user_id, date)`,
+    );
+
     // ── deudas recurrentes: al saldarse se crea la del mes siguiente (recurrence_source = la que la originó) ──
     await client.query(`
       ALTER TABLE transactions

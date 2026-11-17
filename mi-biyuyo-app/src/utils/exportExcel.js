@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import * as XLSX from "xlsx";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
-import { KIND_LABEL, META, isDebtType } from "./ledger";
+import { KIND_LABEL, META, FEE_METHOD, isDebtType } from "./ledger";
 import { CCY_LABEL, ENT_CCY_LABEL, todayStr } from "./money";
 
 const XLSX_MIME =
@@ -188,6 +188,34 @@ export function buildWorkbook(model, { from, to }) {
     [12, 18, 18, 16, 14, 18, 20, 14],
   );
 
+  /* ---------- Comisiones bancarias (cuentan como gasto) ---------- */
+  const feeList = model.bankFees
+    .filter((f) => inRange(f.date, from, to))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.ts - b.ts));
+  const wsFee = sheetOf(
+    [
+      "Fecha",
+      "Entidad",
+      "Método",
+      "De qué operación",
+      "Monto (moneda de la entidad)",
+      "Monto USD",
+      "Monto VES (BCV)",
+      "Monto USDT (Binance)",
+    ],
+    feeList.map((f) => [
+      dateCell(f.date),
+      model.entName(f.ent),
+      FEE_METHOD[f.method] || f.method,
+      text(f.src ? (f.isPay ? "Pago de " : "Gasto: ") + (f.src.person || f.src.title) : ""),
+      num(f.amount, model.entById[f.ent]?.ccy === "usdt" ? FMT_USDT : FMT_MONEY),
+      num(f.val.usd),
+      num(f.val.bcv),
+      num(f.val.bin, FMT_USDT),
+    ]),
+    [12, 22, 16, 30, 26, 14, 18, 20],
+  );
+
   /* ---------- Ajustes de saldo (correcciones; no son ingresos ni gastos) ---------- */
   const adjs = model.adjustments
     .filter((a) => inRange(a.date, from, to))
@@ -322,6 +350,7 @@ export function buildWorkbook(model, { from, to }) {
   XLSX.utils.book_append_sheet(wb, wsMov, "Movimientos");
   XLSX.utils.book_append_sheet(wb, wsPay, "Abonos");
   XLSX.utils.book_append_sheet(wb, wsTrf, "Transferencias");
+  XLSX.utils.book_append_sheet(wb, wsFee, "Comisiones");
   XLSX.utils.book_append_sheet(wb, wsAdj, "Ajustes");
   XLSX.utils.book_append_sheet(wb, wsItems, "Ítems");
   XLSX.utils.book_append_sheet(wb, wsEnt, "Entidades");
@@ -331,6 +360,7 @@ export function buildWorkbook(model, { from, to }) {
       moves: moves.length,
       pays: payRows.length,
       transfers: trfs.length,
+      fees: feeList.length,
       adjusts: adjs.length,
       items: itemRows.length,
     },
@@ -348,6 +378,7 @@ export function countsFor(model, { from, to }) {
       0,
     ),
     transfers: model.transfers.filter((t) => inRange(t.date, from, to)).length,
+    fees: model.bankFees.filter((f) => inRange(f.date, from, to)).length,
     adjusts: model.adjustments.filter((a) => inRange(a.date, from, to)).length,
     items: moves.reduce((a, m) => a + m.items.length, 0),
   };
@@ -359,6 +390,7 @@ export function firstDate(model) {
     ...model.moves.map((m) => m.date),
     ...model.moves.flatMap((m) => (m.pays || []).map((p) => p.date)),
     ...model.transfers.map((t) => t.date),
+    ...model.bankFees.map((f) => f.date),
     ...model.adjustments.map((a) => a.date),
   ].filter(Boolean);
   return dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : todayStr();

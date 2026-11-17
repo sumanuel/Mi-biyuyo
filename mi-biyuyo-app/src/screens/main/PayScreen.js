@@ -30,6 +30,7 @@ import {
 } from "../../utils/money";
 import DateField from "../../components/DateField";
 import { useFocusChain } from "../../hooks/useFocusChain";
+import BankFeeBlock, { useBankFee } from "../../components/BankFeeBlock";
 
 /** Registrar un cobro (por cobrar) o un pago (por pagar) parcial. */
 export default function PayScreen({ navigation, route }) {
@@ -67,6 +68,15 @@ export default function PayScreen({ navigation, route }) {
   const [date, setDate] = useState(todayStr());
   const [entId, setEntId] = useState(null);
   const [busy, setBusy] = useState(false);
+  // Comisión bancaria (solo pagos de por pagar): según la entidad elegida y el monto
+  const fee = useBankFee(
+    model,
+    debt?.type === "pagar"
+      ? (entId && model.entById[entId]) || model.entById[debt.ent] || model.ents[0]
+      : null,
+    fx.toUsd(ccy, parseNum(amount)),
+    null,
+  );
 
   if (!debt) {
     return (
@@ -104,6 +114,7 @@ export default function PayScreen({ navigation, route }) {
         date,
         entity_id: entSel,
         notes: model.entName(entSel),
+        ...(fee.body() ? { fee: fee.body() } : {}),
       });
       showToast(
         `${isCobro ? "Cobro" : "Pago"} registrado: ${fx.money(ccy, num)}. Saldo ${fx.money("usd", after)}` +
@@ -427,6 +438,7 @@ export default function PayScreen({ navigation, route }) {
           ))}
         </ChipRow>
       </View>
+      {!isCobro ? <BankFeeBlock fee={fee} model={model} tint={tint} /> : null}
     </Screen>
   );
 }

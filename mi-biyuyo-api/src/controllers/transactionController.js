@@ -2,6 +2,7 @@ const pool = require("../config/database");
 const { spawnNextRecurrence } = require("../utils/recurrence");
 const { convertToAll, toUsd, factorOf } = require("../utils/currencyConverter");
 const { cleanQuantity } = require("../utils/quantity");
+const { cleanFee, insertFee, fail: feeFail } = require("../utils/bankFees");
 const { getPlanState, need, needOpenEntity } = require("../utils/subscription");
 
 // Tipos de categoría que son deudas (por cobrar = loan_given, por pagar = debt)
@@ -117,6 +118,15 @@ async function assertEntity(userId, entityId) {
   return entityId;
 }
 
+async function getEntity(userId, entityId) {
+  const { rows } = await pool.query(
+    `SELECT id, currency FROM entities WHERE id = $1 AND user_id = $2`,
+    [entityId, userId],
+  );
+  if (!rows.length) throw feeFail(404, "Entidad no encontrada");
+  return rows[0];
+}
+
 async function replaceItems(client, transactionId, items, currency, rates) {
   await client.query(
     `DELETE FROM transaction_items WHERE transaction_id = $1`,
@@ -186,6 +196,7 @@ exports.create = async (req, res, next) => {
 
     // ¿La categoría es de por cobrar / por pagar? ¿Es una categoría propia?
     let isDebtCat = false;
+    let isExpenseCat = false;
     let ownCat = false;
     if (category_id) {
       const { rows: cat } = await client.query(
@@ -193,6 +204,7 @@ exports.create = async (req, res, next) => {
         [category_id, req.user.id],
       );
       isDebtCat = cat.length > 0 && DEBT_TYPES.includes(cat[0].type);
+      isExpenseCat = cat.length > 0 && cat[0].type === "expense";
       ownCat = cat.length > 0 && cat[0].user_id !== null;
     }
 
@@ -204,6 +216,16 @@ exports.create = async (req, res, next) => {
     if (receipt_name || receipt_data) need(plan, "receipts");
     needOpenEntity(plan, entity_id);
     const inst = cleanInstallments(installments, installment_days, isDebtCat);
+
+    // Comisión bancaria (solo gastos): sale de la misma entidad del gasto. Premium.
+    const fee = cleanFee(req.body.fee);
+    let feeEntity = null;
+    if (fee) {
+      if (!isExpenseCat) throw feeFail(422, "La comisión solo aplica a los gastos");
+      if (!entity_id) throw feeFail(422, "Elige la entidad para registrar la comisión");
+      need(plan, "fees");
+      feeEntity = await getEntity(req.user.id, entity_id);
+    }
 
     // Inicial: solo con cuotas. Es menor que el total y sale de una entidad; se guarda como un abono
     const down = parseFloat(down_payment) > 0 ? parseFloat(down_payment) : 0;
@@ -268,6 +290,15 @@ exports.create = async (req, res, next) => {
         ],
       );
     }
+    if (fee)
+      await insertFee(client, {
+        userId: req.user.id,
+        entity: feeEntity,
+        transactionId: rows[0].id,
+        fee,
+        date: date || new Date().toISOString().slice(0, 10),
+        rates,
+      });
     await replaceItems(client, rows[0].id, items, currency, rates);
     await client.query("COMMIT");
     res.status(201).json(rows[0]);
@@ -438,6 +469,29 @@ exports.update = async (req, res, next) => {
         id,
       ],
     );
+    // Comisión (gastos): se reemplaza si llega `fee`; si no llega, sigue a la fecha y se quita si cambió la entidad
+    if (cur.category_type === "expense") {
+      if (has("fee")) {
+        const fee = cleanFee(b.fee);
+        await client.query(`DELETE FROM bank_fees WHERE transaction_id = $1`, [id]);
+        if (fee) {
+          if (!entityId) throw feeFail(422, "Elige la entidad para registrar la comisión");
+          need(plan, "fees");
+          await insertFee(client, {
+            userId: req.user.id,
+            entity: await getEntity(req.user.id, entityId),
+            transactionId: id,
+            fee,
+            date: rows[0].date,
+            rates,
+          });
+        }
+      } else if (String(entityId) !== String(cur.entity_id)) {
+        await client.query(`DELETE FROM bank_fees WHERE transaction_id = $1`, [id]);
+      } else {
+        await client.query(`UPDATE bank_fees SET date = $2 WHERE transaction_id = $1`, [id, rows[0].date]);
+      }
+    }
     if (has("items")) await replaceItems(client, id, b.items, currency, rates);
     // Si al editar la deuda quedó saldada y es recurrente, se crea la del mes siguiente
     const next =

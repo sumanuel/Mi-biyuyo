@@ -16,6 +16,7 @@ export const FEATURE_TEXT = {
   full_stats: "Estadísticas completas",
   period_range: "Mes anterior y rangos de fechas",
   export: "Exportar a Excel",
+  fees: "Comisiones por entidad",
   locked_entity: "Entidades adicionales",
 };
 
@@ -32,6 +33,7 @@ export const COMPARE_ROWS = [
   { text: "Categorías propias", free: false },
   { text: "Detalle de la compra y recibos adjuntos", free: false },
   { text: "Estadísticas completas", free: false },
+  { text: "Comisiones por entidad (pago móvil, transferencia y otras)", free: false },
   { text: "Exportar a Excel", free: false },
 ];
 
