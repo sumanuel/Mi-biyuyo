@@ -5,7 +5,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const errorHandler = require("./middleware/errorHandler");
 const { verifyMail, mailStatus, describeMail } = require("./utils/mailer");
-const { adminEnabled } = require("./middleware/adminGuard");
+const { adminEnabled, adminAvailable } = require("./middleware/adminGuard");
 const { runExpiryNotices } = require("./utils/billing");
 const { enabled: subscriptionsEnabled } = require("./utils/subscription");
 
@@ -33,10 +33,12 @@ app.use("/api/planned", require("./routes/planned"));
 app.use("/api/subscription", require("./routes/subscription"));
 app.use("/api/admin", require("./routes/admin"));
 
-// Página de administración (solo existe si ADMIN_KEY está configurada; cada acción exige la clave)
+// Página de administración (existe si hay ADMIN_KEY o alguna cuenta de administrador activa;
+// cada acción exige sesión o clave)
 app.use(
   "/admin",
-  (req, res, next) => (adminEnabled() ? next() : res.status(404).end()),
+  (req, res, next) =>
+    adminAvailable().then((ok) => (ok ? next() : res.status(404).end()), next),
   express.static(path.join(__dirname, "admin")),
 );
 
@@ -60,8 +62,8 @@ app.listen(PORT, () => {
   console.log(describeMail());
   console.log(
     adminEnabled()
-      ? "Administración: activa en /admin"
-      : "Administración: desactivada (falta ADMIN_KEY de al menos 16 caracteres)",
+      ? "Administración: activa en /admin (clave de emergencia y cuentas)"
+      : "Administración: solo con cuentas de administrador (sin ADMIN_KEY de emergencia)",
   );
   // Avisos por correo de pruebas y Premium que vencen pronto: una vez al arrancar y cada 6 horas
   // (el interruptor se revisa en cada vuelta: puede encenderse desde /admin sin reiniciar)
