@@ -31,11 +31,18 @@ import {
 import { useFocusChain } from "../../hooks/useFocusChain";
 import { usePlan } from "../../hooks/usePlan";
 
-// Comisiones bancarias: métodos y topes del BCV (tarifas vigentes desde el 18/09/2026, solo en bolívares)
+// Comisiones por entidad: métodos y topes del BCV (tarifas vigentes desde el 18/09/2026, solo en bolívares)
+// Los bancos manejan pago móvil y transferencia; las demás entidades, una comisión «por movimiento». «Otro» sirve a todas.
 const FEE_METHODS = [
   ["pago_movil", "Pago móvil"],
   ["transferencia", "Transferencia"],
+  ["movimiento", "Por movimiento"],
+  ["otro", "Otro"],
 ];
+const feeMethodsOf = (kind) =>
+  FEE_METHODS.filter(([k]) =>
+    kind === "banco" ? k !== "movimiento" : k !== "pago_movil" && k !== "transferencia",
+  );
 const BCV_FEES = {
   pago_movil: { pct: "0,3", min: "14", max: "" },
   transferencia: { pct: "0,3", min: "14", max: "" },
@@ -123,16 +130,14 @@ export default function EntityFormScreen({ navigation, route }) {
     };
     if (canEditInit) body.initial_amount = num;
     // Reglas de comisión (solo bancos y Premium); sin ninguna se mandan vacías para quitarlas
-    if (kind === "banco" && canFees) {
+    if (canFees) {
       const rules = {};
-      FEE_METHODS.forEach(([k]) => {
+      feeMethodsOf(kind).forEach(([k]) => {
         const f = fees[k];
         if (feeNum(f.pct) > 0 || feeNum(f.min) > 0)
           rules[k] = { pct: feeNum(f.pct), min: feeNum(f.min), max: feeNum(f.max) || null };
       });
       body.fee_rules = Object.keys(rules).length ? rules : null;
-    } else if (kind !== "banco") {
-      body.fee_rules = null;
     }
     try {
       if (editing) {
@@ -393,23 +398,23 @@ export default function EntityFormScreen({ navigation, route }) {
         ) : null}
       </Card>
 
-      {kind === "banco" ? (
+      {(
         <Card style={{ gap: 12 }}>
-          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
-            Comisiones bancarias
-          </Txt>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>Comisiones</Txt>
           <Txt
             style={{ fontSize: 13, lineHeight: 18, color: colors.textSecondary }}
           >
-            Si tu banco cobra comisión por pago móvil o transferencia, escríbela
-            aquí (en la moneda de la entidad). Al registrar un gasto o un pago de
-            por pagar desde esta entidad, la app calcula la comisión: el
-            porcentaje del monto, pero nunca menos que el mínimo ni más que el
-            máximo.
+            {kind === "banco"
+              ? "Si tu banco cobra comisión por pago móvil, por transferencia u otra operación, escríbela aquí"
+              : "Si esta entidad cobra una comisión por cada movimiento (u otra), escríbela aquí"}{" "}
+            en la moneda de la entidad. Al
+            registrar un gasto o un pago de por pagar desde ella, la app calcula
+            la comisión: el porcentaje del monto, pero nunca menos que el mínimo
+            ni más que el máximo.
           </Txt>
           {canFees ? (
             <>
-              {FEE_METHODS.map(([k, label]) => (
+              {feeMethodsOf(kind).map(([k, label]) => (
                 <View key={k} style={{ gap: 6 }}>
                   <Txt style={{ fontSize: 13, fontWeight: "700" }}>{label}</Txt>
                   <View style={{ flexDirection: "row", gap: 8 }}>
@@ -431,20 +436,20 @@ export default function EntityFormScreen({ navigation, route }) {
                   </View>
                 </View>
               ))}
-              {ccy === "ves" ? (
+              {ccy === "ves" && kind === "banco" ? (
                 <Button
                   label="Usar los topes del BCV"
                   outline
                   height={42}
-                  onPress={() => setFees({ ...BCV_FEES })}
+                  onPress={() => setFees((prev) => ({ ...prev, ...BCV_FEES }))}
                 />
               ) : null}
               <Txt
                 style={{ fontSize: 12, lineHeight: 17, color: colors.textSecondary }}
               >
-                Los topes del BCV (0,30 % con mínimo de Bs 14) son lo máximo que
-                puede cobrar un banco: el tuyo puede cobrar menos. Déjalos en
-                blanco si no cobra comisión.
+                Déjalos en blanco si no cobra comisión. Para bancos en bolívares,
+                los topes del BCV (0,30 % con mínimo de Bs 14) son lo máximo que
+                puede cobrar el banco: el tuyo puede cobrar menos.
               </Txt>
             </>
           ) : (
@@ -456,7 +461,7 @@ export default function EntityFormScreen({ navigation, route }) {
             />
           )}
         </Card>
-      ) : null}
+      )}
 
       <View style={{ gap: 8 }}>
         <Txt style={{ fontSize: 14, fontWeight: "700" }}>Datos de pago</Txt>

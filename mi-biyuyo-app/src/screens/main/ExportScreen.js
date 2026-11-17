@@ -63,7 +63,7 @@ export default function ExportScreen({ navigation }) {
     ],
     ["Abonos", `${nTxt(counts.pays, "abono")} de cobros y pagos`],
     ["Transferencias", `${nTxt(counts.transfers, "transferencia")}`],
-    ["Comisiones", `${counts.fees} ${counts.fees === 1 ? "comisión bancaria" : "comisiones bancarias"} (cuentan como gasto)`],
+    ["Comisiones", `${counts.fees} ${counts.fees === 1 ? "comisión" : "comisiones"} (cuentan como gasto)`],
     [
       "Ajustes",
       `${nTxt(counts.adjusts, "ajuste")} de saldo (no cuentan como ingreso ni gasto)`,

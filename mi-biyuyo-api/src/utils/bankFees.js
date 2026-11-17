@@ -1,12 +1,13 @@
 const { convertToAll } = require("./currencyConverter");
 
 /**
- * Comisiones bancarias. Cada entidad guarda reglas por método de pago (entities.fee_rules):
+ * Comisiones por entidad (bancos, billeteras…). Cada entidad guarda reglas por método de pago (entities.fee_rules):
  *   { pago_movil: { pct, min, max }, transferencia: { pct, min, max } }
  * en la moneda de la entidad (pct = porcentaje del monto; min y max opcionales).
  * La comisión de cada operación la calcula la app y se guarda aquí tal cual (se puede editar).
  */
-const METHODS = ["pago_movil", "transferencia"];
+// Bancos: pago_movil y transferencia. Las demás entidades (efectivo, billeteras…): movimiento. otro sirve a todas.
+const METHODS = ["pago_movil", "transferencia", "movimiento", "otro"];
 const ENTITY_CCY = { usd: "USD", ves: "VES", usdt: "BINANCE" };
 
 const fail = (status, message) => {

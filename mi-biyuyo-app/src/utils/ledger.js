@@ -281,19 +281,23 @@ export function buildModel(raw, ratesOverride) {
   }));
 
   // Comisiones bancarias de un gasto o de un pago de por pagar: salen de la entidad y cuentan como
-  // gasto («Comisiones bancarias») en la fecha de la operación.
+  // gasto («Comisiones») en la fecha de la operación.
   const bankFees = (empty ? [] : raw.fees || []).map((f) => {
     const debt = f.payment_id
       ? moves.find((m) => (m.pays || []).some((p) => p.id === f.payment_id))
       : null;
     const src = debt || (f.transaction_id ? moves.find((m) => m.id === f.transaction_id) : null);
+    // Orden: la comisión va justo después de su operación en la lista (del más reciente al más antiguo),
+    // así que lleva la hora de su gasto o pago menos una fracción
+    const pay = f.payment_id && debt ? (debt.pays || []).find((p) => p.id === f.payment_id) : null;
+    const baseTs = pay ? pay.ts : src ? src.ts : (f.ts || 0) + 0.5;
     return {
       id: f.id,
       key: "f" + f.id,
       ent: f.entity_id,
       date: f.date,
       d: daysAgo(f.date),
-      ts: f.ts || 0,
+      ts: baseTs - 0.5,
       method: f.method,
       amount: f.amount,
       ccy: CCY_FROM_API[f.currency] || "bcv",
@@ -479,7 +483,7 @@ export function buildModel(raw, ratesOverride) {
       }),
     );
   });
-  // Las comisiones bancarias cuentan como gasto (categoría «Comisiones bancarias»)
+  // Las comisiones bancarias cuentan como gasto (categoría «Comisiones»)
   bankFees.forEach((f) =>
     payFlows.push({
       id: f.key,
@@ -780,14 +784,19 @@ export function abonoRow(model, m, p, dv) {
 export const FEE_CAT = {
   id: "fees",
   code: "fees",
-  name: "Comisiones bancarias",
+  name: "Comisiones",
   type: "gasto",
   icon: "bank",
   active: true,
   own: false,
   hidden: false,
 };
-export const FEE_METHOD = { pago_movil: "Pago móvil", transferencia: "Transferencia" };
+export const FEE_METHOD = {
+  pago_movil: "Pago móvil",
+  transferencia: "Transferencia",
+  movimiento: "Por movimiento",
+  otro: "Otro",
+};
 
 /** Comisión bancaria mostrada como movimiento (gasto). */
 export function feeRow(model, f, dv) {
@@ -799,7 +808,7 @@ export function feeRow(model, f, dv) {
     sub: (FEE_METHOD[f.method] || "Comisión") + " · " + model.entName(f.ent),
     date: dlabel(f.date),
     amount: "-" + dv(f.val),
-    line2: "Comisión bancaria",
+    line2: "Comisión",
     nav: f.src
       ? { name: f.isPay ? "DebtDetail" : "MovementDetail", params: { id: f.src.id } }
       : { name: "Entities" },

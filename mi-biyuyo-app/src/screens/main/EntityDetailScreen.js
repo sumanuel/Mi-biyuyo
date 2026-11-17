@@ -17,7 +17,7 @@ import {
   Icon,
   Empty,
 } from "../../components/ui";
-import { KIND_ICON, KIND_LABEL, PT, ledgerOf } from "../../utils/ledger";
+import { KIND_ICON, KIND_LABEL, PT, FEE_METHOD, ledgerOf } from "../../utils/ledger";
 import {
   CCY_KEYS,
   CCY_LABEL,
@@ -44,6 +44,7 @@ export default function EntityDetailScreen({ navigation, route }) {
   const { gate } = usePlan();
   const { fx } = model;
   const [payOpen, setPayOpen] = useState(false); // datos de pago: acordeón cerrado por defecto
+  const [feeOpen, setFeeOpen] = useState(false); // comisiones: acordeón cerrado por defecto
   const [capturing, setCapturing] = useState(false); // dibuja la tarjeta con QR solo mientras se comparte
   const cardRef = useRef(null);
   const e = model.entById[route.params?.id];
@@ -60,6 +61,15 @@ export default function EntityDetailScreen({ navigation, route }) {
   const k = colors.kind[e.kind] || colors.kind.otro;
   const bal = model.entBal(e);
   const pt = PT[e.pt] || PT.none;
+  // Comisiones pagadas desde esta entidad en el período elegido
+  const fees = model.bankFees.filter(
+    (f) => f.ent === e.id && f.date >= period.from && f.date <= period.to,
+  );
+  const feeCount = fees.length;
+  const feeSum = fees.reduce(
+    (a, f) => ({ usd: a.usd + f.val.usd, bcv: a.bcv + f.val.bcv, bin: a.bin + f.val.bin }),
+    { usd: 0, bcv: 0, bin: 0 },
+  );
   const data = (e.pd || [])
     .map((v, i) => ({ label: pt.f[i] || "", value: v }))
     .filter((f) => f.value && f.label);
@@ -407,6 +417,119 @@ export default function EntityDetailScreen({ navigation, route }) {
           </>
         ) : null}
       </Card>
+
+      {(
+        <Card pad={14} style={{ gap: 10 }}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setFeeOpen((o) => !o)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: feeOpen }}
+            accessibilityLabel="Comisiones"
+            style={{
+              minHeight: 32,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+            }}
+          >
+            <Txt
+              style={{
+                flex: 1,
+                fontSize: 12,
+                fontWeight: "700",
+                letterSpacing: 0.5,
+                color: colors.textSecondary,
+              }}
+            >
+              COMISIONES
+            </Txt>
+            <Txt
+              style={{
+                fontSize: 12,
+                fontWeight: "700",
+                color: colors.textSecondary,
+              }}
+            >
+              {e.feeRules
+                ? Object.keys(FEE_METHOD)
+                    .filter((k) => e.feeRules[k])
+                    .map((k) => FEE_METHOD[k])
+                    .join(" · ")
+                : "Sin configurar"}
+            </Txt>
+            <View style={{ transform: [{ rotate: feeOpen ? "90deg" : "0deg" }] }}>
+              <Icon
+                name="chevronRight"
+                size={16}
+                color={colors.textSecondary}
+                stroke={2}
+              />
+            </View>
+          </TouchableOpacity>
+          {feeOpen ? (
+            <>
+          {Object.keys(FEE_METHOD).filter((k) => e.feeRules?.[k]).map((k) => {
+            const r = e.feeRules[k];
+            const key = ENT_CCY[e.ccy];
+            return (
+              <View
+                key={k}
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  paddingVertical: 6,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.divider,
+                }}
+              >
+                <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
+                  {FEE_METHOD[k]}
+                </Txt>
+                <Txt
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "700",
+                    textAlign: "right",
+                    flexShrink: 1,
+                  }}
+                >
+                  {String(r.pct).replace(".", ",") + " %"}
+                  {r.min > 0 ? " · mín. " + fx.money(key, r.min) : ""}
+                  {r.max > 0 ? " · máx. " + fx.money(key, r.max) : ""}
+                </Txt>
+              </View>
+            );
+          })}
+          {!e.feeRules ? (
+            <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
+              Sin comisiones configuradas. Configúralas para que se calculen al
+              pagar desde esta entidad.
+            </Txt>
+          ) : null}
+          {feeCount > 0 ? (
+            <Txt style={{ fontSize: 13, color: colors.textSecondary }}>
+              {"Pagadas en el período: " +
+                dv(feeSum) +
+                " (" +
+                feeCount +
+                (feeCount === 1 ? " comisión" : " comisiones") +
+                ")"}
+            </Txt>
+          ) : null}
+          <Button
+            label={e.feeRules ? "Editar comisiones" : "Configurar comisiones"}
+            outline
+            height={42}
+            style={{ borderRadius: 12 }}
+            onPress={() => navigation.navigate("EntityForm", { id: e.id })}
+          />
+            </>
+          ) : null}
+        </Card>
+      )}
 
       <View style={{ gap: 10 }}>
         <Txt style={{ fontSize: 15, fontWeight: "700" }}>Movimientos</Txt>

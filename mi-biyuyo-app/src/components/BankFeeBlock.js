@@ -60,7 +60,7 @@ export function useBankFee(model, entity, usdAmount, initial) {
   };
 }
 
-/** Selector «Comisión bancaria» (Sin comisión / Pago móvil / Transferencia) y su monto editable. */
+/** Selector «Comisión» (Sin comisión / Pago móvil / Transferencia / Otro) y su monto editable. */
 export default function BankFeeBlock({ fee, model, tint }) {
   const { colors } = useTheme();
   if (!fee || !fee.methods.length) return null;
@@ -68,7 +68,7 @@ export default function BankFeeBlock({ fee, model, tint }) {
   const rule = fee.method ? fee.rules[fee.method] : null;
   return (
     <View style={{ gap: 8 }}>
-      <Label>Comisión bancaria</Label>
+      <Label>Comisión</Label>
       <ChipRow>
         <Chip
           label="Sin comisión"

@@ -60,6 +60,8 @@ async function main() {
     const rules = { pago_movil: { pct: 0.3, min: 14, max: null }, transferencia: { pct: 0.1, min: 14, max: 68 } };
     const ent = (await call(A, t, "POST", "/api/entities", { name: "Banco QA", kind: "banco", currency: "ves", initial_amount: 100000, fee_rules: rules })).j;
     ok("la entidad guarda las reglas", ent.fee_rules && ent.fee_rules.pago_movil.pct === 0.3 && ent.fee_rules.transferencia.max === 68, ent);
+    const dig = (await call(A, t, "POST", "/api/entities", { name: "Billetera QA", kind: "digital", currency: "usd", fee_rules: { movimiento: { pct: 2, min: 0.5, max: null }, otro: { pct: 1, min: 0, max: null } } })).j;
+    ok("una entidad que no es banco admite reglas «por movimiento» y «otro»", dig.fee_rules && dig.fee_rules.movimiento.pct === 2 && dig.fee_rules.otro.pct === 1, dig);
     ok("pct > 25 → 422", (await call(A, t, "PUT", `/api/entities/${ent.id}`, { name: "Banco QA", kind: "banco", currency: "ves", fee_rules: { pago_movil: { pct: 30 } } })).s === 422);
     ok("máximo menor al mínimo → 422", (await call(A, t, "PUT", `/api/entities/${ent.id}`, { name: "Banco QA", kind: "banco", currency: "ves", fee_rules: { transferencia: { pct: 1, min: 20, max: 10 } } })).s === 422);
     const kept = await call(A, t, "PUT", `/api/entities/${ent.id}`, { name: "Banco QA 2", kind: "banco", currency: "ves" });
