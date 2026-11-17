@@ -1,11 +1,25 @@
 const router = require("express").Router();
 const ctrl = require("../controllers/adminController");
 const adminGuard = require("../middleware/adminGuard");
+const accounts = require("../controllers/adminAccountsController");
 
+// El inicio de sesión va antes del guard (es lo que entrega la sesión)
+router.post("/login", accounts.login);
+router.post("/password/request", accounts.requestCode);
+router.post("/password/reset", accounts.resetPassword);
 router.use(adminGuard);
 router.param("id", (req, res, next, v) =>
   /^\d+$/.test(v) ? next() : res.status(404).json({ error: "No encontrado" }),
 );
+
+router.get("/me", accounts.me);
+router.post("/me/password", accounts.changeMyPassword);
+router.get("/admins", accounts.list);
+router.post("/admins", accounts.create);
+router.put("/admins/:id", accounts.update);
+router.post("/admins/:id/invite", accounts.invite);
+router.delete("/admins/:id", accounts.remove);
+router.get("/activity", accounts.activity);
 
 router.get("/payments", ctrl.listPayments);
 router.get("/payments/:id/proof", ctrl.proof);

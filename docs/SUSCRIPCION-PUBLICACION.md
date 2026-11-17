@@ -30,7 +30,8 @@ Verificación: contar usuarios, entidades, movimientos, transferencias y abonos 
 ### 3. Desplegar la API desde `main`
 - Variables de entorno del servidor:
   - `SUBSCRIPTIONS_ENABLED=false`  ← sigue apagado
-  - `ADMIN_KEY=` (la clave generada)
+  - `ADMIN_KEY=` (la clave generada, mínimo 16 caracteres). Es la **clave de emergencia** del panel: sirve para crear la primera cuenta de administrador y para volver a entrar si pierdes el acceso. Las cuentas se dan de alta **sin contraseña**: con la clave en `/admin/` → «Clave de emergencia» → pestaña **Administradores** (o insertando la fila en `admin_users` con correo y nombre). Cada persona entra a `/admin/`, toca «Crear o recuperar mi contraseña», recibe un código de 6 dígitos en su correo (vence en 15 minutos, sirve una vez) y define su contraseña (10 o más caracteres, guardada con hash); si la pierde, la recupera igual. La sesión dura 8 horas y cambiar la contraseña cierra las demás sesiones. La pestaña **Actividad** registra qué hizo cada administrador. Requiere el correo del servidor configurado (EMAIL_HOST, EMAIL_USER, EMAIL_PASS).
+  - `JWT_SECRET=` de al menos 16 caracteres (ya lo usa la app; también firma las sesiones del panel con un secreto derivado distinto al de los usuarios).
   - `ADMIN_NOTIFY_EMAIL=` (opcional, para que te avise de cada pago nuevo; requiere el correo configurado)
 - El zip de despliegue **debe incluir la carpeta nueva `src/admin/`** (la página del panel).
 - Verificación: `GET /health` responde; entrar a `/admin/` con la clave; con la función apagada, `GET /api/subscription` devuelve `enabled: false`.
