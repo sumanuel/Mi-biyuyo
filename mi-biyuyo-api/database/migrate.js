@@ -335,6 +335,44 @@ async function migrate() {
       `CREATE INDEX IF NOT EXISTS idx_bank_fees_user ON bank_fees(user_id, date)`,
     );
 
+    // ── panel de administración: cuentas de administrador (contraseña con hash) y registro de actividad ──
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id             SERIAL PRIMARY KEY,
+        email          VARCHAR(255) NOT NULL UNIQUE,
+        name           VARCHAR(100) NOT NULL,
+        password_hash  TEXT,
+        active         BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at     TIMESTAMP NOT NULL DEFAULT NOW(),
+        last_login_at  TIMESTAMP,
+        created_by     VARCHAR(255)
+      )
+    `);
+    // Sin contraseña al darse de alta: la crea cada administrador con un código que llega a su correo
+    await client.query(`ALTER TABLE admin_users ALTER COLUMN password_hash DROP NOT NULL`);
+    await client.query(`
+      ALTER TABLE admin_users
+        ADD COLUMN IF NOT EXISTS reset_code_hash     TEXT,
+        ADD COLUMN IF NOT EXISTS reset_expires_at   TIMESTAMP,
+        ADD COLUMN IF NOT EXISTS reset_attempts     INTEGER NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS reset_sent_at      TIMESTAMP,
+        ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMP
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS admin_log (
+        id           SERIAL PRIMARY KEY,
+        admin_email  VARCHAR(255) NOT NULL,
+        action       VARCHAR(160) NOT NULL,
+        detail       TEXT,
+        ip           VARCHAR(64),
+        ok           BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at   TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_admin_log_created ON admin_log(created_at DESC)`,
+    );
+
     // ── deudas recurrentes: al saldarse se crea la del mes siguiente (recurrence_source = la que la originó) ──
     await client.query(`
       ALTER TABLE transactions

@@ -2,7 +2,7 @@
    (nunca como HTML) para que una referencia o un nombre malicioso no pueda ejecutar código. */
 (function () {
   "use strict";
-  var KEY = "mb_admin_key";
+  var KEY = "mb_admin_auth"; // { mode: "token" | "key", value, email }
   var view = document.getElementById("view");
   var msg = document.getElementById("msg");
   var authBox = document.getElementById("auth");
@@ -30,20 +30,24 @@
     msg.className = bad ? "bad" : "mut";
   }
   function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
-  function getKey() { try { return sessionStorage.getItem(KEY) || ""; } catch (e) { return ""; } }
-  function setKey(v) { try { v ? sessionStorage.setItem(KEY, v) : sessionStorage.removeItem(KEY); } catch (e) {} }
+  function getAuth() { try { return JSON.parse(sessionStorage.getItem(KEY) || "null"); } catch (e) { return null; } }
+  function setAuth(v) { try { v ? sessionStorage.setItem(KEY, JSON.stringify(v)) : sessionStorage.removeItem(KEY); } catch (e) {} }
   var fmt = function (d) { return d ? new Date(d).toLocaleString("es-VE") : "—"; };
   var money = function (n, c) { return n == null ? "—" : Number(n).toFixed(2) + " " + (c || ""); };
 
   function api(method, path, body) {
+    var a = getAuth() || {};
+    var headers = { "Content-Type": "application/json" };
+    if (a.mode === "token") headers.Authorization = "Bearer " + a.value;
+    else if (a.mode === "key") headers["x-admin-key"] = a.value;
     return fetch("/api/admin" + path, {
       method: method,
-      headers: { "Content-Type": "application/json", "x-admin-key": getKey() },
+      headers: headers,
       body: body ? JSON.stringify(body) : undefined,
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
         if (!r.ok) {
-          if (r.status === 401) { setKey(""); renderAuth(); }
+          if (r.status === 401 && getAuth()) { setAuth(null); renderAuth(); say("La sesión terminó. Vuelve a entrar.", true); }
           throw new Error(j.error || "Error " + r.status);
         }
         return j;
@@ -57,23 +61,111 @@
   }
 
   /* ---------- acceso ---------- */
+  var emergency = false; // ¿pidiendo la clave de emergencia en vez de correo y contraseña?
   function renderAuth() {
     clear(authBox); clear(view); clear(tabsBox);
-    if (getKey()) {
-      authBox.appendChild(h("button", { onclick: function () { setKey(""); renderAuth(); say(""); } }, "Salir"));
+    var a = getAuth();
+    if (a) {
+      authBox.appendChild(h("span", { class: "mut" }, a.mode === "token" ? "Sesión: " + a.email : "Clave de emergencia"));
+      if (a.mode === "token") authBox.appendChild(h("button", { onclick: changeMyPassword }, "Mi contraseña"));
+      authBox.appendChild(h("button", { onclick: function () { setAuth(null); renderAuth(); say(""); } }, "Salir"));
       renderTabs(); show();
       return;
     }
-    var input = h("input", { type: "password", placeholder: "Clave de administración", autocomplete: "off" });
+    if (emergency) {
+      var input = h("input", { type: "password", placeholder: "Clave de emergencia", autocomplete: "off" });
+      var goKey = function () {
+        setAuth({ mode: "key", value: input.value });
+        api("GET", "/plans").then(function () { say(""); renderAuth(); }).catch(function (e) { setAuth(null); say(e.message, true); });
+      };
+      input.addEventListener("keydown", function (e) { if (e.key === "Enter") goKey(); });
+      authBox.appendChild(input);
+      authBox.appendChild(h("button", { class: "pri", onclick: goKey }, "Entrar"));
+      authBox.appendChild(h("button", { onclick: function () { emergency = false; renderAuth(); } }, "Usar mi cuenta"));
+      return;
+    }
+    if (recovery) { renderRecovery(); return; }
+    var email = h("input", { type: "email", placeholder: "Correo", autocomplete: "username" });
+    var pass = h("input", { type: "password", placeholder: "Contraseña", autocomplete: "current-password" });
     var go = function () {
-      setKey(input.value);
-      api("GET", "/plans").then(function () { say(""); renderAuth(); }).catch(function (e) { setKey(""); say(e.message, true); });
+      say("Entrando…");
+      fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.value, password: pass.value }),
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          if (!r.ok) throw new Error(j.error || "Error " + r.status);
+          setAuth({ mode: "token", value: j.token, email: j.email });
+          say(""); renderAuth();
+        });
+      }).catch(function (e) { say(e.message, true); });
     };
-    input.addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
-    authBox.appendChild(input);
+    [email, pass].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") go(); }); });
+    authBox.appendChild(email);
+    authBox.appendChild(pass);
     authBox.appendChild(h("button", { class: "pri", onclick: go }, "Entrar"));
+    authBox.appendChild(h("button", { onclick: function () { recovery = { step: 1, email: email.value }; renderAuth(); } }, "Crear o recuperar mi contraseña"));
+    authBox.appendChild(h("button", { onclick: function () { emergency = true; renderAuth(); } }, "Clave de emergencia"));
   }
-  var TABS = [["payments", "Pagos"], ["codes", "Códigos"], ["users", "Usuarios"], ["settings", "Configuración"], ["receivers", "Datos de cobro"]];
+
+  // Crear o recuperar la contraseña con el código que llega al correo (paso 1: correo; paso 2: código y contraseña)
+  var recovery = null;
+  function postPublic(path, body) {
+    return fetch("/api/admin" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          if (!r.ok) throw new Error(j.error || "Error " + r.status);
+          return j;
+        });
+      });
+  }
+  function renderRecovery() {
+    var back = h("button", { onclick: function () { recovery = null; renderAuth(); say(""); } }, "Volver");
+    if (recovery.step === 1) {
+      var em = h("input", { type: "email", placeholder: "Tu correo de administrador", value: recovery.email || "", autocomplete: "username" });
+      var send = function () {
+        say("Enviando…");
+        postPublic("/password/request", { email: em.value }).then(function (j) {
+          recovery = { step: 2, email: em.value.trim().toLowerCase() };
+          renderAuth();
+          say(j.message + (j.dev_code ? " (desarrollo: " + j.dev_code + ")" : ""));
+        }).catch(function (e) { say(e.message, true); });
+      };
+      em.addEventListener("keydown", function (e) { if (e.key === "Enter") send(); });
+      authBox.appendChild(em);
+      authBox.appendChild(h("button", { class: "pri", onclick: send }, "Enviar código"));
+      authBox.appendChild(back);
+      return;
+    }
+    var code = h("input", { placeholder: "Código de 6 dígitos", inputMode: "numeric", maxLength: 6, autocomplete: "one-time-code", style: "width:170px" });
+    var np = h("input", { type: "password", placeholder: "Contraseña nueva (mín. 10)", autocomplete: "new-password" });
+    var save = function () {
+      say("Guardando…");
+      postPublic("/password/reset", { email: recovery.email, code: code.value, password: np.value }).then(function (j) {
+        recovery = null;
+        setAuth({ mode: "token", value: j.token, email: j.email });
+        say("Contraseña guardada. Ya estás dentro.");
+        renderAuth();
+      }).catch(function (e) { say(e.message, true); });
+    };
+    [code, np].forEach(function (i) { i.addEventListener("keydown", function (e) { if (e.key === "Enter") save(); }); });
+    authBox.appendChild(h("span", { class: "mut" }, recovery.email));
+    authBox.appendChild(code);
+    authBox.appendChild(np);
+    authBox.appendChild(h("button", { class: "pri", onclick: save }, "Guardar y entrar"));
+    authBox.appendChild(back);
+  }
+  function changeMyPassword() {
+    var cur = prompt("Contraseña actual:");
+    if (!cur) return;
+    var nw = prompt("Contraseña nueva (mínimo 10 caracteres):");
+    if (!nw) return;
+    run(api("POST", "/me/password", { current: cur, password: nw }), "Contraseña actualizada").then(function (j) {
+      if (j && j.token) { var a = getAuth() || {}; setAuth({ mode: "token", value: j.token, email: a.email }); }
+    });
+  }
+  var TABS = [["payments", "Pagos"], ["codes", "Códigos"], ["users", "Usuarios"], ["settings", "Configuración"], ["receivers", "Datos de cobro"], ["admins", "Administradores"], ["activity", "Actividad"]];
   function renderTabs() {
     clear(tabsBox);
     TABS.forEach(function (t) {
@@ -82,7 +174,7 @@
   }
   function show() {
     clear(view);
-    ({ payments: viewPayments, codes: viewCodes, users: viewUsers, settings: viewSettings, receivers: viewReceivers })[tab]();
+    ({ payments: viewPayments, codes: viewCodes, users: viewUsers, settings: viewSettings, receivers: viewReceivers, admins: viewAdmins, activity: viewActivity })[tab]();
   }
 
   /* ---------- pagos ---------- */
@@ -222,6 +314,78 @@
         h("button", { onclick: function () {
           run(api("POST", "/gift", { email: u.email, target: "trial", days: Number(days.value) }), "Prueba ajustada").then(viewUsers);
         } }, "Sumar/restar a la prueba")));
+  }
+
+  /* ---------- administradores ---------- */
+  function viewAdmins() {
+    clear(view);
+    var name = h("input", { placeholder: "Nombre" });
+    var email = h("input", { type: "email", placeholder: "Correo" });
+    view.appendChild(h("div", { class: "card" },
+      h("b", null, "Nuevo administrador"),
+      h("span", { class: "mut" }, "Se crea sin contraseña. Esa persona entra a /admin, toca «Crear o recuperar mi contraseña» y recibe un código en su correo para definirla (la sesión dura 8 horas). Puede crear y desactivar a otros."),
+      h("div", { class: "row" }, name, email, h("button", { class: "pri", onclick: function () {
+        run(api("POST", "/admins", { name: name.value, email: email.value }), "Administrador creado").then(viewAdmins);
+      } }, "Crear"))));
+    var list = h("div", { class: "card" }, "Cargando…");
+    view.appendChild(list);
+    api("GET", "/admins").then(function (rows) {
+      clear(list);
+      list.appendChild(h("b", null, "Administradores"));
+      if (!rows.length) list.appendChild(h("span", { class: "mut" }, "Aún no hay cuentas: se entra con la clave de emergencia."));
+      rows.forEach(function (a) {
+        list.appendChild(h("div", { class: "card" },
+          h("div", { class: "row" }, h("b", null, a.email), h("span", { class: "tag" }, a.active ? "activo" : "desactivado"), !a.has_password && h("span", { class: "tag" }, "sin contraseña"), h("span", { class: "mut" }, a.name)),
+          h("div", { class: "mut" }, "Último ingreso: " + fmt(a.last_login_at) + " · Creado: " + fmt(a.created_at) + (a.created_by ? " por " + a.created_by : "")),
+          h("div", { class: "row" },
+            h("button", { onclick: function () {
+              run(api("PUT", "/admins/" + a.id, { active: !a.active }), a.active ? "Desactivado" : "Activado").then(viewAdmins);
+            } }, a.active ? "Desactivar" : "Activar"),
+            a.active && h("button", { onclick: function () {
+              run(api("POST", "/admins/" + a.id + "/invite"), "Código enviado").then(function (r) {
+                say(r.message + (r.dev_code ? " (desarrollo: " + r.dev_code + ")" : ""));
+              });
+            } }, "Enviar código de acceso"),
+            h("button", { class: "bad", onclick: function () {
+              if (!confirm("¿Eliminar al administrador " + a.email + "?")) return;
+              run(api("DELETE", "/admins/" + a.id), "Administrador eliminado").then(viewAdmins);
+            } }, "Eliminar"))));
+      });
+    }).catch(function (e) { say(e.message, true); });
+  }
+
+  /* ---------- actividad (qué hizo cada administrador) ---------- */
+  var actPage = 1;
+  function viewActivity() {
+    clear(view);
+    var res = h("div", { class: "card" }, "Cargando…");
+    var pager = h("div", { class: "row" });
+    view.appendChild(res);
+    view.appendChild(pager);
+    var load = function (page) {
+      actPage = page;
+      clear(pager);
+      api("GET", "/activity?page=" + page).then(function (r) {
+        clear(res);
+        actPage = r.page;
+        res.appendChild(h("b", null, "Actividad de los administradores"));
+        if (!r.rows.length) res.appendChild(h("span", { class: "mut" }, "Aún no hay actividad."));
+        r.rows.forEach(function (x) {
+          res.appendChild(h("div", { class: "row" },
+            h("span", { class: "mut" }, fmt(x.created_at)),
+            h("b", null, x.admin_email),
+            h("span", { class: "tag" }, x.action),
+            !x.ok && h("span", { class: "bad" }, "falló"),
+            x.detail && h("span", { class: "mut" }, x.detail)));
+        });
+        if (r.total) {
+          pager.appendChild(h("button", { disabled: r.page <= 1, onclick: function () { load(r.page - 1); } }, "← Anterior"));
+          pager.appendChild(h("span", { class: "mut" }, "Página " + r.page + " de " + r.pages + " · " + r.total + " registros"));
+          pager.appendChild(h("button", { disabled: r.page >= r.pages, onclick: function () { load(r.page + 1); } }, "Siguiente →"));
+        }
+      }).catch(function (e) { clear(res); say(e.message, true); });
+    };
+    load(actPage);
   }
 
   /* ---------- configuración y planes ---------- */
