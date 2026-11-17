@@ -29,6 +29,22 @@ import {
   parseNum,
 } from "../../utils/money";
 import { useFocusChain } from "../../hooks/useFocusChain";
+import { usePlan } from "../../hooks/usePlan";
+
+// Comisiones bancarias: métodos y topes del BCV (tarifas vigentes desde el 18/09/2026, solo en bolívares)
+const FEE_METHODS = [
+  ["pago_movil", "Pago móvil"],
+  ["transferencia", "Transferencia"],
+];
+const BCV_FEES = {
+  pago_movil: { pct: "0,3", min: "14", max: "" },
+  transferencia: { pct: "0,3", min: "14", max: "" },
+};
+const feeStr = (n) => (n > 0 ? String(n).replace(".", ",") : "");
+const feeNum = (s) => {
+  const n = parseFloat(String(s || "").replace(",", "."));
+  return n > 0 ? n : 0;
+};
 
 const KINDS = ["efectivo", "banco", "digital", "otro"];
 const PTS = ["pm", "acct", "email", "id", "none"];
@@ -68,6 +84,22 @@ export default function EntityFormScreen({ navigation, route }) {
   );
   const [include, setInclude] = useState(editing ? editing.include : true);
   const [busy, setBusy] = useState(false);
+  const { can, gate } = usePlan();
+  const canFees = can("fees");
+  const [fees, setFees] = useState(() => {
+    const r = editing?.feeRules || {};
+    const out = {};
+    FEE_METHODS.forEach(([k]) => {
+      out[k] = {
+        pct: feeStr(r[k]?.pct),
+        min: feeStr(r[k]?.min),
+        max: feeStr(r[k]?.max),
+      };
+    });
+    return out;
+  });
+  const setFee = (k, f, v) =>
+    setFees((prev) => ({ ...prev, [k]: { ...prev[k], [f]: v } }));
 
   const num = parseNum(init);
   const toUsd = (n) => fx.toUsd(ENT_CCY[ccy], n); // 0 si falta la tasa necesaria
@@ -90,6 +122,18 @@ export default function EntityFormScreen({ navigation, route }) {
       include_in_balance: include,
     };
     if (canEditInit) body.initial_amount = num;
+    // Reglas de comisión (solo bancos y Premium); sin ninguna se mandan vacías para quitarlas
+    if (kind === "banco" && canFees) {
+      const rules = {};
+      FEE_METHODS.forEach(([k]) => {
+        const f = fees[k];
+        if (feeNum(f.pct) > 0 || feeNum(f.min) > 0)
+          rules[k] = { pct: feeNum(f.pct), min: feeNum(f.min), max: feeNum(f.max) || null };
+      });
+      body.fee_rules = Object.keys(rules).length ? rules : null;
+    } else if (kind !== "banco") {
+      body.fee_rules = null;
+    }
     try {
       if (editing) {
         await actions.updateEntity(editing.id, body);
@@ -348,6 +392,71 @@ export default function EntityFormScreen({ navigation, route }) {
           />
         ) : null}
       </Card>
+
+      {kind === "banco" ? (
+        <Card style={{ gap: 12 }}>
+          <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+            Comisiones bancarias
+          </Txt>
+          <Txt
+            style={{ fontSize: 13, lineHeight: 18, color: colors.textSecondary }}
+          >
+            Si tu banco cobra comisión por pago móvil o transferencia, escríbela
+            aquí (en la moneda de la entidad). Al registrar un gasto o un pago de
+            por pagar desde esta entidad, la app calcula la comisión: el
+            porcentaje del monto, pero nunca menos que el mínimo ni más que el
+            máximo.
+          </Txt>
+          {canFees ? (
+            <>
+              {FEE_METHODS.map(([k, label]) => (
+                <View key={k} style={{ gap: 6 }}>
+                  <Txt style={{ fontSize: 13, fontWeight: "700" }}>{label}</Txt>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    {[
+                      ["pct", "% del monto"],
+                      ["min", "Mínimo"],
+                      ["max", "Máximo"],
+                    ].map(([f, l]) => (
+                      <View key={f} style={{ flex: 1 }}>
+                        <Field
+                          label={l}
+                          value={fees[k][f]}
+                          onChangeText={(v) => setFee(k, f, v)}
+                          keyboardType="decimal-pad"
+                          placeholder={f === "max" ? "Sin tope" : "0"}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))}
+              {ccy === "ves" ? (
+                <Button
+                  label="Usar los topes del BCV"
+                  outline
+                  height={42}
+                  onPress={() => setFees({ ...BCV_FEES })}
+                />
+              ) : null}
+              <Txt
+                style={{ fontSize: 12, lineHeight: 17, color: colors.textSecondary }}
+              >
+                Los topes del BCV (0,30 % con mínimo de Bs 14) son lo máximo que
+                puede cobrar un banco: el tuyo puede cobrar menos. Déjalos en
+                blanco si no cobra comisión.
+              </Txt>
+            </>
+          ) : (
+            <Button
+              label="Disponible en Premium"
+              outline
+              height={42}
+              onPress={() => gate("fees")}
+            />
+          )}
+        </Card>
+      ) : null}
 
       <View style={{ gap: 8 }}>
         <Txt style={{ fontSize: 14, fontWeight: "700" }}>Datos de pago</Txt>

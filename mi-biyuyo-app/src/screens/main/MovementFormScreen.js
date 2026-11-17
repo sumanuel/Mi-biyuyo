@@ -41,6 +41,7 @@ import { qtyText } from "../../utils/text";
 import { takePhoto, pickFile } from "../../utils/receipt";
 import DateField from "../../components/DateField";
 import { useFocusChain } from "../../hooks/useFocusChain";
+import BankFeeBlock, { useBankFee } from "../../components/BankFeeBlock";
 
 const DUE_OPTS = [
   { l: "7 días", v: 7 },
@@ -167,6 +168,17 @@ export default function MovementFormScreen({ navigation, route }) {
     editing?.receipt ? { name: editing.receipt, existing: true } : null,
   );
   const [busy, setBusy] = useState(false);
+  // Comisión bancaria (solo gastos): según la entidad elegida y el monto; al editar, la ya guardada
+  const feeEnt =
+    model.entById[entId] ||
+    model.ents.find((e) => !e.locked || (editing && e.id === editing.ent));
+  const savedFee = editing ? model.bankFees.find((f) => f.txId === editing.id) : null;
+  const fee = useBankFee(
+    model,
+    type === "gasto" ? feeEnt : null,
+    toUsdE(ccy, parseNum(amount)),
+    savedFee ? { method: savedFee.method, amount: savedFee.amount } : null,
+  );
 
   if (!cat) {
     return (
@@ -295,6 +307,11 @@ export default function MovementFormScreen({ navigation, route }) {
       if (downNum > 0) {
         body.down_payment = downNum;
         body.down_entity_id = downEntId;
+      }
+      if (type === "gasto") {
+        const fb = fee.body();
+        if (fb) body.fee = fb;
+        else if (editing && can("fees")) body.fee = null; // quita la comisión guardada
       }
       if (!showItems) body.items = [];
       else if (canItems)
@@ -946,6 +963,9 @@ export default function MovementFormScreen({ navigation, route }) {
       </View>
 
       {!isDebt ? entBlock : null}
+      {type === "gasto" && !noEnts ? (
+        <BankFeeBlock fee={fee} model={model} tint={tint} />
+      ) : null}
 
       {type === "pagar" ? (
         <View style={{ gap: 8 }}>

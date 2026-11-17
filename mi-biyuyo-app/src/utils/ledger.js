@@ -172,6 +172,7 @@ export function buildModel(raw, ratesOverride) {
       },
       pt: e.payment_type || "none",
       pd: e.payment_data || [],
+      feeRules: e.fee_rules || null, // comisiones por método: { pago_movil: {pct,min,max}, transferencia: {...} }
       alert: e.alert_usd,
       locked: lockedIds.includes(e.id), // solo lectura por el plan: no recibe movimientos
       archived: !!e.archived, // archivada: no suma a Mi saldo ni sale al registrar; conserva su historial
@@ -279,6 +280,32 @@ export function buildModel(raw, ratesOverride) {
     ccy: CCY_FROM_API[t.currency] || "usd",
   }));
 
+  // Comisiones bancarias de un gasto o de un pago de por pagar: salen de la entidad y cuentan como
+  // gasto («Comisiones bancarias») en la fecha de la operación.
+  const bankFees = (empty ? [] : raw.fees || []).map((f) => {
+    const debt = f.payment_id
+      ? moves.find((m) => (m.pays || []).some((p) => p.id === f.payment_id))
+      : null;
+    const src = debt || (f.transaction_id ? moves.find((m) => m.id === f.transaction_id) : null);
+    return {
+      id: f.id,
+      key: "f" + f.id,
+      ent: f.entity_id,
+      date: f.date,
+      d: daysAgo(f.date),
+      ts: f.ts || 0,
+      method: f.method,
+      amount: f.amount,
+      ccy: CCY_FROM_API[f.currency] || "bcv",
+      usd: f.amount_usd || 0,
+      val: mkVal(f.amount_usd, f.amount_ves, f.amount_binance),
+      txId: f.transaction_id || null,
+      payId: f.payment_id || null,
+      src, // movimiento o deuda de origen
+      isPay: !!f.payment_id,
+    };
+  });
+
   // Ajustes de saldo: corrigen el saldo de una entidad (no son ingreso ni gasto). Los valores van
   // con signo: + suma, - resta. `native` es el monto en la moneda de la entidad.
   const adjustments = (empty ? [] : raw.adjustments || []).map((a) => {
@@ -383,6 +410,9 @@ export function buildModel(raw, ratesOverride) {
       if (t.from === e.id) b -= nat(t.val, e) + nat(t.feeVal, e);
       if (t.to === e.id) b += nat(t.val, e);
     });
+    bankFees.forEach((f) => {
+      if (f.ent === e.id) b -= nat(f.val, e);
+    });
     adjustments.forEach((a) => {
       if (a.ent === e.id) b += nat(a.val, e);
     });
@@ -401,6 +431,9 @@ export function buildModel(raw, ratesOverride) {
     transfers.forEach((t) => {
       if (t.from === e.id) b -= t.usd + t.fee;
       if (t.to === e.id) b += t.usd;
+    });
+    bankFees.forEach((f) => {
+      if (f.ent === e.id) b -= f.usd;
     });
     adjustments.forEach((a) => {
       if (a.ent === e.id) b += a.usd;
@@ -446,6 +479,22 @@ export function buildModel(raw, ratesOverride) {
       }),
     );
   });
+  // Las comisiones bancarias cuentan como gasto (categoría «Comisiones bancarias»)
+  bankFees.forEach((f) =>
+    payFlows.push({
+      id: f.key,
+      type: "gasto",
+      date: f.date,
+      d: f.d,
+      ts: f.ts,
+      val: f.val,
+      usd: f.usd,
+      ccy: f.ccy,
+      cat: FEE_CAT,
+      title: "Comisión · " + (f.src ? f.src.person || f.src.title : "banco"),
+      fee: f,
+    }),
+  );
   const payFlowsIn = (from, to) =>
     payFlows.filter((f) => f.date >= from && f.date <= to);
   // Balance del historial (valores del día): suma de las entidades incluidas en Mi saldo
@@ -463,6 +512,9 @@ export function buildModel(raw, ratesOverride) {
       transfers.forEach((t) => {
         if (t.from === e.id) b -= t.val[c] + t.feeVal[c];
         if (t.to === e.id) b += t.val[c];
+      });
+      bankFees.forEach((f) => {
+        if (f.ent === e.id) b -= f.val[c];
       });
       adjustments.forEach((a) => {
         if (a.ent === e.id) b += a.val[c];
@@ -541,6 +593,11 @@ export function buildModel(raw, ratesOverride) {
           });
       }),
     );
+    bankFees.forEach((f) => {
+      const fe = entById[f.ent];
+      if (fe)
+        evs.push({ key: f.key, d: f.d, ts: f.ts, e: fe, sg: -1, val: f.val, usd: f.usd });
+    });
     transfers.forEach((t) =>
       evs.push({ key: "t" + t.id, d: t.d, ts: t.ts, t }),
     );
@@ -608,6 +665,7 @@ export function buildModel(raw, ratesOverride) {
     archivedEnts,
     entName,
     transfers,
+    bankFees,
     adjustments,
     adjustmentById,
     entUsed,
@@ -718,6 +776,36 @@ export function abonoRow(model, m, p, dv) {
   };
 }
 
+/** Categoría de las comisiones bancarias (aparece en las estadísticas como un gasto más). */
+export const FEE_CAT = {
+  id: "fees",
+  code: "fees",
+  name: "Comisiones bancarias",
+  type: "gasto",
+  icon: "bank",
+  active: true,
+  own: false,
+  hidden: false,
+};
+export const FEE_METHOD = { pago_movil: "Pago móvil", transferencia: "Transferencia" };
+
+/** Comisión bancaria mostrada como movimiento (gasto). */
+export function feeRow(model, f, dv) {
+  return {
+    key: f.key,
+    title: "Comisión · " + (f.src ? f.src.person || f.src.title : "banco"),
+    icon: "bank",
+    tone: "gasto",
+    sub: (FEE_METHOD[f.method] || "Comisión") + " · " + model.entName(f.ent),
+    date: dlabel(f.date),
+    amount: "-" + dv(f.val),
+    line2: "Comisión bancaria",
+    nav: f.src
+      ? { name: f.isPay ? "DebtDetail" : "MovementDetail", params: { id: f.src.id } }
+      : { name: "Entities" },
+  };
+}
+
 /** Saldo inicial de una entidad, mostrado como movimiento (no cuenta como ingreso en estadísticas). */
 export function initialRow(model, e, dv) {
   return {
@@ -806,10 +894,14 @@ export function feed(
   );
   // Abonos de deudas a crédito que cuentan como gasto/ingreso (para los filtros Gastos e Ingresos)
   extraPays.forEach((f) => {
-    if (inRange(f.date))
-      out.push({ d: f.pay.d, ts: f.pay.ts, k: f.pay.id, r: abonoRow(model, f.debt, f.pay, dv) });
+    if (!inRange(f.date)) return;
+    if (f.fee) out.push({ d: f.d, ts: f.ts, k: f.fee.key, r: feeRow(model, f.fee, dv) });
+    else out.push({ d: f.pay.d, ts: f.pay.ts, k: f.pay.id, r: abonoRow(model, f.debt, f.pay, dv) });
   });
   if (withTransfers) {
+    model.bankFees.forEach((f) => {
+      if (inRange(f.date)) out.push({ d: f.d, ts: f.ts, k: f.key, r: feeRow(model, f, dv) });
+    });
     model.transfers.forEach((t) => {
       if (inRange(t.date))
         out.push({ d: t.d, ts: t.ts, k: t.id, r: transferRow(model, t, dv) });
@@ -865,6 +957,9 @@ export function ledgerOf(model, entId, dv, range) {
     (m.pays || []).forEach((q) => {
       if (q.ent === entId) add(q.d, q.date, abonoRow(model, m, q, dv), q.ts);
     });
+  });
+  model.bankFees.forEach((f) => {
+    if (f.ent === entId) add(f.d, f.date, feeRow(model, f, dv), f.ts);
   });
   model.transfers.forEach((t) => {
     if (t.from === entId || t.to === entId)

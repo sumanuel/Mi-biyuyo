@@ -2,12 +2,13 @@ const pool = require("../config/database");
 const { toUsd } = require("../utils/currencyConverter");
 const { insertAdjustment } = require("./adjustmentController");
 const { requireFeature, requireNewEntity } = require("../utils/subscription");
+const { cleanRules } = require("../utils/bankFees");
 
 const KINDS = ["efectivo", "banco", "digital", "otro"];
 const PTYPES = ["none", "pm", "acct", "email", "id"];
 
 const cols = `id, name, kind, currency, initial_usd::float AS initial_usd, initial_amount::float AS initial_amount,
-              payment_type, payment_data, alert_usd::float AS alert_usd,
+              payment_type, payment_data, alert_usd::float AS alert_usd, fee_rules,
               include_in_balance, created_at, archived_at`;
 
 function clean(body) {
@@ -33,6 +34,7 @@ function clean(body) {
     paymentType,
     paymentData,
     alertUsd: alert > 0 ? alert : null,
+    feeRules: cleanRules(body.fee_rules),
     include: body.include_in_balance !== false,
     // Saldo inicial en la moneda de la entidad (USD, VES o USDT)
     initialAmount: Math.max(
@@ -84,6 +86,7 @@ exports.create = async (req, res, next) => {
   try {
     await requireNewEntity(req.user.id); // Gratis: una sola entidad activa
     const d = clean(req.body);
+    if (d.feeRules) await requireFeature(req.user.id, "fees");
     let initialUsd = d.initialAmount;
     if (d.currency !== "usd" && d.initialAmount > 0) {
       const { rows: r } = await pool.query(
@@ -97,8 +100,8 @@ exports.create = async (req, res, next) => {
       );
     }
     const { rows } = await pool.query(
-      `INSERT INTO entities (user_id, name, kind, currency, initial_usd, initial_amount, payment_type, payment_data, alert_usd, include_in_balance)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING ${cols}`,
+      `INSERT INTO entities (user_id, name, kind, currency, initial_usd, initial_amount, payment_type, payment_data, alert_usd, include_in_balance, fee_rules)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING ${cols}`,
       [
         req.user.id,
         d.name,
@@ -110,6 +113,7 @@ exports.create = async (req, res, next) => {
         JSON.stringify(d.paymentData),
         d.alertUsd,
         d.include,
+        d.feeRules ? JSON.stringify(d.feeRules) : null,
       ],
     );
     res.status(201).json(rows[0]);
@@ -130,11 +134,15 @@ exports.update = async (req, res, next) => {
   try {
     const d = clean(req.body);
     const { rows: cur } = await pool.query(
-      `SELECT initial_amount::float AS initial_amount FROM entities WHERE id = $1 AND user_id = $2`,
+      `SELECT initial_amount::float AS initial_amount, fee_rules FROM entities WHERE id = $1 AND user_id = $2`,
       [req.params.id, req.user.id],
     );
     if (!cur.length)
       return res.status(404).json({ error: "Entidad no encontrada" });
+    // Las reglas de comisión son Premium; si no cambiaron (p. ej. se reenvían tal cual) no se exige
+    const rulesChanged =
+      JSON.stringify(d.feeRules || null) !== JSON.stringify(cur[0].fee_rules || null);
+    if (rulesChanged && d.feeRules) await requireFeature(req.user.id, "fees");
 
     const sentInitial =
       req.body.initial_amount !== undefined ||
@@ -169,7 +177,8 @@ exports.update = async (req, res, next) => {
 
     const { rows } = await pool.query(
       `UPDATE entities SET name=$1, kind=$2, currency=$3, payment_type=$4, payment_data=$5, alert_usd=$6, include_in_balance=$7,
-              initial_usd = COALESCE($10, initial_usd), initial_amount = COALESCE($11, initial_amount)
+              initial_usd = COALESCE($10, initial_usd), initial_amount = COALESCE($11, initial_amount),
+              fee_rules = CASE WHEN $13::boolean THEN $12::jsonb ELSE fee_rules END
        WHERE id=$8 AND user_id=$9 RETURNING ${cols}`,
       [
         d.name,
@@ -183,6 +192,8 @@ exports.update = async (req, res, next) => {
         req.user.id,
         initial ? initial.usd : null,
         initial ? initial.amount : null,
+        d.feeRules ? JSON.stringify(d.feeRules) : null,
+        req.body.fee_rules !== undefined,
       ],
     );
     res.json(rows[0]);
