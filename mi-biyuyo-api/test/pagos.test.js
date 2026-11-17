@@ -237,9 +237,16 @@ async function main() {
   ok("panel: no elimina un código usado", (await adm("DELETE", `/codes/${list.find((c) => c.code === c1).id}`)).s === 409);
 
   /* ---------- usuarios, regalos y prueba ---------- */
-  ok("usuarios: búsqueda corta → 422", (await adm("GET", "/users?q=ab")).s === 422);
   const f = (await adm("GET", `/users?q=${encodeURIComponent(u6.email)}`)).j;
-  ok("usuarios: encuentra por correo con su plan", f.length === 1 && f[0].plan === "premium", f);
+  ok("usuarios: encuentra por correo con su plan", f.users.length === 1 && f.users[0].plan === "premium" && f.total === 1, f);
+  const all = (await adm("GET", "/users")).j;
+  ok("usuarios: sin texto devuelve todos, paginados", all.total > 1 && all.users.length >= 1 && all.page === 1 && all.pages >= 1, all);
+  const p2 = (await adm("GET", "/users?per=2&page=2")).j;
+  ok("usuarios: paginado de 2 en 2", p2.per_page === 2 && p2.page === 2 && p2.users.length === 2 && p2.pages === Math.ceil(p2.total / 2), p2);
+  ok("usuarios: página fuera de rango → la última", (await adm("GET", "/users?per=2&page=9999")).j.page === p2.pages);
+  const noTrial = (await sql(`SELECT COUNT(*)::int n FROM users WHERE trial_days_granted IS NULL AND email_verified`)).rows[0].n;
+  await adm("GET", "/users?per=50");
+  ok("usuarios: listar no inicia la prueba de nadie", (await sql(`SELECT COUNT(*)::int n FROM users WHERE trial_days_granted IS NULL AND email_verified`)).rows[0].n === noTrial);
   const u9 = await newUser("i");
   ok("regalar: correo inexistente → 404", (await adm("POST", "/gift", { email: "nadie@x.test", days: 5 })).s === 404);
   ok("regalar Premium +10 días", (await adm("POST", "/gift", { email: u9.email, target: "premium", days: 10 })).s === 200 && near(await premiumUntil(u9), 10 * DAY, DAY));

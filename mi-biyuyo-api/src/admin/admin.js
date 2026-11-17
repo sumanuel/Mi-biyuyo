@@ -171,19 +171,35 @@
   }
 
   /* ---------- usuarios ---------- */
+  var userQ = "";
+  var userPage = 1;
   function viewUsers() {
     clear(view);
-    var q = h("input", { placeholder: "Correo (mín. 3 letras)" });
+    var q = h("input", { placeholder: "Correo o nombre (vacío = todos)", value: userQ });
     var res = h("div");
-    var find = function () {
+    var pager = h("div", { class: "row" });
+    // Carga una página de la lista (con el texto de búsqueda actual); sin texto trae todos los usuarios
+    var load = function (page) {
+      userPage = page;
       clear(res);
-      api("GET", "/users?q=" + encodeURIComponent(q.value)).then(function (rows) {
-        if (!rows.length) res.appendChild(h("span", { class: "mut" }, "Sin resultados."));
-        rows.forEach(function (u) { res.appendChild(userCard(u)); });
-      }).catch(function (e) { say(e.message, true); });
+      clear(pager);
+      res.appendChild(h("span", { class: "mut" }, "Cargando…"));
+      api("GET", "/users?q=" + encodeURIComponent(userQ) + "&page=" + page).then(function (r) {
+        clear(res);
+        userPage = r.page;
+        if (!r.users.length) res.appendChild(h("span", { class: "mut" }, "Sin resultados."));
+        r.users.forEach(function (u) { res.appendChild(userCard(u)); });
+        if (r.total) {
+          pager.appendChild(h("button", { disabled: r.page <= 1, onclick: function () { load(r.page - 1); } }, "← Anterior"));
+          pager.appendChild(h("span", { class: "mut" }, "Página " + r.page + " de " + r.pages + " · " + r.total + (r.total === 1 ? " usuario" : " usuarios")));
+          pager.appendChild(h("button", { disabled: r.page >= r.pages, onclick: function () { load(r.page + 1); } }, "Siguiente →"));
+        }
+      }).catch(function (e) { clear(res); say(e.message, true); });
     };
+    var find = function () { userQ = q.value.trim(); load(1); };
     q.addEventListener("keydown", function (e) { if (e.key === "Enter") find(); });
-    view.appendChild(h("div", { class: "card" }, h("b", null, "Buscar usuario"), h("div", { class: "row" }, q, h("button", { class: "pri", onclick: find }, "Buscar")), res));
+    view.appendChild(h("div", { class: "card" }, h("b", null, "Usuarios"), h("div", { class: "row" }, q, h("button", { class: "pri", onclick: find }, "Buscar")), res, pager));
+    load(userPage);
 
     var bulk = h("input", { type: "number", value: 7, style: "width:90px" });
     view.appendChild(h("div", { class: "card" },
@@ -197,7 +213,7 @@
   function userCard(u) {
     var days = h("input", { type: "number", value: 30, style: "width:90px" });
     return h("div", { class: "card" },
-      h("div", { class: "row" }, h("b", null, u.email), h("span", { class: "tag" }, u.plan), h("span", { class: "mut" }, u.name)),
+      h("div", { class: "row" }, h("b", null, u.email), h("span", { class: "tag" }, u.plan), !u.trial_assigned && u.plan === "free" && h("span", { class: "tag" }, "sin prueba asignada"), !u.email_verified && h("span", { class: "tag" }, "correo sin verificar"), h("span", { class: "mut" }, u.name)),
       h("div", { class: "mut" }, "Prueba hasta: " + fmt(u.trial_ends_at) + " · Premium hasta: " + fmt(u.premium_until)),
       h("div", { class: "row" }, "Días:", days,
         h("button", { class: "pri", onclick: function () {

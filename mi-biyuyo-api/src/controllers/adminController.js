@@ -1,5 +1,5 @@
 const pool = require("../config/database");
-const { getPlanState, resetEnabledCache } = require("../utils/subscription");
+const { getPlanState, planOf, resetEnabledCache } = require("../utils/subscription");
 const {
   extendPremium,
   makeCode,
@@ -168,16 +168,32 @@ exports.deleteCode = async (req, res, next) => {
 /* ---------- usuarios y días ---------- */
 exports.findUsers = async (req, res, next) => {
   try {
+    // Sin texto de búsqueda devuelve todos (por correo), paginados. El plan se calcula solo con las
+    // fechas del usuario: listar NO debe iniciar la prueba de nadie (getPlanState sí lo haría).
     const q = String(req.query.q || "").trim();
-    if (q.length < 3) throw fail(422, "Escribe al menos 3 letras del correo");
-    const { rows } = await pool.query(
-      `SELECT id, name, email, trial_ends_at, premium_until, email_verified FROM users
-       WHERE email ILIKE $1 ORDER BY email LIMIT 20`,
-      [`%${q.replace(/[%_\\]/g, "\\$&")}%`],
+    const per = Math.min(Math.max(parseInt(req.query.per) || 20, 1), 50);
+    const wanted = Math.max(parseInt(req.query.page) || 1, 1);
+    const where = q ? `WHERE email ILIKE $1 OR name ILIKE $1` : "";
+    const params = q ? [`%${q.replace(/[%_\\]/g, "\\$&")}%`] : [];
+    const { rows: c } = await pool.query(
+      `SELECT COUNT(*)::int AS n FROM users ${where}`,
+      params,
     );
-    const out = [];
-    for (const u of rows) out.push({ ...u, plan: (await getPlanState(u.id)).plan });
-    res.json(out);
+    const total = c[0].n;
+    const pages = Math.max(Math.ceil(total / per), 1);
+    const page = Math.min(wanted, pages);
+    const { rows } = await pool.query(
+      `SELECT id, name, email, trial_ends_at, premium_until, trial_days_granted, email_verified,
+              created_at FROM users ${where}
+       ORDER BY email LIMIT ${per} OFFSET ${(page - 1) * per}`,
+      params,
+    );
+    const users = rows.map(({ trial_days_granted, ...u }) => ({
+      ...u,
+      plan: planOf(u),
+      trial_assigned: trial_days_granted !== null,
+    }));
+    res.json({ users, total, page, pages, per_page: per });
   } catch (err) {
     next(err);
   }
