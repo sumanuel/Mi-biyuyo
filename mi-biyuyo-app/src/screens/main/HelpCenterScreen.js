@@ -122,6 +122,14 @@ const TOPICS = [
     ],
   },
   {
+    title: "Recibos pendientes",
+    body: [
+      "Si tienes prisa, toca «Foto de recibo» en Accesos clave de Inicio: se abre la cámara y la foto queda guardada. Si quieres, escribe una descripción (por ejemplo «almuerzo con Pedro»); también puedes guardarla sin escribir nada.",
+      "Cuando tengas tiempo, toca «Tienes N recibos pendientes» en Inicio (o mantén presionado «Foto de recibo»). Ahí ves cada foto con su fecha y hora, puedes ampliarla (pellizca con dos dedos para acercar, arrástrala para moverla y toca dos veces para ampliar o volver al tamaño original), cambiar su descripción y tocar «Registrar gasto»: eliges la categoría, completas el monto y, al guardar el gasto, el recibo sale de pendientes. Con Premium la foto se adjunta además como recibo del gasto.",
+      "Para quitar uno sin registrarlo, toca «Eliminar». Las fotos se guardan solo en este teléfono (hasta 50), no se suben al servidor y se pierden si desinstalas la app o cambias de teléfono. Esta función es gratis.",
+    ],
+  },
+  {
     title: "Exportar a Excel",
     body: [
       "Ve a Ajustes > Sistema > Exportar a Excel. Elige el período (Este mes, Mes anterior, Últimos 3 meses, fechas a tu gusto o «Todo el historial») y toca «Exportar a Excel».",
@@ -148,7 +156,7 @@ const TOPICS = [
     body: [
       "Al registrarte confirmas tu correo con un código de 6 dígitos.",
       "En Ajustes > Seguridad puedes activar el desbloqueo con huella o Face ID (si tu teléfono lo permite). Después podrás entrar con un toque desde el inicio de sesión.",
-      "Si sales a otra app (por ejemplo WhatsApp) en medio de un registro y vuelves, la app pide la huella, pero al desbloquear sigues en la misma pantalla y con lo que ya habías escrito.",
+      "Si sales a otra app (por ejemplo WhatsApp) o usas la cámara y vuelves en menos de 10 minutos, entras directo, sin que te pida la huella. Si pasan más de 10 minutos fuera de la app, al volver te la pide, y al desbloquear sigues en la misma pantalla y con lo que ya habías escrito. Al abrir la app desde cero siempre se pide.",
       "El ojito junto a Mi saldo oculta los montos cuando alguien mira tu pantalla.",
     ],
   },
