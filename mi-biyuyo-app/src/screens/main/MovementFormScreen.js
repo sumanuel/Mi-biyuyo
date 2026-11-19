@@ -1,7 +1,7 @@
 import { usePlan } from "../../hooks/usePlan";
 import { LockedBlock, PremiumPill } from "../../components/PremiumLock";
-import React, { useState } from "react";
-import { View, TouchableOpacity } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Image, View, TouchableOpacity } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useData, errorMessage } from "../../contexts/DataContext";
 import {
@@ -39,6 +39,7 @@ import {
 } from "../../utils/money";
 import { qtyText } from "../../utils/text";
 import { takePhoto, pickFile } from "../../utils/receipt";
+import { receiptData, usePendingReceipts } from "../../utils/pendingReceipts";
 import DateField from "../../components/DateField";
 import { useFocusChain } from "../../hooks/useFocusChain";
 import BankFeeBlock, { useBankFee } from "../../components/BankFeeBlock";
@@ -167,6 +168,25 @@ export default function MovementFormScreen({ navigation, route }) {
   const [receipt, setReceipt] = useState(
     editing?.receipt ? { name: editing.receipt, existing: true } : null,
   );
+  // Recibo pendiente (foto guardada con prisa) que se está registrando: precarga la descripción,
+  // la adjunta como recibo si el plan lo permite y se quita de pendientes al guardar
+  const { list: pendingList, remove: removePending } = usePendingReceipts();
+  const pending = !editing
+    ? pendingList.find((r) => r.id === route.params?.pendingId) || null
+    : null;
+  const pendingLoaded = useRef(false);
+  useEffect(() => {
+    if (!pending || pendingLoaded.current) return;
+    pendingLoaded.current = true;
+    if (pending.note) setDesc((d) => d || pending.note);
+    if (canReceipts)
+      receiptData(pending)
+        .then((data) =>
+          setReceipt((r) => r || { name: "Recibo_pendiente.jpg", data }),
+        )
+        .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending?.id]);
   const [busy, setBusy] = useState(false);
   // Comisión bancaria (solo gastos): según la entidad elegida y el monto; al editar, la ya guardada
   const feeEnt =
@@ -331,6 +351,7 @@ export default function MovementFormScreen({ navigation, route }) {
         navigation.goBack();
       } else {
         const created = await actions.createMovement(body);
+        if (pending) await removePending(pending.id).catch(() => {});
         navigation.replace("MovementSaved", { id: created.id });
       }
     } catch (err) {
@@ -859,6 +880,25 @@ export default function MovementFormScreen({ navigation, route }) {
               ) : null}
             </>
           ) : null}
+        </Card>
+      ) : null}
+
+      {pending ? (
+        <Card style={{ gap: 10, flexDirection: "row", alignItems: "center" }}>
+          <Image
+            source={{ uri: pending.uri }}
+            style={{ width: 56, height: 74, borderRadius: 8 }}
+          />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Txt style={{ fontSize: 14, fontWeight: "700" }}>
+              Recibo pendiente
+            </Txt>
+            <Txt style={{ fontSize: 12, color: colors.textSecondary }}>
+              {canReceipts
+                ? "Se adjunta a este gasto y sale de pendientes al guardar."
+                : "Sale de pendientes al guardar. Adjuntarlo al gasto es Premium."}
+            </Txt>
+          </View>
         </Card>
       ) : null}
 

@@ -49,6 +49,7 @@ import ItemsScreen from "./src/screens/main/ItemsScreen";
 import ItemDatesScreen from "./src/screens/main/ItemDatesScreen";
 import CategoryMovesScreen from "./src/screens/main/CategoryMovesScreen";
 import PlannedScreen from "./src/screens/main/PlannedScreen";
+import PendingReceiptsScreen from "./src/screens/main/PendingReceiptsScreen";
 import PlannedFormScreen from "./src/screens/main/PlannedFormScreen";
 import CategoriesScreen from "./src/screens/main/CategoriesScreen";
 import CategoryFormScreen from "./src/screens/main/CategoryFormScreen";
@@ -156,6 +157,9 @@ function MainTabs() {
   );
 }
 
+// Tiempo fuera de la app (en segundo plano) tras el cual se vuelve a pedir la huella
+const LOCK_AFTER_MS = 10 * 60 * 1000;
+
 function AppNavigator() {
   const { isDark, colors } = useTheme();
   const { token, loading, restored, logout } = useAuth();
@@ -196,16 +200,21 @@ function AppNavigator() {
     };
   }, [loading, token, restored]);
 
+  // Al volver de segundo plano solo se vuelve a pedir la huella si pasó más de LOCK_AFTER_MS
+  // (como las apps de bancos). Salir un momento (cámara, otra app, una llamada) no bloquea.
   useEffect(() => {
     if (!token) return undefined;
-    let previous = AppState.currentState;
+    let leftAt = null;
     const sub = AppState.addEventListener("change", async (next) => {
-      if (/background/.test(previous) && next === "active") {
-        if (await getBiometricLockEnabled()) {
-          setIsLocked(true);
-        }
+      if (next !== "active") {
+        if (leftAt === null) leftAt = Date.now();
+        return;
       }
-      previous = next;
+      const away = leftAt === null ? 0 : Date.now() - leftAt;
+      leftAt = null;
+      if (away >= LOCK_AFTER_MS && (await getBiometricLockEnabled())) {
+        setIsLocked(true);
+      }
     });
     return () => sub.remove();
   }, [token]);
@@ -285,6 +294,10 @@ function AppNavigator() {
                         component={CategoryMovesScreen}
                       />
                       <Stack.Screen name="Planned" component={PlannedScreen} />
+                      <Stack.Screen
+                        name="PendingReceipts"
+                        component={PendingReceiptsScreen}
+                      />
                       <Stack.Screen
                         name="PlannedForm"
                         component={PlannedFormScreen}
