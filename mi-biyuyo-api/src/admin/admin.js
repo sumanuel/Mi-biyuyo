@@ -165,7 +165,7 @@
       if (j && j.token) { var a = getAuth() || {}; setAuth({ mode: "token", value: j.token, email: a.email }); }
     });
   }
-  var TABS = [["payments", "Pagos"], ["codes", "Códigos"], ["users", "Usuarios"], ["settings", "Configuración"], ["receivers", "Datos de cobro"], ["admins", "Administradores"], ["activity", "Actividad"]];
+  var TABS = [["payments", "Pagos"], ["codes", "Códigos"], ["users", "Usuarios"], ["settings", "Configuración"], ["announcements", "Anuncios"], ["receivers", "Datos de cobro"], ["admins", "Administradores"], ["activity", "Actividad"]];
   function renderTabs() {
     clear(tabsBox);
     TABS.forEach(function (t) {
@@ -174,7 +174,7 @@
   }
   function show() {
     clear(view);
-    ({ payments: viewPayments, codes: viewCodes, users: viewUsers, settings: viewSettings, receivers: viewReceivers, admins: viewAdmins, activity: viewActivity })[tab]();
+    ({ payments: viewPayments, codes: viewCodes, users: viewUsers, settings: viewSettings, announcements: viewAnnouncements, receivers: viewReceivers, admins: viewAdmins, activity: viewActivity })[tab]();
   }
 
   /* ---------- pagos ---------- */
@@ -426,6 +426,53 @@
           } }, "Guardar")));
       });
     });
+  }
+
+  /* ---------- anuncios (campanita de la app) ---------- */
+  var SCREEN_LABEL = { Stats: "Estadísticas", Entities: "Entidades", Categories: "Categorías", Planned: "Gastos planificados", Export: "Exportar a Excel", Plans: "Planes", HelpCenter: "Centro de ayuda" };
+  // Fecha y hora local para <input type="datetime-local"> y de vuelta a ISO
+  function toLocalInput(d) {
+    if (!d) return "";
+    var x = new Date(d); x = new Date(x.getTime() - x.getTimezoneOffset() * 60000);
+    return x.toISOString().slice(0, 16);
+  }
+  function fromLocalInput(v) { return v ? new Date(v).toISOString() : null; }
+  function viewAnnouncements() {
+    clear(view);
+    var list = h("div");
+    view.appendChild(h("div", { class: "card" }, h("b", null, "Anuncios para todos los usuarios"),
+      h("span", { class: "mut" }, "Aparecen en la campanita de la app mientras estén activos y dentro de sus fechas. Elige a quién llegan: a todos, solo a quienes no tienen Premium (Gratis y en prueba) o solo a quienes ya lo tienen; con las suscripciones apagadas solo llegan los de «todos». Cada usuario los ve al abrir la app, los marca como leídos y puede quitarlos de su lista. Si eliges una pantalla, el anuncio muestra un botón para abrirla. Se pueden escribir hasta 500 caracteres."), list));
+    function row(r, screens) {
+      var t = h("input", { value: r.title || "", placeholder: "Título (máx. 80)", maxLength: 80, style: "width:100%" });
+      var b = h("textarea", { value: r.body || "", placeholder: "Mensaje (máx. 500). Ej.: Si agregas detalles a tus movimientos mejoran las estadísticas.", maxLength: 500 });
+      var sc = h("select", null, h("option", { value: "" }, "Sin botón"),
+        screens.map(function (k) { return h("option", { value: k, selected: r.screen === k }, "Abrir: " + (SCREEN_LABEL[k] || k)); }));
+      var au = h("select", null, [["all", "Para: todos"], ["free", "Para: sin Premium (Gratis y en prueba)"], ["premium", "Para: con Premium"]].map(function (o) {
+        return h("option", { value: o[0], selected: (r.audience || "all") === o[0] }, o[1]);
+      }));
+      var st = h("input", { type: "datetime-local", value: toLocalInput(r.starts_at || new Date()) });
+      var en = h("input", { type: "datetime-local", value: toLocalInput(r.ends_at) });
+      var a = h("input", { type: "checkbox", checked: r.active !== false });
+      var read = function () {
+        return { title: t.value, body: b.value, screen: sc.value || null, audience: au.value, starts_at: fromLocalInput(st.value), ends_at: fromLocalInput(en.value), active: a.checked };
+      };
+      var now = new Date();
+      var state = !r.id ? "" : !r.active ? "apagado" : (r.ends_at && new Date(r.ends_at) <= now) ? "terminado" : new Date(r.starts_at) > now ? "programado" : "publicado";
+      return h("div", { class: "card" },
+        r.id && h("div", { class: "row" }, h("span", { class: "tag" }, state), h("span", { class: "mut" }, "Creado " + fmt(r.created_at) + (r.created_by ? " por " + r.created_by : ""))),
+        t, b,
+        h("div", { class: "row" }, au, sc, h("label", null, "Desde ", st), h("label", null, "Hasta (opcional) ", en), h("label", null, a, " activo")),
+        h("div", { class: "row" },
+          h("button", { class: "pri", onclick: function () { run(r.id ? api("PUT", "/announcements/" + r.id, read()) : api("POST", "/announcements", read()), r.id ? "Guardado" : "Anuncio publicado").then(viewAnnouncements); } }, r.id ? "Guardar" : "Publicar"),
+          r.id && h("button", { class: "bad", onclick: function () { if (confirm("¿Eliminar este anuncio? Los usuarios dejarán de verlo.")) run(api("DELETE", "/announcements/" + r.id), "Eliminado").then(viewAnnouncements); } }, "Eliminar")));
+    }
+    api("GET", "/announcements").then(function (j) {
+      list.appendChild(h("h4", null, "Nuevo anuncio"));
+      list.appendChild(row({}, j.screens));
+      list.appendChild(h("h4", null, "Anuncios (" + j.items.length + ")"));
+      if (!j.items.length) list.appendChild(h("span", { class: "mut" }, "Todavía no hay anuncios."));
+      j.items.forEach(function (r) { list.appendChild(row(r, j.screens)); });
+    }).catch(function (e) { say(e.message, true); });
   }
 
   /* ---------- datos de cobro ---------- */

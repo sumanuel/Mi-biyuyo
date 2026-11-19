@@ -31,6 +31,7 @@ app.use("/api/adjustments", require("./routes/adjustments"));
 app.use("/api/ledger", require("./routes/ledger"));
 app.use("/api/planned", require("./routes/planned"));
 app.use("/api/subscription", require("./routes/subscription"));
+app.use("/api/announcements", require("./routes/announcements"));
 app.use("/api/admin", require("./routes/admin"));
 
 // Página de administración (existe si hay ADMIN_KEY o alguna cuenta de administrador activa;

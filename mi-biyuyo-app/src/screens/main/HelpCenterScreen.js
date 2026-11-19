@@ -12,6 +12,7 @@ const TOPICS = [
       "Ve a Ajustes > Tasas de cambio. Puedes escribirlas a mano o tocar «Obtener tasas en línea» para traerlas.",
       "Activa la consulta diaria para que, a las 7:00 a. m., la app revise las tasas y te avise en la campanita. Tú decides si las actualizas.",
       "Sin tasas no puedes registrar en bolívares ni en USDT.",
+      "La campanita (arriba en Inicio) también recibe anuncios del equipo de Mi Biyuyo: consejos y novedades. Se ven al abrir la app con conexión; si traen un botón, te llevan a esa pantalla. Quita los que ya no quieras con la X.",
       "En Ajustes > Apariencia, «Moneda para mostrar los montos» define en cuál moneda (USD, VES BCV o USDT) ves los montos al abrir la app: el saldo, el resumen de Inicio, las listas y las estadísticas. En cada pantalla puedes cambiarla un momento con los botones de moneda; al volver a abrir la app vuelve a la que elegiste en Ajustes.",
     ],
   },
