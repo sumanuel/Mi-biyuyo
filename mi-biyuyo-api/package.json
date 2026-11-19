@@ -15,6 +15,7 @@
     "test:inicial": "node test/cuotas_inicial.test.js",
     "test:comisiones": "node test/comisiones.test.js",
     "test:admincuentas": "node test/admin_cuentas.test.js",
+    "test:anuncios": "node test/anuncios.test.js",
     "plan:set": "node test/plan_set.js",
     "receivers:import": "node database/import_receivers.js",
     "setup": "node database/migrate.js && node database/seed.js"

@@ -2,6 +2,7 @@ const router = require("express").Router();
 const ctrl = require("../controllers/adminController");
 const adminGuard = require("../middleware/adminGuard");
 const accounts = require("../controllers/adminAccountsController");
+const announcements = require("../controllers/announcementsController");
 
 // El inicio de sesión va antes del guard (es lo que entrega la sesión)
 router.post("/login", accounts.login);
@@ -39,6 +40,11 @@ router.put("/settings", ctrl.putSettings);
 
 router.get("/plans", ctrl.listPlans);
 router.put("/plans/:code", ctrl.updatePlan);
+
+router.get("/announcements", announcements.list);
+router.post("/announcements", announcements.create);
+router.put("/announcements/:id", announcements.update);
+router.delete("/announcements/:id", announcements.remove);
 
 router.get("/receivers", ctrl.listReceivers);
 router.post("/receivers", ctrl.createReceiver);
