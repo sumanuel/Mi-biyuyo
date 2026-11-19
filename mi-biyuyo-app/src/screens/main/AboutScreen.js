@@ -7,8 +7,9 @@ import app from "../../../app.json";
 
 const FEATURES = [
   "Ingresos, gastos, por cobrar y por pagar en USD, bolívares (BCV) y USDT (Binance)",
-  "Por cobrar y por pagar con abonos, cuotas y fecha de vencimiento",
+  "Por cobrar y por pagar con abonos, cuotas (con inicial opcional) y fecha de vencimiento",
   "Entidades (efectivo, bancos, billeteras) con transferencias entre ellas, ordenadas como prefieras",
+  "Comisiones por entidad (pago móvil, transferencia o por movimiento): se descuentan del saldo y se ven como gasto",
   "Cada movimiento conserva la tasa del día en que se registró",
   "Tus propias categorías: créalas, ocúltalas o elimínalas",
   "Detalle de las compras con cantidad y costo por ítem, y qué es lo que más compras",
@@ -16,6 +17,7 @@ const FEATURES = [
   "Cuánto te queda en cada entidad y en Mi saldo después de cada movimiento",
   "Un filtro de fechas único para toda la app, estadísticas con el detalle de cada categoría y alertas de saldo bajo",
   "Corrige el saldo de una entidad con un ajuste y archiva las que ya no uses, sin perder su historial",
+  "Exporta tus movimientos a Excel",
   "Comparte tus datos de pago como imagen con código QR",
   "Bloqueo con tu huella para proteger tus datos",
 ];
