@@ -17,6 +17,7 @@ const FEATURES = [
   "Cuánto te queda en cada entidad y en Mi saldo después de cada movimiento",
   "Un filtro de fechas único para toda la app, estadísticas con el detalle de cada categoría y alertas de saldo bajo",
   "Corrige el saldo de una entidad con un ajuste y archiva las que ya no uses, sin perder su historial",
+  "Foto de recibo con un toque cuando tengas prisa y registra el movimiento después (gratis)",
   "Exporta tus movimientos a Excel",
   "Comparte tus datos de pago como imagen con código QR",
   "Bloqueo con tu huella para proteger tus datos",

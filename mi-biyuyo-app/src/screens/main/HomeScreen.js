@@ -33,6 +33,8 @@ import { grp, maskMoney, nTxt } from "../../utils/money";
 import PeriodBar from "../../components/PeriodBar";
 import { usePeriod } from "../../contexts/PeriodContext";
 import { useRateNotifications } from "../../contexts/RateNotificationsContext";
+import ReceiptSnapButton from "../../components/ReceiptSnapButton";
+import { usePendingReceipts } from "../../utils/pendingReceipts";
 import PlanBanner from "../../components/PlanBanner";
 import PlanCrown from "../../components/PlanCrown";
 import { useGuide } from "../../contexts/GuideContext";
@@ -43,6 +45,7 @@ const MAX_MOVEMENTS = 20;
 export default function HomeScreen({ navigation }) {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const pendingCount = usePendingReceipts().list.length;
   const {
     model,
     dv,
@@ -210,7 +213,9 @@ export default function HomeScreen({ navigation }) {
             Panel de control
           </Txt>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <H1 style={{ fontSize: 24, flexShrink: 1 }}>{user?.name || "Mi Biyuyo"}</H1>
+            <H1 style={{ fontSize: 24, flexShrink: 1 }}>
+              {user?.name || "Mi Biyuyo"}
+            </H1>
             <PlanCrown />
           </View>
         </View>
@@ -567,42 +572,67 @@ export default function HomeScreen({ navigation }) {
 
       <View style={{ gap: 10 }}>
         <H2>Accesos clave</H2>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() =>
-            go(navigation, "Pick", { type: "gasto", ts: Date.now() })
-          }
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 14,
-            padding: 16,
-            backgroundColor: colors.gasto.strong, // el verde es el color de los ingresos
-            borderRadius: 16,
-          }}
-        >
-          <View
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() =>
+              go(navigation, "Pick", { type: "gasto", ts: Date.now() })
+            }
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              backgroundColor: "rgba(255,255,255,0.16)",
+              flex: 1,
+              minHeight: 60,
+              flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
+              gap: 8,
+              paddingHorizontal: 10,
+              paddingVertical: 12,
+              backgroundColor: colors.gasto.strong, // el verde es el color de los ingresos
+              borderRadius: 16,
             }}
           >
             <Icon name="plus" size={22} color="#ffffff" stroke={2} />
-          </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Txt style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}>
+            <Txt
+              style={{
+                fontSize: 13,
+                fontWeight: "700",
+                color: "#ffffff",
+                textAlign: "center",
+              }}
+            >
               Ingresar gasto
             </Txt>
-            <Txt style={{ fontSize: 13, color: "rgba(255,255,255,0.9)" }}>
-              Elige la categoría y registra el monto
+          </TouchableOpacity>
+          <ReceiptSnapButton
+            onOpenList={() => navigation.navigate("PendingReceipts")}
+          />
+        </View>
+        {pendingCount ? (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("PendingReceipts")}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              minHeight: 44,
+              paddingHorizontal: 14,
+              borderRadius: 12,
+              backgroundColor: colors.surfaceAlt,
+            }}
+          >
+            <Txt style={{ fontSize: 13, fontWeight: "700" }}>
+              {pendingCount === 1
+                ? "Tienes 1 recibo pendiente por registrar"
+                : `Tienes ${pendingCount} recibos pendientes por registrar`}
             </Txt>
-          </View>
-          <Icon name="chevronRight" size={18} color="#ffffff" stroke={2} />
-        </TouchableOpacity>
+            <Icon
+              name="chevronRight"
+              size={16}
+              color={colors.textSecondary}
+              stroke={2}
+            />
+          </TouchableOpacity>
+        ) : null}
         <View style={{ flexDirection: "row", gap: 10 }}>
           {[
             ["ingreso", "arrowUp", "Ingresar ingreso", colors.ingreso.strong],

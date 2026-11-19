@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  Image,
   PanResponder,
   View,
   TouchableOpacity,
@@ -14,6 +15,7 @@ import { usePlan } from "../../hooks/usePlan";
 import { LockedBlock, PremiumPill } from "../../components/PremiumLock";
 import { nTxt } from "../../utils/money";
 import { META, TYPES } from "../../utils/ledger";
+import { usePendingReceipts } from "../../utils/pendingReceipts";
 
 const GAP = 10;
 const CELL_H = 112;
@@ -39,6 +41,10 @@ export default function PickScreen({ navigation, route }) {
   const { can, gate } = usePlan();
   const { width, fontScale } = useWindowDimensions();
   const [type, setType] = useState(route.params?.type || "gasto");
+  // Recibo pendiente que se está registrando (viene de la lista de recibos pendientes)
+  const { list: pendingList } = usePendingReceipts();
+  const pending =
+    pendingList.find((r) => r.id === route.params?.pendingId) || null;
 
   // 3 columnas exactas; 2 en pantallas muy angostas (< 340 dp) o con letra muy grande (>= 1,3x),
   // donde los nombres no caben en tarjetas tan estrechas.
@@ -234,6 +240,51 @@ export default function PickScreen({ navigation, route }) {
     <Screen scroll={false}>
       <View style={{ padding: 16, paddingTop: 20, paddingBottom: 12, gap: 14 }}>
         <H1>Nuevo movimiento</H1>
+        {pending ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              padding: 8,
+              borderRadius: 12,
+              backgroundColor: colors.surfaceAlt,
+            }}
+          >
+            <Image
+              source={{ uri: pending.uri }}
+              style={{ width: 36, height: 48, borderRadius: 6 }}
+            />
+            <View style={{ flex: 1 }}>
+              <Txt style={{ fontSize: 13, fontWeight: "700" }}>
+                Registrando un recibo pendiente
+              </Txt>
+              <Txt
+                numberOfLines={1}
+                style={{ fontSize: 12, color: colors.textSecondary }}
+              >
+                {pending.note || "Elige la categoría de este gasto"}
+              </Txt>
+            </View>
+            <TouchableOpacity
+              onPress={() => navigation.setParams({ pendingId: null })}
+              accessibilityLabel="Quitar el recibo pendiente"
+              style={{
+                width: 44,
+                height: 44,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon
+                name="close"
+                size={18}
+                color={colors.textSecondary}
+                stroke={2}
+              />
+            </TouchableOpacity>
+          </View>
+        ) : null}
         <View
           style={{
             flexDirection: "row",
@@ -360,7 +411,10 @@ export default function PickScreen({ navigation, route }) {
               activeOpacity={0.85}
               delayLongPress={350}
               onPress={() =>
-                navigation.navigate("MovementForm", { catId: c.id })
+                navigation.navigate("MovementForm", {
+                  catId: c.id,
+                  pendingId: type === "gasto" ? pending?.id : undefined,
+                })
               }
               onPressIn={(e) => {
                 touch.current = {

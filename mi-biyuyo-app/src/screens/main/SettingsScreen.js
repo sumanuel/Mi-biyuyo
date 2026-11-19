@@ -368,7 +368,7 @@ export default function SettingsScreen({ navigation }) {
             sub={
               bioEnabled && !bioHasCreds
                 ? "Desactívalo y vuelve a activarlo para entrar con huella desde el inicio de sesión"
-                : "Pide huella o Face ID al abrir la app y al iniciar sesión"
+                : "Pide huella o Face ID al abrir la app, al iniciar sesión y al volver tras 10 minutos fuera"
             }
             last
             right={
