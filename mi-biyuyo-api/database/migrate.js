@@ -578,6 +578,29 @@ async function migrate() {
         ADD COLUMN IF NOT EXISTS trial_notice_for  TIMESTAMPTZ
     `);
 
+    // ── anuncios para todos los usuarios (campanita de la app), desde /admin ──
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS announcements (
+        id         SERIAL PRIMARY KEY,
+        title      VARCHAR(80)  NOT NULL,
+        body       VARCHAR(500) NOT NULL,
+        screen     VARCHAR(30),
+        audience   VARCHAR(10) NOT NULL DEFAULT 'all',
+        starts_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        ends_at    TIMESTAMPTZ,
+        active     BOOLEAN NOT NULL DEFAULT TRUE,
+        created_by VARCHAR(120),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    // A quién llega: all (todos), free (sin Premium: Gratis y en prueba) o premium (con Premium pagado)
+    await client.query(
+      `ALTER TABLE announcements ADD COLUMN IF NOT EXISTS audience VARCHAR(10) NOT NULL DEFAULT 'all'`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_announcements_window ON announcements (active, starts_at DESC)`,
+    );
+
     await client.query("COMMIT");
     console.log("✅ Migración completada");
   } catch (err) {
