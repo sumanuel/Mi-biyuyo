@@ -113,6 +113,32 @@ async function main() {
     await call(A, t, "DELETE", `/api/transactions/${d.j.id}/payments/${payId}`);
     ok("borrar el abono borra su comisión", (await pool.query(`SELECT 1 FROM bank_fees WHERE payment_id = $1`, [payId])).rows.length === 0);
 
+    // Por cobrar (préstamo): lleva comisión solo cuando el dinero sale de una entidad (cash)
+    const cobrar = list.find((c) => c.type === "loan_given");
+    const mkc = (over) => call(A, t, "POST", "/api/transactions", { category_id: cobrar.id, amount: 1000, currency: "VES", cash: true, entity_id: ent.id, counterpart_name: "Pedro", date: "2026-11-05", due_date: "2026-12-05", ...over });
+    const c1 = await mkc({ fee: { method: "pago_movil", amount: 14 } });
+    const cf = await feeRows(c1.j.id);
+    ok("préstamo por cobrar con comisión", c1.s === 201 && cf.length === 1 && Number(cf[0].amount) === 14 && cf[0].entity_id === ent.id, [c1.s, cf]);
+    const ledc = (await call(A, t, "GET", "/api/ledger")).j;
+    ok("el ledger trae la comisión del préstamo", ledc.fees.some((x) => x.transaction_id === c1.j.id), ledc.fees);
+    ok("préstamo sin entidad con comisión → 422", (await mkc({ entity_id: null, fee: { method: "pago_movil", amount: 14 } })).s === 422);
+    ok("préstamo sin dinero que sale (cash false) con comisión → 422", (await mkc({ cash: false, entity_id: null, fee: { method: "pago_movil", amount: 14 } })).s === 422);
+    const upc = await call(A, t, "PUT", `/api/transactions/${c1.j.id}`, { fee: { method: "transferencia", amount: 20 } });
+    const cf2 = await feeRows(c1.j.id);
+    ok("editar reemplaza la comisión del préstamo", upc.s === 200 && cf2.length === 1 && Number(cf2[0].amount) === 20 && cf2[0].method === "transferencia", cf2);
+    await call(A, t, "PUT", `/api/transactions/${c1.j.id}`, { fee: null });
+    ok("fee null la quita del préstamo", (await feeRows(c1.j.id)).length === 0);
+    await call(A, t, "PUT", `/api/transactions/${c1.j.id}`, { fee: { method: "pago_movil", amount: 14 } });
+    const toNoCash = await call(A, t, "PUT", `/api/transactions/${c1.j.id}`, { fee: { method: "pago_movil", amount: 14 }, cash: false });
+    ok("pasar a sin dinero con comisión → 422", toNoCash.s === 422, toNoCash);
+    await call(A, t, "PUT", `/api/transactions/${c1.j.id}`, { cash: false, entity_id: null });
+    ok("pasar a sin dinero quita la comisión", (await feeRows(c1.j.id)).length === 0);
+    const c2 = await mkc({ fee: { method: "pago_movil", amount: 14 } });
+    await call(A, t, "DELETE", `/api/transactions/${c2.j.id}`);
+    ok("borrar el préstamo borra su comisión", (await feeRows(c2.j.id)).length === 0);
+    const c3 = await mkc({});
+    ok("préstamo sin fee no crea comisión", c3.s === 201 && (await feeRows(c3.j.id)).length === 0);
+
     // Premium: con suscripciones encendidas, un usuario Gratis recibe 402
     const f = await newUser(B, "free");
     await pool.query(`UPDATE users SET trial_ends_at = NOW() - INTERVAL '1 day', trial_days_granted = 1 WHERE email = $1`, [f.email]);
