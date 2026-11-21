@@ -188,14 +188,15 @@ export default function MovementFormScreen({ navigation, route }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending?.id]);
   const [busy, setBusy] = useState(false);
-  // Comisión bancaria (solo gastos): según la entidad elegida y el monto; al editar, la ya guardada
+  // Comisión bancaria (gastos y préstamos por cobrar, cuando el dinero sale de la entidad): según la
+  // entidad elegida y el monto; al editar, la ya guardada
   const feeEnt =
     model.entById[entId] ||
     model.ents.find((e) => !e.locked || (editing && e.id === editing.ent));
   const savedFee = editing ? model.bankFees.find((f) => f.txId === editing.id) : null;
   const fee = useBankFee(
     model,
-    type === "gasto" ? feeEnt : null,
+    type === "gasto" || type === "cobrar" ? feeEnt : null,
     toUsdE(ccy, parseNum(amount)),
     savedFee ? { method: savedFee.method, amount: savedFee.amount } : null,
   );
@@ -328,7 +329,7 @@ export default function MovementFormScreen({ navigation, route }) {
         body.down_payment = downNum;
         body.down_entity_id = downEntId;
       }
-      if (type === "gasto") {
+      if (type === "gasto" || type === "cobrar") {
         const fb = fee.body();
         if (fb) body.fee = fb;
         else if (editing && can("fees")) body.fee = null; // quita la comisión guardada
@@ -1048,6 +1049,9 @@ export default function MovementFormScreen({ navigation, route }) {
         </View>
       ) : null}
       {isDebt && cash ? entBlock : null}
+      {type === "cobrar" && !noEnts ? (
+        <BankFeeBlock fee={fee} model={model} tint={tint} />
+      ) : null}
 
       {isDebt ? (
         <View style={{ gap: 8 }}>

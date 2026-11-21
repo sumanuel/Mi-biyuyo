@@ -197,6 +197,7 @@ exports.create = async (req, res, next) => {
     // ¿La categoría es de por cobrar / por pagar? ¿Es una categoría propia?
     let isDebtCat = false;
     let isExpenseCat = false;
+    let isLoanCat = false; // Por cobrar (préstamo): con dinero que sale de una entidad lleva comisión
     let ownCat = false;
     if (category_id) {
       const { rows: cat } = await client.query(
@@ -205,6 +206,7 @@ exports.create = async (req, res, next) => {
       );
       isDebtCat = cat.length > 0 && DEBT_TYPES.includes(cat[0].type);
       isExpenseCat = cat.length > 0 && cat[0].type === "expense";
+      isLoanCat = cat.length > 0 && cat[0].type === "loan_given";
       ownCat = cat.length > 0 && cat[0].user_id !== null;
     }
 
@@ -217,11 +219,12 @@ exports.create = async (req, res, next) => {
     needOpenEntity(plan, entity_id);
     const inst = cleanInstallments(installments, installment_days, isDebtCat);
 
-    // Comisión bancaria (solo gastos): sale de la misma entidad del gasto. Premium.
+    // Comisión bancaria (gastos y préstamos por cobrar con dinero que sale): sale de la misma entidad. Premium.
     const fee = cleanFee(req.body.fee);
     let feeEntity = null;
     if (fee) {
-      if (!isExpenseCat) throw feeFail(422, "La comisión solo aplica a los gastos");
+      if (!(isExpenseCat || (isLoanCat && cash !== false)))
+        throw feeFail(422, "La comisión solo aplica a los gastos y a los préstamos por cobrar con dinero que sale de una entidad");
       if (!entity_id) throw feeFail(422, "Elige la entidad para registrar la comisión");
       need(plan, "fees");
       feeEntity = await getEntity(req.user.id, entity_id);
@@ -469,8 +472,17 @@ exports.update = async (req, res, next) => {
         id,
       ],
     );
-    // Comisión (gastos): se reemplaza si llega `fee`; si no llega, sigue a la fecha y se quita si cambió la entidad
-    if (cur.category_type === "expense") {
+    // Comisión (gastos y préstamos por cobrar con dinero que sale): se reemplaza si llega `fee`; si no llega,
+    // sigue a la fecha y se quita si cambió la entidad (o si el préstamo dejó de mover dinero)
+    const feeOk =
+      cur.category_type === "expense" ||
+      (cur.category_type === "loan_given" && (has("cash") ? b.cash !== false : cur.cash !== false));
+    if (cur.category_type === "loan_given" && !feeOk) {
+      if (has("fee") && cleanFee(b.fee))
+        throw feeFail(422, "La comisión solo aplica cuando el dinero sale de una entidad");
+      await client.query(`DELETE FROM bank_fees WHERE transaction_id = $1`, [id]);
+    }
+    if (feeOk) {
       if (has("fee")) {
         const fee = cleanFee(b.fee);
         await client.query(`DELETE FROM bank_fees WHERE transaction_id = $1`, [id]);
